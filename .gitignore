@@ -1,0 +1,30 @@
+# Secrets
+.env
+.env/
+*.key
+*.pem
+*.p12
+*.mobileprovision
+# Packages
+.venv/
+node_modules/
+.build/
+DerivedData/
+# Data
+.local/
+.codex/
+data/
+results/
+recordings/
+*.db
+*.db-shm
+*.db-wal
+*.ogg
+*.wav
+*.aiff
+*.mp3
+# Cache
+.DS_Store
+__pycache__/
+*.pyc
+xcuserdata/
