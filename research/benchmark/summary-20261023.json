@@ -1,0 +1,104 @@
+{
+  "inventory": {
+    "month_timezone": "Asia/Shanghai",
+    "start_utc": "2026-06-30T16:00:00Z",
+    "end_utc": "2026-07-31T16:00:00Z",
+    "records": 528,
+    "audio_available": 528,
+    "nonempty_text": 441,
+    "paragraphs": 286,
+    "numbered_lists": 60,
+    "latin_text": 322,
+    "total_audio_seconds": 11669.592000000002,
+    "seed": 20260723,
+    "train_cases": 4,
+    "test_cases": 8,
+    "reference_policy": "Typeless is a comparison output, not ground truth",
+    "selection": "Twelve longest eligible July outputs, all over 200 characters; seeded 4/8 split; not a population accuracy estimate"
+  },
+  "metrics": {
+    "raw-final": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.35863552550706823,
+      "median_elapsed_seconds": 25.709000000000003,
+      "mean_length_ratio_to_typeless": 1.0657285460894343,
+      "mean_paragraphs": 1
+    },
+    "baseline": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.2707437000614628,
+      "median_elapsed_seconds": 1.7375,
+      "mean_length_ratio_to_typeless": 0.8888186085273653,
+      "mean_paragraphs": 3.75
+    },
+    "v4-final": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.2510755992624462,
+      "median_elapsed_seconds": 1.9045,
+      "mean_length_ratio_to_typeless": 0.9452219504226053,
+      "mean_paragraphs": 3.625
+    },
+    "v5-final": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.2550706822372465,
+      "median_elapsed_seconds": 1.8535,
+      "mean_length_ratio_to_typeless": 0.961621762826628,
+      "mean_paragraphs": 3.5
+    },
+    "raw-realtime": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.3653964351567302,
+      "median_elapsed_seconds": 103.2655,
+      "mean_length_ratio_to_typeless": 1.0502444853433812,
+      "mean_paragraphs": 1
+    },
+    "v5-realtime": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.2633681622618316,
+      "median_elapsed_seconds": 1.7205,
+      "mean_length_ratio_to_typeless": 0.9517210465847191,
+      "mean_paragraphs": 4.375
+    },
+    "raw-file": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.35802089735709897,
+      "median_elapsed_seconds": 7.9559999999999995,
+      "mean_length_ratio_to_typeless": 1.0587850197601838,
+      "mean_paragraphs": 1
+    },
+    "v5-file": {
+      "successful": 8,
+      "total": 8,
+      "weighted_reference_edit_distance": 0.2507682851874616,
+      "median_elapsed_seconds": 1.975,
+      "mean_length_ratio_to_typeless": 0.9592258642528801,
+      "mean_paragraphs": 3.875
+    }
+  },
+  "important": "Reference edit distance is NOT ASR WER, accuracy, or semantic quality. Typeless is not ground truth.",
+  "prompt_development": "v1-v4 used four training cases; v4 frozen before held-out cleanup. v5 changed input framing after a separate synthetic instruction-injection failure. v5 outputs on the same eight test cases are a regression comparison, not a fresh blind test.",
+  "file_model_limitation": "File-standard-2.0 was tested using audio.data base64 after successful public-sample submission and query. This input field is observed working but not listed in the current URL-oriented official schema. No public audio hosting was used.",
+  "v1_model_limitation": "1.0 resource rejected 403. Two streaming variants are modes of the streaming 2.0 model; the third is file-standard 2.0.",
+  "latency_limitation": "Final mode used accelerated recorded-file upload; realtime used 200ms replay pacing. Wall times cannot be compared as model speed benchmarks.",
+  "timing_summary": {
+    "v2-final": {
+      "median_pipeline_seconds": 27.755,
+      "median_tail_plus_cleanup_seconds": 20.422
+    },
+    "v2-realtime": {
+      "median_pipeline_seconds": 105.054,
+      "median_tail_plus_cleanup_seconds": 1.9965000000000002
+    },
+    "v2-file": {
+      "median_pipeline_seconds": 9.8975,
+      "median_tail_plus_cleanup_seconds": 9.8975
+    }
+  }
+}
