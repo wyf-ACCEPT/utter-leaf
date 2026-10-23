@@ -6,7 +6,7 @@
 
 2026-10-23：项目交接资料已准备。已有真实录音评测和可复用 prompt；尚未实现、编译或发布 App。
 
-项目目录：`/Users/wangyifan/Desktop/Research/UtterLeaf`，独立于原来的 Sessions / Reverse Anything 调研会话。UtterLeaf 是用户选定的工作名，尚未作商标、域名或商店名称核验。
+项目目录：`/Users/wangyifan/Desktop/Research/Sessions/6x-UtterLeaf`，保留在 Sessions 下，与 Reverse Anything 调研目录分开组织。UtterLeaf 是用户选定的工作名，尚未作商标、域名或商店名称核验。
 
 ## 新会话从这里开始
 

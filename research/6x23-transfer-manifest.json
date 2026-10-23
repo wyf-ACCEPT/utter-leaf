@@ -3,8 +3,8 @@
   "files": [
     {
       "path": ".codex/handoff/6x23-handoff-utterleaf.md",
-      "sha256": "cac74b3592fb56bc965781b108d85fad9fe1905c7d8b8ac745cda3fc4978a257",
-      "bytes": 1678
+      "sha256": "4f507bc1931fd8053e25bc875ced88cf90594f95791d7df810f45ddaa5cd5215",
+      "bytes": 1786
     },
     {
       "path": ".gitignore",
@@ -18,8 +18,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "b945537b2d80fdcbade48d6dedef7fd372abf1d549070b0e6e28d78e020581a5",
-      "bytes": 2556
+      "sha256": "895e8db81d17471a8157e7f7c39acd897382f5ed3167a3d6be27b1eb27bc71d3",
+      "bytes": 2579
     },
     {
       "path": "docs/6x23-product-brief.md",
@@ -28,8 +28,8 @@
     },
     {
       "path": "docs/6x23-start-new-session.md",
-      "sha256": "0ad728c11a368d3d75cf3b4bfb7dbbd82db911d53832265f51571a29ff74a165",
-      "bytes": 1382
+      "sha256": "078c47d37612d978ebbcd1bd6da28f18035334d16ae90b6e1c3f8f7d1dd25dd3",
+      "bytes": 1394
     },
     {
       "path": "docs/6x23-technical-handoff.md",
@@ -144,5 +144,6 @@
   ],
   "private_audio_copied": false,
   "private_transcripts_copied": false,
-  "credentials_copied": false
+  "credentials_copied": false,
+  "project_directory": "/Users/wangyifan/Desktop/Research/Sessions/6x-UtterLeaf"
 }

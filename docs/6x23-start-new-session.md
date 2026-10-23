@@ -1,6 +1,6 @@
 # 新会话开场说明
 
-请在 Codex 中把 `/Users/wangyifan/Desktop/Research/UtterLeaf` 作为新项目/工作目录，再开一个新会话。可以直接发送下面这段：
+请在 Codex 中把 `/Users/wangyifan/Desktop/Research/Sessions/6x-UtterLeaf` 作为新项目/工作目录，再开一个新会话。可以直接发送下面这段：
 
 > 我们开始实现 UtterLeaf（言叶），一个对标 Typeless 的 macOS 私人语音输入 App。请先读取根目录 README.md、AGENTS.md、.codex/handoff/6x23-handoff-utterleaf.md，以及 docs 下的产品需求和技术交接。
 >
