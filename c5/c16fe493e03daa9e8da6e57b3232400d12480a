@@ -1,0 +1,161 @@
+.gitignore
+  s_299dc04098b816::t_f5f0d294c59534 25
+AGENTS.md
+  s_299dc04098b816::t_b5afd864d96907 16-19
+App/Info.plist
+  s_299dc04098b816::t_f86d2d8ef1768f 1-16
+App/ThirdPartyNotices/SpeechWaveAnimation.txt
+  s_299dc04098b816::t_bc2b9316dfdcfa 1-19
+App/UtterLeaf.entitlements
+  s_299dc04098b816::t_bea92e2846b40b 1-5
+DESIGN.md
+  s_299dc04098b816::t_c1e5aa016324be 1-112
+Package.swift
+  s_299dc04098b816::t_5e86d4e28ce2f5 1-15
+README.md
+  s_299dc04098b816::t_42abcc542c3658 7,43,45-121
+Sources/CZlib/module.modulemap
+  s_299dc04098b816::t_b2963cf5f70eb3 1-5
+Sources/CZlib/shim.h
+  s_299dc04098b816::t_83d81381da30d1 1
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_6aa8ce9bbfd379 1-283
+Sources/UtterLeaf/BillingService.swift
+  s_299dc04098b816::t_799243dc647c92 1-156
+Sources/UtterLeaf/BillingSyncView.swift
+  s_299dc04098b816::t_3548dcd90fbd2a 1-150
+Sources/UtterLeaf/CallHistorySheet.swift
+  s_299dc04098b816::t_0ab5f4a38279c1 1-59
+Sources/UtterLeaf/InteractionStyle.swift
+  s_299dc04098b816::t_ff8395cc4e03d2 1-72
+Sources/UtterLeaf/LeafInput.swift
+  s_299dc04098b816::t_1c36efee6ea7df 1-34
+Sources/UtterLeaf/LiveAudioMeter.swift
+  s_299dc04098b816::t_d3917bfbc2cee7 1-9
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_d64d58ee9442c9 1-153
+Sources/UtterLeaf/NativeBridge.swift
+  s_299dc04098b816::t_03c6a38df81a22 1-306
+Sources/UtterLeaf/PillPresentation.swift
+  s_299dc04098b816::t_a04700c1977d6b 1-70
+Sources/UtterLeaf/Providers.swift
+  s_299dc04098b816::t_2c1e240f101154 1-184
+Sources/UtterLeaf/RecordingPill.swift
+  s_299dc04098b816::t_1aa7a90e710e9b 1-53
+Sources/UtterLeaf/SettingsView.swift
+  s_299dc04098b816::t_90ba9867235359 1-124
+Sources/UtterLeaf/SmokeRunner.swift
+  s_299dc04098b816::t_64d53606eefffc 1-72
+Sources/UtterLeaf/SoundFeedback.swift
+  s_299dc04098b816::t_0db50ec27ff668 1-46
+Sources/UtterLeaf/SoundSettingsView.swift
+  s_299dc04098b816::t_a3423f28313e76 1-37
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_897eb3e6e2ba2f 1-113
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_f35dd4d7df76d8 1-90
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_22073c2b712e73 1-474
+Sources/UtterLeaf/VocabularyView.swift
+  s_299dc04098b816::t_76d647c6285ca8 1-126
+Sources/UtterLeaf/WindowInteraction.swift
+  s_299dc04098b816::t_eec5486045b828 1-82
+Sources/UtterLeafCore/AudioEnvelope.swift
+  s_299dc04098b816::t_b02c4298b71ea8 1-42
+Sources/UtterLeafCore/BillingModels.swift
+  s_299dc04098b816::t_30fdfc8b2c5112 1-118
+Sources/UtterLeafCore/CleanupPrompt.swift
+  s_299dc04098b816::t_6670cea18c20a0 1-16
+Sources/UtterLeafCore/Domain.swift
+  s_299dc04098b816::t_167db286d06e1c 1-163
+Sources/UtterLeafCore/FnKeyGesture.swift
+  s_299dc04098b816::t_f5799df7d87591 1-30
+Sources/UtterLeafCore/InsertionVerification.swift
+  s_299dc04098b816::t_245ecb25fefa69 1-28
+Sources/UtterLeafCore/SoundPreferences.swift
+  s_299dc04098b816::t_9d8fad23ec4528 1-16
+Sources/UtterLeafCore/SpeechWaveCurve.swift
+  s_299dc04098b816::t_7c84b29cf91e3b 1-22
+Sources/UtterLeafCore/UsageBudget.swift
+  s_299dc04098b816::t_d75e2b9f3baab6 1-38
+Sources/UtterLeafCore/Vocabulary.swift
+  s_299dc04098b816::t_6e9fc0d5e40f63 1-61
+Sources/UtterLeafCore/VolcBillingSigner.swift
+  s_299dc04098b816::t_928ae31098eefb 1-30
+Sources/UtterLeafCore/WindowFillState.swift
+  s_299dc04098b816::t_2c4502da9ee02c 1-29
+Sources/UtterLeafCore/Wire.swift
+  s_299dc04098b816::t_46078ab5e05e53 1-76
+Tests/UtterLeafCoreTests/BillingTests.swift
+  s_299dc04098b816::t_9526714f5f1868 1-128
+Tests/UtterLeafCoreTests/CoreTests.swift
+  s_299dc04098b816::t_d3909e456c214a 1-91
+Tests/UtterLeafCoreTests/FnKeyGestureTests.swift
+  s_299dc04098b816::t_70bad78c8a40a0 1-50
+Tests/UtterLeafCoreTests/InsertionVerificationTests.swift
+  s_299dc04098b816::t_4d10d7fdcb7358 1-36
+Tests/UtterLeafCoreTests/PillPresentationTests.swift
+  s_299dc04098b816::t_8247e22972df14 1-43
+Tests/UtterLeafCoreTests/StorageTests.swift
+  s_299dc04098b816::t_4b66f4763f1be1 1-97
+Tests/UtterLeafCoreTests/UsageBudgetTests.swift
+  s_299dc04098b816::t_50d3250a275d61 1-43
+Tests/UtterLeafCoreTests/VocabularyAndWaveformTests.swift
+  s_299dc04098b816::t_d7ea53bf714512 1-173
+Tests/UtterLeafCoreTests/WindowFillTests.swift
+  s_299dc04098b816::t_bd5de9b6b28144 1-30
+UX-CONTRACT.md
+  s_299dc04098b816::t_4f74cd3a66b705 1-91
+assets/brand/concepts.svg
+  s_299dc04098b816::t_dba6f2268fcb8f 1-6
+assets/brand/favicon.svg
+  s_299dc04098b816::t_faf8541c9b0361 1
+assets/brand/utterleaf-app-icon.svg
+  s_299dc04098b816::t_27df7ecf30dfe2 1
+assets/brand/utterleaf-horizontal.svg
+  s_299dc04098b816::t_7c012ab8758081 1
+assets/brand/utterleaf-mark-dark.svg
+  s_299dc04098b816::t_6efdeeb2c0a8a9 1
+assets/brand/utterleaf-mark-light.svg
+  s_299dc04098b816::t_30a98b2d2c58d6 1
+assets/brand/utterleaf-mark-mono.svg
+  s_299dc04098b816::t_299a47e515f1b7 1
+assets/brand/utterleaf-mark-reversed.svg
+  s_299dc04098b816::t_aacae79be36edf 1
+assets/brand/utterleaf-stacked.svg
+  s_299dc04098b816::t_6063dd9630293f 1
+docs/6x23-autoinput-vocabulary-waveform.md
+  s_299dc04098b816::t_327b3747abe48c 1-62
+docs/6x23-brand-notes.md
+  s_299dc04098b816::t_5b7f4912e0a8b1 1-36
+docs/6x23-implementation-status.md
+  s_299dc04098b816::t_aa8aa4d868dfc3 1-145
+docs/6x23-product-brief.md
+  s_299dc04098b816::t_570c3955af21ec 74-114
+premium-ui.json
+  s_299dc04098b816::t_dafd6130dee7f2 1-10
+prompts/README.md
+  s_299dc04098b816::t_ea68fd137dba2d 40-45
+scripts/build-app.sh
+  s_299dc04098b816::t_02dcb158c9e269 1-42
+scripts/render-brand.swift
+  s_299dc04098b816::t_6e3374174365f0 1-38
+scripts/test.sh
+  s_299dc04098b816::t_2b75542f082295 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5c16fe493e03daa9e8da6e57b3232400d12480a",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
