@@ -5,6 +5,7 @@ public struct UsageBudget {
     public let limit: Double
     public let spent: Double
     public let unknown: Int
+    public let writtenCharacters: Int
     public let doubaoEstimated: Double
     public let deepSeekEstimated: Double
     public var providerTotal: Double { doubaoEstimated + deepSeekEstimated }
@@ -18,6 +19,11 @@ public struct UsageBudget {
     public var remainingCharacters: Double? { costPerCharacter.map { remaining / $0 } }
     public init(calls: [UsageCall], jobs: [HistoryJob], days: Int, limit: Double, now: Date = Date()) {
         self.limit = limit.isFinite && limit > 0 ? limit : 5
+        let cutoff = now.addingTimeInterval(-Double(days) * 86400)
+        var seenJobs = Set<UUID>()
+        writtenCharacters = jobs.filter {
+            $0.created >= cutoff && $0.created <= now && seenJobs.insert($0.id).inserted
+        }.reduce(0) { $0 + max(0, $1.finalCharacters) }
         let rows = calls.filter { $0.price.currency == "CNY" && $0.started >= now.addingTimeInterval(-Double(days) * 86400) && $0.started <= now }
         spent = rows.compactMap(\.estimatedAmount).reduce(0, +)
         doubaoEstimated = rows.filter { $0.provider == "Doubao" }.compactMap(\.estimatedAmount).reduce(0, +)

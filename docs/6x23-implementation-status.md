@@ -143,3 +143,7 @@ LeafInputChrome 统一单行/多行输入外观：柔和自适应底色、圆角
 CleanupPrompt 复合 v6 + 词汇参考 + arabic-digits-v1：英文编号 session one/two → session 1/2，明确队名 G two → G2，普通数值可数字化，固定名称/非数值习语/原样引用受保护。没有修改 v6 文件，也没有对原始 ASR 全局替换；JSON transcript 封装保持。任务版本和实际 system hash 包含规则变动。66 项测试通过，真实 DeepSeek 合成正反例结果见当前 handoff/arabic-digits 回执。
 
 数字规则真实 DeepSeek 合成回归 5/5 通过：session 1/2、G2、25 tasks / 2 sessions，以及 OneDrive/OnePlus/Formula One 和原样引用的保护。最终 66 项自动测试和签名构建通过；默认 A 音效、B/C 切换/试听的原生设置已确认。用户要求从现在起每个完成的 feature 单独提交；此次积累的初始实现先形成一次完整基线提交，不推送远端。
+
+## 已写字数
+
+7 天 / 30 天额度行新增“已写 X 字”，与预计剩余字数并列。直接按对应周期内创建的最终稿任务计数，同一 job 只计一次，不按两家 API 调用累加，不受未知费用/重试或正文保留策略影响；未生成最终稿的原始转写不计。tooltip 说明含标点/空白及预览/复制口径。67 项测试与签名构建通过，原生界面两个周期均显示已写计数，独立读取本地计数核对通过（验证记录不包含私人正文）。
