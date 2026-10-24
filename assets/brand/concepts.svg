@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 440">
+<rect width="1020" height="440" rx="24" fill="#141C18"/>
+<g fill="#A6D7B8"><path transform="translate(80 55) scale(2)" fill-rule="evenodd" d="M22 73C10 53 24 21 75 18C87 54 66 82 40 79L22 88Z M31 66C38 63 36 48 44 48C49 48 48 56 53 56C60 56 61 40 69 34C67 46 65 63 57 64C48 67 47 56 43 57C40 57 38 68 31 66Z"/>
+<g transform="translate(420 105)"><path d="M0 85C-10 40 16 25 30 25C40 65 15 83 0 85Z"/><path d="M45 100C30 35 65 5 82 5C98 65 67 100 45 100Z"/><path d="M100 85C88 48 115 32 132 32C143 66 121 86 100 85Z"/></g>
+<path transform="translate(770 110)" d="M0 0H21V68Q21 95 43 95Q65 95 65 68V0H86V115H137V136H65V119Q10 135 0 83Z"/>
+</g><g fill="#E7F0EA" font-family="system-ui,sans-serif" font-size="24" text-anchor="middle"><text x="180" y="310">A · 言叶</text><text x="510" y="310">B · 叶声</text><text x="840" y="310">C · UL</text></g><g fill="#A8BBB0" font-family="system-ui,sans-serif" font-size="15" text-anchor="middle"><text x="180" y="349">Leaf · speech · voice</text><text x="510" y="349">Three leaves · waveform</text><text x="840" y="349">Initials · sprout</text><text x="180" y="391">SELECTED</text></g></svg>
