@@ -13,3 +13,7 @@
 - Do not describe edit distance to Typeless as WER, accuracy, or a human quality score. Treat vendor pricing as dated configuration and distinguish billed cost from estimates.
 - Keep .codex/ personal working notes ignored by Git. New dated Markdown files use the user's YLDD convention, e.g. 6x23-topic.md.
 - Do not fix the ASR provider/default model prematurely: the user wants selectable models and will decide during App trials.
+
+- User authorized 20-minute read-only billing sync. Additional allowlisted personal credentials: UTTERLEAF_VOLC_ACCESS_KEY_ID / UTTERLEAF_VOLC_SECRET_ACCESS_KEY. Load locally only. DeepSeek balance snapshots are not per-call spend; aggregate Volc bills must not be automatically allocated to requests or mixed with other applications.
+
+- User requires one Git commit for each completed feature after relevant validation. Commit locally by default; do not push unless authorized. Never include credentials, private transcripts/audio/history, .local, .codex or build caches. The accumulated initial implementation is committed once as a baseline; subsequent features stay separate.

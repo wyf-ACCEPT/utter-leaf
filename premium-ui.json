@@ -1,0 +1,10 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["Sources"],
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Date", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": {"select": "authored LeafSegments", "date": "native"},
+  "commands": {"test": "scripts/test.sh", "build": "scripts/build-app.sh"},
+  "requiredCommands": ["test", "build"],
+  "evidence": {"browser": "Not applicable: native SwiftUI/AppKit; native UI inspected separately"}
+}

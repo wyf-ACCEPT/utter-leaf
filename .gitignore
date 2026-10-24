@@ -22,6 +22,7 @@ recordings/
 *.ogg
 *.wav
 *.aiff
+!App/Sounds/**/*.wav
 *.mp3
 # Cache
 .DS_Store
