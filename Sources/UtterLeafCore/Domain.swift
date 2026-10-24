@@ -118,6 +118,8 @@ public struct HistoryJob: Codable, Identifiable {
     public var insertionMethod: String?
     public var insertionErrorCode: String?
     public var targetBundleID: String?
+    public var targetCaptureErrorCode: String?
+    public var targetCaptureAttempts: Int?
     public init(id: UUID = UUID(), pipeline: ASRPipeline) { self.id = id; self.pipeline = pipeline }
 }
 
