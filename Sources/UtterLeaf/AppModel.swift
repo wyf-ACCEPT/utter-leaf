@@ -17,7 +17,7 @@ import UtterLeafCore
     @Published var inserting = false
     var pillOutcome: PillPresentation.Stage = .cancelled
     let store: LocalStore
-    private let captureTarget: @MainActor () -> (any DictationTarget)?
+    private let captureTarget: (@MainActor () -> (any DictationTarget)?)?
     private var jobAutomatic = true
     private var activeVocabulary: [VocabularyEntry] = []
     let waveform = LiveAudioMeter()
@@ -41,7 +41,7 @@ import UtterLeafCore
     var targetName: String { target?.displayName ?? "未捕获输入框" }
     init(store: LocalStore? = nil, captureTarget: (@MainActor () -> (any DictationTarget)?)? = nil) {
         self.store = store ?? LocalStore()
-        self.captureTarget = captureTarget ?? { InputTarget() }
+        self.captureTarget = captureTarget
         api.onCall = { [weak self] in self?.store.update($0) }
         api.onPartial = { [weak self] in self?.partial = $0 }
         mic.onDisconnect = { [weak self] in self?.abort(message: "麦克风设备发生变化，录音已停止。请重新开始。") }
@@ -65,7 +65,8 @@ import UtterLeafCore
         }
         guard store.storageError == nil else { message = store.storageError!; showWindow?(); return }
         preservePendingDraft()
-        target = captureTarget(); jobAutomatic = store.database.preferences.insertionMode != "preview"
+        let pendingCapture = captureTarget == nil ? InputTarget.prepareCapture() : nil
+        target = captureTarget?(); jobAutomatic = store.database.preferences.insertionMode != "preview"
         activeVocabulary = VocabularyContext.active(store.vocabulary); waveform.reset(); raw = ""; draft = ""; partial = ""; message = ""
         elapsed = 0; level = 0; maxLevel = 0; pcm = Data(); chunkBuffer = Data()
         activeSound = store.database.preferences.sound ?? SoundPreferences()
@@ -73,10 +74,17 @@ import UtterLeafCore
         let api = Providers(); self.api = api
         api.onCall = { [weak self] in self?.store.update($0) }
         api.onPartial = { [weak self] text in if self?.activeToken == token { self?.partial = text } }
-        var current = HistoryJob(pipeline: pipeline); current.targetBundleID = target?.diagnosticID; job = current; store.update(current)
+        var current = HistoryJob(pipeline: pipeline); current.targetBundleID = target?.diagnosticID ?? pendingCapture?.bundleID; job = current; store.update(current)
         changePhase(.starting)
         operation = Task {
             do {
+                if let pendingCapture {
+                    self.target = try await pendingCapture.resolve()
+                    guard self.activeToken == token else { return }
+                    current.targetCaptureErrorCode = pendingCapture.errorCode
+                    current.targetCaptureAttempts = pendingCapture.attempts
+                    self.job = current; self.store.update(current)
+                }
                 // Validate local configuration before sending audio or starting the microphone.
                 _ = try Credentials.load("DOUBAO_API_KEY")
                 if self.store.database.preferences.cleanup { _ = try Credentials.load("DEEPSEEK_API_KEY"); _ = try self.prompt() }
@@ -255,7 +263,14 @@ import UtterLeafCore
     private func performInsertion(automatic: Bool) async {
         guard !inserting, !draft.isEmpty else { return }
         guard let target else {
-            message = "未捕获原输入框。文字已保留；请在目标输入框按 Fn 开始录音。"
+            if var job {
+                job.insertionErrorCode = job.targetCaptureErrorCode ?? "capture_missing"
+                self.job = job; store.update(job)
+            }
+            let detail = job?.targetCaptureErrorCode == "capture_utterleaf_foreground"
+                ? "开始时焦点在 UtterLeaf；请先点击原应用的输入框。"
+                : "开始录音时未能读取原输入框；请点击目标输入框后再试。"
+            message = detail + "文字已保留，可复制后粘贴。"
             setPreview(draft); return
         }
         inserting = true; persistDraft(status: "inserting"); changePhase(.inserting)
@@ -279,5 +294,5 @@ import UtterLeafCore
             setPreview(draft)
         }
     }
-    func captureDestination() { target = captureTarget() }
+    func captureDestination() { target = captureTarget?() }
 }

@@ -70,20 +70,50 @@ extension DictationTarget { var diagnosticID: String? { nil } }
     let selectionSupported: Bool
     var displayName: String { app.localizedName ?? "原应用" }
     var diagnosticID: String? { app.bundleIdentifier }
-    init?() {
-        guard AXIsProcessTrusted(), let app = NSWorkspace.shared.frontmostApplication,
-              app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
-        let application = AXUIElementCreateApplication(app.processIdentifier)
-        var focused: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
-              let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
-        let element = unsafeBitCast(focused, to: AXUIElement.self)
-        var subrole: CFTypeRef?
-        AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subrole)
-        guard subrole as? String != kAXSecureTextFieldSubrole else { return nil }
-        var selection: CFTypeRef?
-        let supported = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selection) == .success
-        self.app = app; self.element = element; self.selection = selection; selectionSupported = supported
+    init(app: NSRunningApplication, element: AXUIElement, selection: CFTypeRef) {
+        self.app = app; self.element = element; self.selection = selection; selectionSupported = true
+    }
+    static func prepareCapture() -> TargetCapture {
+        let app = NSWorkspace.shared.frontmostApplication
+        let application = app.map { AXUIElementCreateApplication($0.processIdentifier) }
+        func attribute(_ name: String) -> AXUIElement? {
+            guard let application else { return nil }
+            var value: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(application, name as CFString, &value) == .success,
+                  let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+            return unsafeBitCast(value, to: AXUIElement.self)
+        }
+        let window = attribute(kAXFocusedWindowAttribute)
+        return TargetCapture(bundleID: app?.bundleIdentifier, sameContext: {
+            guard let app, !app.isTerminated, let window,
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier,
+                  let current = attribute(kAXFocusedWindowAttribute) else { return false }
+            return CFEqual(window, current)
+        }, probe: {
+            guard AXIsProcessTrusted() else { return .unavailable("capture_permission", retry: false) }
+            guard let app, let application else { return .unavailable("capture_no_app", retry: false) }
+            guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
+                return .unavailable("capture_utterleaf_foreground", retry: false)
+            }
+            guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else {
+                return .unavailable("capture_context_changed", retry: false)
+            }
+            var focused: CFTypeRef?
+            let result = AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &focused)
+            guard result == .success, let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else {
+                return .unavailable("capture_focus_ax_\(result.rawValue)", retry: true)
+            }
+            let element = unsafeBitCast(focused, to: AXUIElement.self)
+            var subrole: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subrole)
+            guard subrole as? String != kAXSecureTextFieldSubrole else { return .unavailable("capture_secure", retry: false) }
+            var selection: CFTypeRef?
+            let rangeResult = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selection)
+            guard rangeResult == .success, let selection, CFGetTypeID(selection) == AXValueGetTypeID() else {
+                return .unavailable("capture_selection_ax_\(rangeResult.rawValue)", retry: true)
+            }
+            return .captured(InputTarget(app: app, element: element, selection: selection))
+        })
     }
     private func validate() throws {
         guard AXIsProcessTrusted(), !app.isTerminated else { throw AppFailure("原应用不可用或辅助功能未授权。文字已保留，可复制后手动粘贴。", code: "target_unavailable") }
@@ -93,11 +123,19 @@ extension DictationTarget { var diagnosticID: String? { nil } }
         }
         let application = AXUIElementCreateApplication(app.processIdentifier)
         var current: CFTypeRef?; var range: CFTypeRef?; var subrole: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &current) == .success,
-              let current, CFEqual(current, element),
-              AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &range) == .success,
-              let range, let selection, CFEqual(range, selection) else {
-            throw AppFailure("输入框或光标位置已变化，已停止自动输入。文字已保留。", code: "target_cursor_changed")
+        let focusedResult = AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &current)
+        guard focusedResult == .success, let current else {
+            throw AppFailure("暂时无法读取原输入框。文字已保留，可复制后粘贴。", code: "target_focus_ax_\(focusedResult.rawValue)")
+        }
+        guard CFEqual(current, element) else {
+            throw AppFailure("原输入框已变化，已停止自动输入。文字已保留。", code: "target_element_changed")
+        }
+        let rangeResult = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &range)
+        guard rangeResult == .success, let range else {
+            throw AppFailure("暂时无法读取原光标位置。文字已保留，可复制后粘贴。", code: "target_selection_ax_\(rangeResult.rawValue)")
+        }
+        guard let selection, CFEqual(range, selection) else {
+            throw AppFailure("原光标位置已变化，已停止自动输入。文字已保留。", code: "target_cursor_changed")
         }
         AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subrole)
         guard subrole as? String != kAXSecureTextFieldSubrole else { throw AppFailure("无法输入到密码框。", code: "target_secure") }
