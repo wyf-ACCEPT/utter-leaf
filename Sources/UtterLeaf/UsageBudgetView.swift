@@ -50,10 +50,11 @@ struct UsageBudgetView: View {
                 Text("剩余 \(money(budget.remaining, "CNY"))")
             }.font(LeafType.caption).monospacedDigit().foregroundStyle(LeafTheme.muted)
             if let remaining = budget.remainingCharacters {
-                Text("预计还能写 \(thousands(remaining)) 千字")
+                Text("已写 \(budget.writtenCharacters.formatted()) 字 · 预计还能写 \(thousands(remaining)) 千字")
+                    .help("按本周期听写的最终稿字符数统计，含标点和空白。同一次听写只计一次；预览和复制均计入，清除正文后保留计数。")
                     .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             } else {
-                Text("完成听写后，根据本周期的实际用量估算可写字数。")
+                Text("已写 \(budget.writtenCharacters.formatted()) 字 · 完成听写后估算剩余字数。")
                     .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             }
             if budget.spent > budget.limit {

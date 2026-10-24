@@ -40,4 +40,18 @@ final class UsageBudgetTests: XCTestCase {
         XCTAssertNil(empty.doubaoFraction); XCTAssertNil(empty.doubaoToDeepSeek)
         XCTAssertEqual(empty.remainingFraction, 1); XCTAssertNil(empty.remainingCharacters)
     }
+    func testWrittenCharactersUseDistinctFinalJobsWithinEachWindowRegardlessOfBilling() {
+        var recent = HistoryJob(pipeline: .final); recent.created = now.addingTimeInterval(-86400); recent.finalCharacters = 120
+        var older = HistoryJob(pipeline: .final); older.created = now.addingTimeInterval(-10 * 86400); older.finalCharacters = 80
+        var future = HistoryJob(pipeline: .final); future.created = now.addingTimeInterval(10); future.finalCharacters = 999
+        var rawOnly = HistoryJob(pipeline: .final); rawOnly.created = now; rawOnly.rawCharacters = 500
+        let jobs = [recent, recent, older, future, rawOnly]
+        let rows = [call(recent, daysAgo: 1, cost: 0.1), call(recent, daysAgo: 1, provider: "DeepSeek", cost: nil)]
+        let week = UsageBudget(calls: rows, jobs: jobs, days: 7, limit: 5, now: now)
+        XCTAssertEqual(week.writtenCharacters, 120)
+        XCTAssertEqual(UsageBudget(calls: rows, jobs: jobs, days: 30, limit: 20, now: now).writtenCharacters, 200)
+        recent.finalText = nil; recent.rawText = nil
+        XCTAssertEqual(UsageBudget(calls: [], jobs: [recent], days: 7, limit: 5, now: now).writtenCharacters, 120)
+    }
+
 }
