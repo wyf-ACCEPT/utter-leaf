@@ -276,7 +276,7 @@ struct DictationView: View {
         switch model.phase {
         case .idle: return "准备好，听你说"
         case .starting: return "连接麦克风与语音服务"
-        case .recording: return "正在听 · 最长 2 分钟"
+        case .recording: return "正在听 · 最长 5 分钟"
         case .transcribing: return "正在完成转写"
         case .cleaning: return "正在整理文字"
         case .inserting: return "正在输入到原应用"

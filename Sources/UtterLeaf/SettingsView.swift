@@ -61,7 +61,7 @@ struct SettingsView: View {
         }
         Surface(title: "本地历史与隐私") {
             LeafSegments(title: "正文保留", selection: binding(\.retention), items: [LeafSegment("both", "原始 + 最终稿"), LeafSegment("final", "仅最终稿"), LeafSegment("none", "仅用量")])
-            Text("当前设置应用于新记录。已有正文保留至手动清除。音频不落盘，最长录音 2 分钟。用量记录不含正文，保存在 Application Support/UtterLeaf；不会主动同步或上传到公司服务。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("当前设置应用于新记录。已有正文保留至手动清除。音频不落盘，最长录音 5 分钟。用量记录不含正文，保存在 Application Support/UtterLeaf；不会主动同步或上传到公司服务。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             Button("清除全部本地正文…", role: .destructive) { confirmClear = true }.disabled(model.busy || model.inserting)
         }
         BillingSyncView(store: store)

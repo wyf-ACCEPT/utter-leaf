@@ -1,4 +1,5 @@
 import SwiftUI
+import UtterLeafCore
 
 struct RecordingPill: View {
     @ObservedObject var model: AppModel
@@ -6,6 +7,8 @@ struct RecordingPill: View {
     @ObservedObject var presentation: PillPresentation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var stage: PillPresentation.Stage { presentation.stage }
+    private var limitWarning: String? { stage == .recording ? RecordingLimit.warning(at: model.elapsed) : nil }
+    private var detail: String { limitWarning ?? presentation.detail }
     private var swap: AnyTransition { reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.8)) }
     var body: some View {
         HStack(spacing: 12) {
@@ -25,8 +28,9 @@ struct RecordingPill: View {
                 Text(stage.title).font(.system(size: LeafType.scaled(13), weight: .medium))
                     .id(stage).transition(.opacity)
                 if !stage.isTerminal {
-                    Text(presentation.detail).font(.system(size: LeafType.scaled(10)))
-                        .foregroundStyle(LeafTheme.muted).id(presentation.detail).transition(.opacity)
+                    Text(detail).monospacedDigit().font(.system(size: LeafType.scaled(10)))
+                        .foregroundStyle(limitWarning == nil ? LeafTheme.muted : .orange)
+                        .accessibilityLabel(limitWarning == nil ? detail : "录音即将达到 5 分钟上限，" + detail)
                 }
             }.fixedSize(horizontal: true, vertical: true)
             if !stage.isTerminal {

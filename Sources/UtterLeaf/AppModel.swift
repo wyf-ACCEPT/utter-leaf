@@ -121,15 +121,15 @@ import UtterLeafCore
                 guard self.activeToken == token else { self.mic.stop(); return }
                 self.changePhase(.recording)
                 self.watchdog = Task {
-                    for tick in 0..<120 {
+                    for tick in 0..<RecordingLimit.seconds {
                         try? await Task.sleep(for: .seconds(1))
                         if Task.isCancelled { return }
                         if self.phase == .recording {
                             if tick >= 4 && self.elapsed < 0.1 { self.abort(message: "麦克风没有产生音频数据，请检查输入设备后重试。"); return }
-                            if self.elapsed >= 120 { self.stop(); return }
+                            if self.elapsed >= Double(RecordingLimit.seconds) { self.stop(); return }
                         } else { return }
                     }
-                    if self.phase == .recording { self.abort(message: "录音达到 2 分钟上限或输入设备没有产生数据，请检查后重试。") }
+                    if self.phase == .recording { self.stop() }
                 }
             } catch {
                 if self.activeToken == token { api.cancel(); self.fail(error) }
@@ -138,17 +138,20 @@ import UtterLeafCore
     }
     private func accept(_ data: Data, rms: Float, token: UUID) {
         guard activeToken == token, phase == .recording || phase == .starting else { return }
-        pcm.append(data)
+        let count = RecordingLimit.acceptedBytes(buffered: pcm.count, incoming: data.count)
+        let accepted = data.prefix(count)
+        pcm.append(accepted)
         let seconds = Double(pcm.count) / 32000
         if Int(seconds) != Int(elapsed) { elapsed = seconds }
         waveform.append(rms: rms)
         level = rms; maxLevel = max(maxLevel, rms)
         if job?.pipeline != .file {
-            chunkBuffer.append(data)
+            chunkBuffer.append(accepted)
             while chunkBuffer.count >= 6400 {
                 continuation?.yield(Data(chunkBuffer.prefix(6400))); chunkBuffer.removeFirst(6400)
             }
         }
+        if pcm.count >= RecordingLimit.maximumPCMBytes { stop() }
     }
     func stop() {
         guard phase == .recording else { return }
