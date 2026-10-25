@@ -9,7 +9,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
     private let delegate = NoRedirectDelegate()
     lazy var session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 30; config.timeoutIntervalForResource = 120
+        config.timeoutIntervalForRequest = 30; config.timeoutIntervalForResource = Double(RecordingLimit.seconds + 120)
         config.urlCache = nil; config.httpCookieStorage = nil
         return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }()
