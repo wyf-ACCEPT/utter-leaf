@@ -1,128 +1,181 @@
-# UtterLeaf · 言叶
+<p align="center">
+  <img src="assets/brand/utterleaf-app-icon.png" width="112" alt="UtterLeaf app icon">
+</p>
 
-把口述变成可以直接输入的文字。面向 macOS 的个人语音输入工具，对标 Typeless 的日常听写体验，允许自由选择语音识别与文字整理模型，并清楚展示使用量和成本。
+<h1 align="center">UtterLeaf · 言叶</h1>
 
-## 当前状态
+<p align="center">Speak naturally. Keep your words.</p>
+<p align="center"><a href="#english">English</a> · <a href="#中文">中文</a></p>
 
-2026-10-23：原生 SwiftUI + AppKit MVP 已实现并编译为 macOS App。三条 ASR 管线和 v6 整理通过短合成内容 API 冒烟测试；完整的真实麦克风与原应用回填验收状态见实施记录。尚未签发正式开发者版本或发布。
+## English
 
-项目目录：`/Users/wangyifan/Desktop/Research/Sessions/6x-UtterLeaf`，保留在 Sessions 下，与 Reverse Anything 调研目录分开组织。UtterLeaf 是用户选定的工作名，尚未作商标、域名或商店名称核验。
+UtterLeaf is a personal macOS dictation app inspired by Typeless. Press **Fn**, speak, then press **Fn** again: Doubao transcribes your speech, DeepSeek tidies it up, and UtterLeaf inserts the result into the original input field.
 
-## 新会话从这里开始
+Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-party runtime service. The current app interface is in Chinese; this README is bilingual.
 
-1. 阅读 [AGENTS.md](AGENTS.md)。
-2. 阅读 [.codex/handoff/6x23-handoff-utterleaf.md](.codex/handoff/6x23-handoff-utterleaf.md)。
-3. 阅读 [产品需求](docs/6x23-product-brief.md) 和 [技术与评测交接](docs/6x23-technical-handoff.md)。
-4. 使用 [新会话开场说明](docs/6x23-start-new-session.md) 在这个目录启动新的 Codex 会话。
+### Status
 
-## 已确认的方向
+**Working personal development build — October 25, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. Meeting transcription and iOS are planned, not implemented.
 
-- 用户认为这轮豆包转写 + DeepSeek Flash 整理的效果大多已满足需求。
-- 暂不锁死某个转写模型，三条已验证管线作为可选项，在 App 实际试用中决定默认值。
-- 文字整理先使用 DeepSeek Flash；prompt 应能版本化、编辑和回滚。
-- 需要查看各 API 的使用量、实际或估算费用、每千字和每小时成本。
-- 需要支持口述符号：例如 `tap on 杠 31` → `tap on-31`；同时避免改坏“讨论括号、引号”这样的普通文字。
-- 私人录音和文字不使用公司的 OpenRouter Key。
+The latest local suite passes **75 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
-## 资料结构
+### Features
 
-```text
-AGENTS.md
-docs/                         产品需求、技术交接、新会话开场说明
-prompts/                      可迁移的 system prompt 与调用封装说明
-research/benchmark/           实验脚本、依赖、汇总指标和合成回归记录
-.codex/handoff/               当前私人工作交接，Git 忽略
-```
+- **Fn to start/stop; Esc to cancel** recording or pending processing. Fn combinations pass through. UtterLeaf never presses Return or sends your message.
+- **Up to five minutes per dictation.** The capsule shows a countdown during the last 30 seconds, then stops recording and processes the captured audio.
+- **Three selectable Doubao ASR routes:** streaming with results after recording, live streaming, and file transcription. No route is preselected on a fresh install.
+- **Optional DeepSeek Flash cleanup:** removes disfluencies, preserves meaning, converts spoken symbols, and favors digits in numbered English expressions such as `session one → session 1`. Transcript data is JSON-wrapped and treated as data, not executable instructions.
+- **Contextual vocabulary** for names, preferred spellings and commonly confused terms, rather than unconditional replacement.
+- **Guarded automatic insertion**, with an optional preview mode. If the target app, field or caret changes, the text is retained for recovery. Clipboard paste is used where appropriate; insertion is verified where the target exposes enough information.
+- **Local history** with configurable text retention, plus usage counts, CNY cost estimates, provider cost shares, and rolling 7/30-day budget indicators. Budgets are reminders, not usage limits or provider balances.
+- **Dark mode by default**, light/system themes, a lightweight audio-reactive capsule, reduced-motion support and three bundled sound sets.
 
-完整的原始录音、Typeless 对照和请求回执仍留在：
+### Build and run
 
-`/Users/wangyifan/Desktop/Research/Sessions/6x-SpeechToTextBenchmark`
-
-这里只迁移实验代码、prompt、汇总指标与合成回归数据，不复制数据库、私人音频、私人全文或任何密钥。
-
-## 构建与运行
-
-需要 macOS 14+ 和完整 Xcode/Swift 工具链。本机验证环境：macOS 26.6.2 arm64、Xcode 26.4.1、Swift 6.3.1。没有第三方运行时或 Python 服务。
+Requirements: **macOS 14+** and an Xcode/Swift toolchain supporting the package's **Swift tools 6.0** manifest. No Python service or Node runtime is needed to run the app.
 
 ```sh
+git clone https://github.com/wyf-ACCEPT/utter-leaf.git
+cd utter-leaf
 ./scripts/test.sh
 ./scripts/build-app.sh
 open .local/UtterLeaf.app
 ```
 
-App 位于本项目 `.local/UtterLeaf.app`，源代码在 `Sources/`。Swift 编译缓存留在本项目 `.local/`，避免受保护的用户级缓存路径。`--disable-sandbox` 仅是 SwiftPM 清单构建参数，不代表 App 获得 macOS 隐私权限。
+The build script stages and signs the bundle, verifies it, then replaces the installed bundle by rename. Build artifacts and caches stay local and are ignored by Git. By default, other machines use ad-hoc signing. You can supply your own identity through `UTTERLEAF_SIGNING_IDENTITY`; the optional `.local/signing-identity` file is also ignored. Rebuilding with ad-hoc signing may require renewing macOS permission grants. Developer ID signing and notarization are not included.
 
-## 首次试用
+### Personal setup
 
-1. 在「模型与设置」选择一条 ASR 试用管线。新安装不预设 ASR；试用选择可以随时更改。
-2. 个人凭证从 Keychain 服务 `network.utterleaf.personal`（account 为变量名）或权限为 600 的 `~/.llm.env` 读取，语音调用只读取 `DOUBAO_API_KEY` 和 `DEEPSEEK_API_KEY`；账单同步额外允许 `UTTERLEAF_VOLC_ACCESS_KEY_ID` / `UTTERLEAF_VOLC_SECRET_ACCESS_KEY`。GUI 会自行读取文件，不依赖 shell export。不要把凭证放进本项目。
-3. 第一次录音触发麦克风授权。Fn 全局监听和回填需要在系统设置中为当前 UtterLeaf 构建开启辅助功能。授权后监听会自动重试。
-4. 在目标输入框按 **Fn** 并松开后开始，再单按一次结束。Fn + 方向键等组合键不会触发录音；Fn 本身的系统动作在监听期间被拦截，不修改系统键盘设置。整理结束后默认自动输入到原输入框；不按 Return、不发送消息。目标应用、输入框或光标发生变化时保留文字供处理。设置中可切换为先预览；保留稿可通过“输入到原应用”手动重试。
-5. 本地历史保存原始转写与最终稿，直到手动清除；可改为只存最终稿或只存用量。录音只在内存中，单次上限 5 分钟；最后 30 秒胶囊显示倒计时，到时自动结束并继续整理。
+1. Configure your own `DOUBAO_API_KEY` and `DEEPSEEK_API_KEY`. The app reads macOS Keychain service `network.utterleaf.personal`, using the variable name as the account, or falls back to `~/.llm.env` with permissions set to `600`. It reads that file directly; shell exports are not required. **No provider key is bundled with the app.** Do not commit credentials.
+2. In **模型与设置** (Models & Settings), select an ASR route and whether to enable cleanup.
+3. Grant **Microphone** permission for recording and **Accessibility** permission for Fn handling and insertion.
+4. Click your destination input field, press and release **Fn**, speak, then press and release **Fn** again. Keep the original field and caret unchanged while processing. Use **Esc** to cancel before insertion begins.
 
-**词汇表**：左侧一级入口支持添加、编辑、停用、删除与搜索。预置 Typeless / Typeface 语音输入软件语境纠错。词条仅作为整理上下文发送给个人 DeepSeek API，原始 ASR 不做全局替换；每次任务固定词汇表版本，回执记录其 hash。关闭整理时不应用词汇表。
+The file route preserves an experimentally verified `audio.data` submission path. This path is not explicitly listed in the referenced official file-ASR schema; use a streaming route if compatibility fails.
 
-**外观**：首次打开默认深色，可切换浅色/跟随系统。默认字号整体提高约 18%，常用选择统一为带滑动指示块的分段控件；减少动态效果时停用滑动。侧栏和自定义按钮有手形光标与浅色悬停反馈。品牌采用用户选定的叶片、对话气泡与声线组合；矢量与应用图标在 `assets/brand/`，设计说明在 [品牌记录](docs/6x23-brand-notes.md)。
+### Privacy and local data
 
-**费用**：新的豆包与 DeepSeek 估算均按人民币显示，4 位小数。端到端合计按业务任务去重音频时长，同时有供应商/模型拆分。DeepSeek 初始使用 2026-10-23 官方人民币高峰参考价；非高峰需相应调整设置。失败/取消/中断调用若有已发送音频时长或 token 回执，也按原计价快照估算；缺少用量依据时仍保留未知。实际逐次金额需要能够对应的供应商账单。历史计价快照不会随设置变化而改写。
+**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend or automatic cross-device sync.
 
-**本地数据**：`~/Library/Application Support/UtterLeaf/ledger.json`（目录 700、文件 600）。包含私人文本，请勿提交、公开或放进公共截图。App 不主动云同步；本地权限不是磁盘加密。清除正文保留字符计数与用量回执，不承诺清除供应商端或系统备份中的副本。
+Recording audio stays in memory. History and usage are stored at:
 
-**开发版签名**：本机当前使用用户个人 Apple Development 身份签署，并启用 Hardened Runtime 与 audio-input entitlement。身份引用保存在 Git 忽略的 `.local/signing-identity`，也可用 `UTTERLEAF_SIGNING_IDENTITY` 指定；未配置的其他机器回退到 ad-hoc。旧 ad-hoc 授权可能需要移除旧条目并重新添加；同一开发者身份的后续构建拥有稳定 designated requirement。没有导出私钥或使用公司签名。正式分发仍需 Developer ID、公证和更新流程。
+```text
+~/Library/Application Support/UtterLeaf/ledger.json
+```
 
-## 实施与验证
+The directory/file permissions are `700`/`600`. By default, raw and final text remain until manually cleared; settings can retain only final text or usage. Clearing text keeps character counts and usage receipts. It does not erase provider-side records or system backups, and file permissions are not disk encryption.
 
-- [实施记录](docs/6x23-implementation-status.md) / [自动输入与词汇表更新](docs/6x23-autoinput-vocabulary-waveform.md)
-- [视觉规范](DESIGN.md) / [交互约定](UX-CONTRACT.md)
-- `Tests/UtterLeafCoreTests/`：协议、封装、费用、持久化和权限失败边界的自动测试。
-- `.local/verification/`：本机测试、构建、短 API 冒烟回执；不包含凭证或历史私人录音。
+Credentials, private recordings, history, build products and personal handoffs are excluded from Git. The tracked WAV files under `App/Sounds/` are original UI sounds, not user recordings.
 
-不自动重跑 `research/benchmark` 的完整历史研究。短 API 冒烟测试只使用合成内容，且不进入用户账本。
+### Usage and billing
 
-## 后续路线
+- Estimates use the price snapshot attached to each call; CNY amounts display four decimal places. Configurable reference prices are not a promise of your account's actual tariff.
+- End-to-end totals include **Doubao + DeepSeek**, with task-level audio duration deduplicated. Missing usage stays unknown rather than being treated as free.
+- Optional official checks run every **20 minutes while the app is running**, with startup/wake catch-up and a manual action. They defer during dictation.
+- **DeepSeek:** account balance snapshots are reference information, not itemized spend, and never overwrite dictation costs.
+- **Doubao:** instance-scoped Volcengine bills require the billing `InstanceNo` and personal read-only credentials, `UTTERLEAF_VOLC_ACCESS_KEY_ID` / `UTTERLEAF_VOLC_SECRET_ACCESS_KEY`, configured locally. Aggregate bills are not automatically allocated to individual calls. Other applications' spending must not be attributed to UtterLeaf.
 
-- **Phase 1**：打磨私人语音输入、Fn、回填与稳定性。
-- **Phase 2**：类似 Granola 的长时会议转录与笔记，包含说话人、时间戳、整理转录和 brief。
-- **Phase 3**：自用 iOS 客户端，包含日常听写及 Phase 2 的会议转录、会议笔记与 brief；先设计手机录音与输入体验、个人凭证存储，再验证系统约束。暂不考虑邀请码、账户、统一服务端或用户额度。
-- **后续扩展**：连接 Slack，按配置自动发送整理转录与 brief，并显示发送结果。
+### Roadmap
 
-产品范围见 [分阶段需求](docs/6x23-product-brief.md)；当前会议与 Slack 功能尚未实现。
+| Phase | Scope |
+| --- | --- |
+| 1 · macOS dictation | Improve the existing personal dictation, insertion and usage experience. |
+| 2 · Meetings | Granola-like long-form meeting transcription, speakers, timestamps, edited transcripts, notes and briefs. |
+| 3 · Personal iOS | Bring both everyday dictation and meeting transcription/notes to iOS. Mobile audio capture, input integration, personal credentials and platform constraints need separate validation. |
+| Later · Slack | Configurable delivery of meeting transcripts and briefs, with explicit destinations and delivery status. |
 
-## 实时波形
+Phase 3 currently excludes invitation codes, accounts, a shared backend and multi-user quotas. Cross-device sync is undecided.
 
-参考 MIT [SpeechWaveAnimation](https://github.com/mvolpato/SpeechWaveAnimation) 的正弦声线与抛物线包络，自行适配为 SwiftUI Canvas 三层连续声线。没有外部 Swift 包依赖；复用同一录音回调 RMS，不额外录音、不做 FFT。录音时局部绘制目标 30fps；转写、整理与输入阶段移除整个波形，仅保留状态与进度。Reduce Motion 使用无相位运动的低频更新。许可随 App 附带。
+### Project guide
 
-## 表达额度
+| Path | Purpose |
+| --- | --- |
+| `Sources/UtterLeaf/` | Native app, capture, providers, insertion and UI |
+| `Sources/UtterLeafCore/` | Protocol, prompt, usage and recording policies |
+| `Tests/UtterLeafCoreTests/` | Automated regression tests |
+| `prompts/` | Preserved cleanup prompts and JSON-envelope guidance |
+| `docs/` | [Product scope](docs/6x23-product-brief.md), [technical handoff](docs/6x23-technical-handoff.md) and implementation notes, primarily Chinese |
+| `research/benchmark/` | Research scripts, aggregate metrics and synthetic regression fixtures; no private source recordings |
+| `DESIGN.md` / `UX-CONTRACT.md` | Visual and interaction contracts |
+| `App/ThirdPartyNotices/` | Third-party attribution |
 
-用量页顶部显示滚动 7 天 / 30 天预算，初始 CNY 5 / 20，可在“调整预算”修改。绿条代表剩余额度，仅作本地提醒，不限制录音，不代表供应商余额。按已知估算扣减，未知金额单独提示；完整听写样本用于估算预算可写字数。每个周期显示豆包 / DeepSeek 已知估算成本占比与比值。逐次调用移到“查看明细”弹窗，独立滚动并可查看回执；每千字与每小时成本统一放在主页面底部。
+The native waveform adapts ideas from the MIT-licensed [SpeechWaveAnimation](https://github.com/mvolpato/SpeechWaveAnimation), using SwiftUI Canvas without adding a package dependency. Its notice is bundled with the app. Contributors and coding agents should read [AGENTS.md](AGENTS.md); personal `.codex/` handoffs are local and are not part of a clone.
 
-Fn 开始后可按 Esc 取消录音或尚未完成的转写/整理；已开始输入时不取消，以免中断写入。
+---
 
-## 官方核对与自动同步
+## 中文
 
-App 运行时每 20 分钟查询，启动/唤醒后检查是否到期，正在听写时延后自动查询。可关闭自动同步，也可“立即核对”。查询使用独立的短时 URLSession；不上传录音、转写或 Prompt，不依赖后台服务或新 SDK。退出后不继续查询，也不唤醒睡眠中的电脑。
+UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音输入工具。按 **Fn** 开始口述，再按 **Fn** 结束：豆包负责转写，DeepSeek 整理表达，随后将文字输入到原来的输入框。
 
-- **DeepSeek**：通过官方 `GET /user/balance` 保存账户余额快照。余额不是逐笔账单；充值、赠金或其他应用消费不会被分配成 UtterLeaf 费用。
-- **豆包**：通过火山 `ListBillDetail` 查询最近 30 天的账单，需在同步设置填写费用中心的实例 ID（不一定等于语音 App ID），产品代码可选。本机 Keychain（服务 `network.utterleaf.personal`）或 `~/.llm.env` 需配置 `UTTERLEAF_VOLC_ACCESS_KEY_ID` 与 `UTTERLEAF_VOLC_SECRET_ACCESS_KEY`，建议个人 IAM 子用户的账单只读凭证。App 不显示密钥，文件权限需为 600。
-- 账单按明细 ID 去重，完整翻页后原子替换对应快照；范围不符、字段缺失、页数异常或网络失败时保留上次成功数据。小时账单可能延迟数小时，空结果不代表免费。
-- 官方应付金额以实例汇总单列。只有用户确认实例专用于 UtterLeaf 时才显示与本地同账单区间的估算差额；汇总金额不自动摊到逐次调用，不覆盖手工核对。
+基于 **SwiftUI、AppKit、AVAudioEngine 和 URLSession**，运行 App 无需额外的 Python 服务或 Node 运行时。目前界面为中文。
 
-配置步骤：个人火山控制台 → IAM 账单只读子用户 → 创建 AK/SK → 在本机保存上述变量 → 费用中心找到豆包语音账单的 InstanceNo → UtterLeaf 同步设置填写 → 立即核对。不要把密钥发送到聊天或提交到仓库。
+### 当前状态
 
-## 窗口与录音胶囊动画
+**截至 2026-10-25，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录和 iOS 尚未实现。
 
-双击窗口顶部空白区域，在当前桌面铺满菜单栏与 Dock 之间的可用屏幕；再双击恢复先前的位置和尺寸。不会新建全屏桌面。窗口按钮和模态编辑区域保留原有操作。
+最新本地自动测试 **75 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
-Fn 开始时胶囊从底部轻轻展开；结束录音后声线淡出，胶囊收窄成处理中；完成后短暂显示真实结果，再缩小淡出。取消、文字保留和输入成功分别展示，不把未确认粘贴显示为成功。动画不会延迟 API 或回填，快速重录会取消旧退场任务。启用系统“减少动态效果”时仅短暂淡入淡出。浮层不激活窗口、不占键盘焦点；退场不拦截鼠标。
+### 已有功能
 
-输入框采用统一圆角绿系外观，保留系统编辑和输入法；额度卡合并成本构成到近 30 天页脚，缺回执少于 5 次时隐藏额度提示（明细仍保留）。声线显示增益 1.7×、近静音 -50dB 门限，胶囊尺寸不变。
+- **Fn 开始/结束，Esc 取消**录音或尚未完成的处理；Fn 组合键正常传递，不自动按回车或发送消息。
+- **单次最长 5 分钟**，最后 30 秒在胶囊内倒计时，到时自动结束并继续处理。
+- **三条可选豆包管线**：流式结束后返回、实时流式、文件转写；新安装不预选管线。
+- **可选 DeepSeek Flash 整理**：去除口吃与赘词、保留原意、转换口述符号、规范编号数字。输入使用 JSON 数据封装，不执行录音里的命令。
+- **语境词汇表**：帮助规范专有名称及易错拼写，不做无条件全文替换。
+- **自动回填及可选预览**：核对原应用、输入框和光标；发生变化时保留稿件供恢复。必要时使用剪贴板粘贴，并在接口允许时读取确认结果。
+- **本地历史与用量费用**：原始/最终稿保留策略、CNY 费用估算、供应商成本占比、滚动 7/30 天预算。预算仅作提醒，不限制录音，也不是供应商余额。
+- **默认深色**，支持浅色/跟随系统、轻量动态波形胶囊、减少动态效果和三组提示音。
 
-提示音默认 A · 轻触，在“模型与设置 → 提示音”可切换 B · 木滴 / C · 清铃、调音量、静音或试听。三组原创 WAV 随 App 打包，播放不联网。开始音结束后开启采音，结束音在停止采音后播放；只有确认回填成功才播放完成音。
+### 构建与配置
 
-文字整理固定追加 `arabic-digits-v1` 数字偏好：明确的英文编号优先使用阿拉伯数字，如 session one/two → session 1/2、队名 G two → G2；保护 OneDrive、OnePlus、Formula One 等固定名称及明确引用的原样字符串。v6 原文件和 JSON 数据封装保留，实际复合 Prompt 的 hash 与版本写入调用/任务回执。
+需要 **macOS 14+** 和支持 **Swift tools 6.0** 清单的 Xcode/Swift 工具链。
 
-额度进度同时显示本周期“已写 X 字”：按 7 天 / 30 天内听写任务的最终稿字符计数，含标点与空白，同次听写只算一次；不因两家 API 或整理重试重复累计，清除正文后仍保留计数。
+```sh
+git clone https://github.com/wyf-ACCEPT/utter-leaf.git
+cd utter-leaf
+./scripts/test.sh
+./scripts/build-app.sh
+open .local/UtterLeaf.app
+```
 
-## 自动回填诊断
+构建脚本先暂存、签名并验证，再通过重命名替换 App。其他机器默认使用 ad-hoc 签名，也可用 `UTTERLEAF_SIGNING_IDENTITY` 或被 Git 忽略的 `.local/signing-identity` 指定自己的签名身份。ad-hoc 重编译后可能需要重新授权；正式 Developer ID 签名与公证尚未包含。
 
-录音开始时固定目标应用与输入框。辅助功能暂时无法提供焦点或光标时，仅在原应用与原窗口不变的前提下重试，最多额外等待约 0.36 秒，再开启录音。切换目标、密码框或权限不足不会绕过校验。历史元数据记录目标 bundle ID、捕获次数、捕获错误码与回填错误码；不记录窗口标题、网址或输入框正文。目标缺失仍保留整理稿供复制，不声称已粘贴。
+1. 在本机配置个人 `DOUBAO_API_KEY` 和 `DEEPSEEK_API_KEY`：优先读取 Keychain 服务 `network.utterleaf.personal`，account 为变量名；否则读取权限为 `600` 的 `~/.llm.env`。GUI 直接读取，无需 shell export。**App 不内置供应商 Key**，不要提交凭证。
+2. 在「模型与设置」选择 ASR 管线及是否整理。
+3. 为当前 App 开启麦克风与辅助功能权限。
+4. 点击目标输入框，单按并松开 **Fn** 开始，再按一次结束；处理期间保持目标和光标不变。输入开始前可按 **Esc** 取消。
+
+文件管线保留实验中验证过的 `audio.data` 接法，但所参考官方文件 ASR schema 未明确列出此字段；兼容性失败时请切换流式管线。
+
+### 隐私与本地数据
+
+**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端，也不自动跨设备同步。
+
+录音仅存内存。历史账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
+
+凭证、私人录音、历史账本、构建产物和个人交接资料均被 Git 排除。仓库中的 `App/Sounds/` WAV 是原创界面提示音，不是用户录音。
+
+### 用量与官方核对
+
+- 按每次调用的价格快照估算，CNY 显示四位小数；参考价格可修改，不等于账户实际套餐。
+- 端到端费用包含 **豆包 + DeepSeek**，同一任务音频时长去重。缺少用量的调用保留未知，不按免费处理。
+- App 运行期间每 **20 分钟**检查官方数据，启动/唤醒后补查，听写时延后；也可手动核对。
+- **DeepSeek** 返回账户余额参考，不是逐笔账单，不会据此覆盖听写费用。
+- **豆包** 查询火山实例账单，需要费用中心的 `InstanceNo`，以及本机配置的个人只读 `UTTERLEAF_VOLC_ACCESS_KEY_ID` / `UTTERLEAF_VOLC_SECRET_ACCESS_KEY`。汇总账单不会自动摊为逐次费用，也不能把其他应用消费归给言叶。
+
+### 后续路线
+
+| 阶段 | 范围 |
+| --- | --- |
+| Phase 1 · macOS 听写 | 继续打磨现有私人听写、回填与用量体验。 |
+| Phase 2 · 会议 | 类似 Granola 的长时会议转录、说话人、时间戳、整理稿、笔记与 brief。 |
+| Phase 3 · 自用 iOS | 同时包含日常听写和会议转录/笔记；单独验证移动端采音、输入入口、个人凭证与系统限制。 |
+| 后续 · Slack | 按配置分发会议转录与 brief，明确目标和发送状态。 |
+
+Phase 3 暂不考虑邀请码、账户、统一服务端和多人额度；跨设备同步方式待定。
+
+### 开发资料
+
+源码在 `Sources/`，测试在 `Tests/UtterLeafCoreTests/`，原始整理 prompt 与封装说明在 `prompts/`。[产品需求](docs/6x23-product-brief.md)、[技术交接](docs/6x23-technical-handoff.md) 与实施记录在 `docs/`；[DESIGN.md](DESIGN.md) 和 [UX-CONTRACT.md](UX-CONTRACT.md) 维护视觉与交互约定。`research/benchmark/` 保留研究代码、汇总指标与合成回归，不包含私人原始录音。
+
+波形参考 MIT [SpeechWaveAnimation](https://github.com/mvolpato/SpeechWaveAnimation)，使用原生 SwiftUI Canvas 适配，无新增 Swift 包依赖，许可随 App 打包。开发前请阅读 [AGENTS.md](AGENTS.md)；`.codex/` 个人交接资料仅保存在本机，不随 clone 提供。
