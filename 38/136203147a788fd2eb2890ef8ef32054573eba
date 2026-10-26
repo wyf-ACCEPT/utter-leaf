@@ -1,0 +1,132 @@
+mobile/ios/UtterLeafKeyboard/Info.plist
+  s_299dc04098b816::t_29f1621ed12f71 1-17
+mobile/test/dictation_test.dart
+  s_299dc04098b816::t_8c8cdf7371ba3e 1-33,36,42-43,46,49-50,53,59-60,65,68-69
+  s_3e875cd533eb64::t_309267cbc8af20 34-35,37-41,44-45,47-48,51-52,54-58,61-64,66-67,70-127
+mobile/ios/Runner/KeyboardReturn.swift
+  s_299dc04098b816::t_a60e645bcc4b92 1-25
+Tests/UtterLeafCoreTests/KeyboardDeliveryTests.swift
+  s_299dc04098b816::t_b2a2530f1b3ddb 1-22
+mobile/ios/Shared/DictationExchange.swift
+  s_299dc04098b816::t_59399f8f40386b 1-21
+Sources/UtterLeafCore/Wire.swift
+  s_299dc04098b816::t_59399f8f40386b 2,4-6
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_12758a7076aaad 1-16,19-48,51-64,66-75,84-88,91-116,126-161,163-165,168,171-214,218-220,225-229
+  s_299dc04098b816::t_413ec36c10587c 76-83
+  s_299dc04098b816::t_64750dd75632dc 162,166-167,169-170,215-217,221-224
+  s_299dc04098b816::t_a60e645bcc4b92 17-18,49-50,65,89,117-125
+  s_299dc04098b816::t_531fbf8e95c79b 90
+mobile/ios/Runner/MobileProvider.swift
+  s_299dc04098b816::t_59399f8f40386b 1-86
+mobile/ios/Runner/AppDelegate.swift
+  s_299dc04098b816::t_12758a7076aaad 1-17
+mobile/ios/Runner/SceneDelegate.swift
+  s_299dc04098b816::t_12758a7076aaad 1-12
+mobile/ios/Runner/PersonalKeys.swift
+  s_299dc04098b816::t_59399f8f40386b 1-31
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_b2a2530f1b3ddb 40-41,43-47,60-62
+  s_299dc04098b816::t_413ec36c10587c 28-30
+  s_299dc04098b816::t_b38bc0f7e2f3e6 9,56,95,105,122-124
+  s_299dc04098b816::t_a60e645bcc4b92 57,77-87,96,115,130-135
+  s_299dc04098b816::t_159960b6e4761f 91-93
+  s_299dc04098b816::t_29f1621ed12f71 1-8,10-27,31-39,42,48-55,58-59,63-76,88-90,94,97-104,106-114,116-121,125-129,136-137
+mobile/scripts/provision_personal.py
+  s_299dc04098b816::t_8c8cdf7371ba3e 1-31
+Sources/UtterLeafCore/KeyboardDelivery.swift
+  s_299dc04098b816::t_b2a2530f1b3ddb 1-13
+scripts/render-brand.swift
+  s_299dc04098b816::t_b38bc0f7e2f3e6 5,27-32,40-47
+mobile/lib/main.dart
+  s_299dc04098b816::t_cecdbc192416b6 1-606
+  s_299dc04098b816::t_631b7b3248ec04 607-609
+.gitignore
+  s_299dc04098b816::t_6e389fcc3221e4 32-35
+README.md
+  s_299dc04098b816::t_fb479dee7d4480 16,18-22
+mobile/.gitignore
+  s_299dc04098b816::t_cb596f3577abcb 1-24
+mobile/.metadata
+  s_299dc04098b816::t_6de94962475484 1-30
+mobile/README.md
+  s_299dc04098b816::t_f10bacc56089eb 1-45
+mobile/analysis_options.yaml
+  s_299dc04098b816::t_ccbc705db87293 1-28
+mobile/ios/.gitignore
+  s_299dc04098b816::t_519df5857b3fb8 1-34
+mobile/ios/Flutter/AppFrameworkInfo.plist
+  s_299dc04098b816::t_b977107604289b 1-24
+mobile/ios/Flutter/Debug.xcconfig
+  s_299dc04098b816::t_f9ae4c81be0adf 1
+mobile/ios/Flutter/Release.xcconfig
+  s_299dc04098b816::t_e03bcb2eb76728 1
+mobile/ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+  s_299dc04098b816::t_1b2571b458d074 1-7
+mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+  s_299dc04098b816::t_d894291b539f21 1-8
+mobile/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+  s_299dc04098b816::t_63ff20d2f74f61 1-8
+mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+  s_299dc04098b816::t_07ecdf2c7bd133 1-101
+mobile/ios/Runner.xcworkspace/contents.xcworkspacedata
+  s_299dc04098b816::t_c866919e56b80a 1-7
+mobile/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+  s_299dc04098b816::t_96c885c1bf3c84 1-8
+mobile/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+  s_299dc04098b816::t_c6b71ae95b4100 1-8
+mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+  s_299dc04098b816::t_78d562efc3361e 1-14
+mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json
+  s_299dc04098b816::t_207c7275ad3494 1-23
+mobile/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md
+  s_299dc04098b816::t_8006f3b87e2ef7 1-5
+mobile/ios/Runner/Base.lproj/LaunchScreen.storyboard
+  s_299dc04098b816::t_4262ec7897c4c2 1-37
+mobile/ios/Runner/Base.lproj/Main.storyboard
+  s_299dc04098b816::t_fdab548943480e 1-26
+mobile/ios/Runner/Info.plist
+  s_299dc04098b816::t_83eaaa3bfe4b8b 1-87
+mobile/ios/Runner/Runner-Bridging-Header.h
+  s_299dc04098b816::t_f30598e0e6d3be 1
+mobile/ios/Runner/Runner.entitlements
+  s_299dc04098b816::t_100059c7385f75 1-10
+mobile/ios/Runner/cleanup.txt
+  s_299dc04098b816::t_90c87314f54501 1-85
+mobile/ios/RunnerTests/RunnerTests.swift
+  s_299dc04098b816::t_a3a191f3857d82 1-12
+mobile/ios/UtterLeafKeyboard/Keyboard.entitlements
+  s_299dc04098b816::t_04dd16c4f96c69 1-10
+mobile/pubspec.lock
+  s_299dc04098b816::t_1767730da94a84 1-213
+mobile/pubspec.yaml
+  s_299dc04098b816::t_632835708ac747 1-18
+DESIGN.md
+  s_299dc04098b816::t_230af75f0f6827 139-144
+UX-CONTRACT.md
+  s_299dc04098b816::t_a6aeee2c2d5b96 140-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38136203147a788fd2eb2890ef8ef32054573eba",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    },
+    "s_3e875cd533eb64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677c-b29e-7602-81bb-544d99041296",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
