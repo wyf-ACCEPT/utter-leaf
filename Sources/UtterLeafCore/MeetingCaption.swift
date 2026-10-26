@@ -7,6 +7,12 @@ public struct MeetingCaptionLine: Equatable, Identifiable {
     public let text: String
 }
 public enum MeetingCaptionPolicy {
+    public static let lineOptions = [2, 3, 5]
+    public static func lineCount(_ value: Int?) -> Int { lineOptions.contains(value ?? 3) ? (value ?? 3) : 3 }
+    public static func opacity(_ value: Double?) -> Double {
+        guard let value, value.isFinite else { return 0.75 }
+        return min(1, max(0.35, value))
+    }
     public static func shouldShow(recording: Bool, paused: Bool, live: Bool, enabled: Bool) -> Bool {
         recording && !paused && live && enabled
     }
@@ -16,6 +22,6 @@ public enum MeetingCaptionPolicy {
         let id = source + ":" + (row.start < 0 ? "pending" : String(row.start))
         let line = MeetingCaptionLine(id: id, source: source, speaker: row.speaker, text: String(text.suffix(240)))
         if lines.last == line { return lines }
-        return Array((lines.filter { $0.id != id && !(row.start >= 0 && $0.id == source + ":pending") } + [line]).suffix(3))
+        return Array((lines.filter { $0.id != id && !(row.start >= 0 && $0.id == source + ":pending") } + [line]).suffix(5))
     }
 }
