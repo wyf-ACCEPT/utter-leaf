@@ -55,3 +55,26 @@ final class UsageBudgetTests: XCTestCase {
     }
 
 }
+
+extension UsageBudgetTests {
+    func testThreeBudgetSegmentsUseSpendAndRemainderWithoutDoubleCountingProviders() {
+        let dictation = HistoryJob(pipeline: .final)
+        var meeting = HistoryJob(pipeline: .file); meeting.kind = "meeting"
+        let rows = [call(dictation, daysAgo: 1, cost: 1), call(meeting, daysAgo: 1, cost: 1.5), call(meeting, daysAgo: 1, provider: "DeepSeek", cost: 0.5), call(meeting, daysAgo: 1, cost: nil)]
+        let result = UsageBudget(calls: rows, jobs: [dictation, meeting], days: 7, limit: 5, now: now)
+        XCTAssertEqual(result.dictationFraction, 0.2, accuracy: 0.00001)
+        XCTAssertEqual(result.meetingFraction, 0.4, accuracy: 0.00001)
+        XCTAssertEqual(result.remainingFraction, 0.4, accuracy: 0.00001)
+        XCTAssertEqual(result.unknown, 1)
+        XCTAssertEqual(result.dictationFraction + result.meetingFraction + result.remainingFraction, 1, accuracy: 0.00001)
+    }
+    func testOverspendKeepsSegmentsWithinOneBarAndVoiceprintCostsBelongToMeetings() {
+        let dictation = HistoryJob(pipeline: .final)
+        var voice = call(dictation, daysAgo: 1, cost: 3); voice.model = "voiceprint-ListVoiceprint"
+        let result = UsageBudget(calls: [call(dictation, daysAgo: 1, cost: 7), voice], jobs: [dictation], days: 7, limit: 5, now: now)
+        XCTAssertEqual(result.spent, 10); XCTAssertEqual(result.remainingFraction, 0)
+        XCTAssertEqual(result.dictationFraction, 0.7); XCTAssertEqual(result.meetingFraction, 0.3)
+        XCTAssertTrue(UsagePurpose.meeting.matches(voice, jobs: []))
+        XCTAssertFalse(UsagePurpose.dictation.matches(voice, jobs: []))
+    }
+}

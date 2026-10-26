@@ -5,6 +5,10 @@ public struct UsageBudget {
     public let limit: Double
     public let spent: Double
     public let unknown: Int
+    public let dictationEstimated: Double
+    public let meetingEstimated: Double
+    public var dictationFraction: Double { max(0, min(1, dictationEstimated / max(limit, spent))) }
+    public var meetingFraction: Double { max(0, min(1, meetingEstimated / max(limit, spent))) }
     public let writtenCharacters: Int
     public let doubaoEstimated: Double
     public let deepSeekEstimated: Double
@@ -26,6 +30,8 @@ public struct UsageBudget {
         }.reduce(0) { $0 + max(0, $1.finalCharacters) }
         let rows = calls.filter { $0.price.currency == "CNY" && $0.started >= now.addingTimeInterval(-Double(days) * 86400) && $0.started <= now }
         spent = rows.compactMap(\.estimatedAmount).reduce(0, +)
+        meetingEstimated = rows.filter { UsagePurpose.isMeeting($0, jobs: jobs) }.compactMap(\.estimatedAmount).reduce(0, +)
+        dictationEstimated = spent - meetingEstimated
         doubaoEstimated = rows.filter { $0.provider == "Doubao" }.compactMap(\.estimatedAmount).reduce(0, +)
         deepSeekEstimated = rows.filter { $0.provider == "DeepSeek" }.compactMap(\.estimatedAmount).reduce(0, +)
         unknown = rows.filter { $0.estimatedAmount == nil }.count

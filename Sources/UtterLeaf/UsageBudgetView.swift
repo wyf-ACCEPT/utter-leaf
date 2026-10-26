@@ -34,16 +34,23 @@ struct UsageBudgetView: View {
                     .foregroundStyle(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
             }
             GeometryReader { geometry in
-                Capsule().fill(LeafTheme.line.opacity(0.7))
-                    .overlay(alignment: .leading) {
-                        Capsule().fill(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
-                            .frame(width: geometry.size.width * budget.remainingFraction)
-                    }
-            }.frame(height: 8)
+                HStack(spacing: 0) {
+                    Rectangle().fill(LeafTheme.usageDictation).frame(width: geometry.size.width * budget.dictationFraction)
+                    Rectangle().fill(LeafTheme.usageMeeting).frame(width: geometry.size.width * budget.meetingFraction)
+                    Rectangle().fill(LeafTheme.line.opacity(0.7)).frame(width: geometry.size.width * budget.remainingFraction)
+                }.clipShape(Capsule())
+            }.frame(height: 10)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.dictationFraction)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.meetingFraction)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.remainingFraction)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("最近 \(days) 天剩余额度")
-                .accessibilityValue("\(String(format: "%.1f", budget.remainingFraction * 100)) 百分比")
+                .accessibilityLabel("最近 \(days) 天额度构成")
+                .accessibilityValue("听写 \(percent(budget.dictationFraction))，会议 \(percent(budget.meetingFraction))，剩余 \(percent(budget.remainingFraction))")
+            HStack(spacing: 18) {
+                legend("听写", budget.dictationFraction, LeafTheme.usageDictation)
+                legend("会议", budget.meetingFraction, LeafTheme.usageMeeting)
+                legend("剩余", budget.remainingFraction, LeafTheme.line)
+            }.font(LeafType.caption)
             HStack {
                 Text("已用 \(money(budget.spent, "CNY")) · 预算 \(money(budget.limit, "CNY"))")
                 Spacer()
@@ -58,24 +65,23 @@ struct UsageBudgetView: View {
                     .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             }
             if budget.spent > budget.limit {
-                Text("已超出预算 \(money(budget.spent - budget.limit, "CNY"))，仍可继续录音。")
+                Text("已超出预算 \(money(budget.spent - budget.limit, "CNY"))，仍可继续录音；条内按两类已知消耗占比分配。")
                     .font(LeafType.caption).foregroundStyle(.orange)
             }
         }.padding(.vertical, 6)
     }
     @ViewBuilder private var sharedSummary: some View {
         let budget = UsageBudget(calls: store.database.calls, jobs: store.database.jobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20)
-        if let doubao = budget.doubaoFraction, let deepSeek = budget.deepSeekFraction {
-            Text("近 30 天成本构成 · 豆包 \(String(format: "%.1f", doubao * 100))% · DeepSeek \(String(format: "%.1f", deepSeek * 100))%" + (budget.doubaoToDeepSeek.map { " · 约 \(String(format: "%.1f", $0)) : 1" } ?? ""))
-                .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                .help("按近 30 天两项服务的已知估算计算，未知金额不参与占比。比值顺序为豆包 : DeepSeek。")
-        } else {
-            Text("近 30 天成本构成 · 暂无已知费用").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-        }
+        Text("近 30 天支出 · 听写 \(money(budget.dictationEstimated, "CNY")) · 会议 \(money(budget.meetingEstimated, "CNY"))")
+            .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         if budget.unknown >= 5 {
             Text("近 30 天有 \(budget.unknown) 次调用缺少用量回执，尚不能估算；剩余额度可能偏高。")
                 .font(LeafType.caption).foregroundStyle(.orange)
         }
+    }
+    private func percent(_ fraction: Double) -> String { String(format: "%.1f%%", fraction * 100) }
+    private func legend(_ title: String, _ fraction: Double, _ color: Color) -> some View {
+        HStack(spacing: 6) { Circle().fill(color).frame(width: 7, height: 7); Text("\(title) \(percent(fraction))").monospacedDigit() }.foregroundStyle(LeafTheme.muted)
     }
     private func thousands(_ characters: Double) -> String { String(format: "%.1f", characters / 1000) }
 }
