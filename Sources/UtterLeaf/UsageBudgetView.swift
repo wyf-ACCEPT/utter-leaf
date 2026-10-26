@@ -35,9 +35,9 @@ struct UsageBudgetView: View {
             }
             GeometryReader { geometry in
                 HStack(spacing: 0) {
+                    Rectangle().fill(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf).frame(width: geometry.size.width * budget.remainingFraction)
                     Rectangle().fill(LeafTheme.usageDictation).frame(width: geometry.size.width * budget.dictationFraction)
                     Rectangle().fill(LeafTheme.usageMeeting).frame(width: geometry.size.width * budget.meetingFraction)
-                    Rectangle().fill(LeafTheme.line.opacity(0.7)).frame(width: geometry.size.width * budget.remainingFraction)
                 }.clipShape(Capsule())
             }.frame(height: 10)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.dictationFraction)
@@ -47,9 +47,9 @@ struct UsageBudgetView: View {
                 .accessibilityLabel("最近 \(days) 天额度构成")
                 .accessibilityValue("听写 \(percent(budget.dictationFraction))，会议 \(percent(budget.meetingFraction))，剩余 \(percent(budget.remainingFraction))")
             HStack(spacing: 18) {
+                legend("剩余", budget.remainingFraction, budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
                 legend("听写", budget.dictationFraction, LeafTheme.usageDictation)
                 legend("会议", budget.meetingFraction, LeafTheme.usageMeeting)
-                legend("剩余", budget.remainingFraction, LeafTheme.line)
             }.font(LeafType.caption)
             HStack {
                 Text("已用 \(money(budget.spent, "CNY")) · 预算 \(money(budget.limit, "CNY"))")

@@ -16,8 +16,8 @@ enum LeafTheme {
     static let ink = adaptive(0x1B2A23, 0xE7F0EA)
     static let muted = adaptive(0x5B6A62, 0xA8BBB0)
     static let line = adaptive(0xD3DDD6, 0x35463C)
-    static let usageDictation = adaptive(0x2D5E46, 0x4E8766)
-    static let usageMeeting = adaptive(0x9ACFAF, 0xA6DBBA)
+    static let usageDictation = adaptive(0xA6B5AC, 0x3F5E4B)
+    static let usageMeeting = adaptive(0x729B80, 0x6D947A)
     static let actionInk = adaptive(0xFFFFFF, 0x102A1C)
     static func scheme(_ preference: String?) -> ColorScheme? {
         switch preference ?? "dark" { case "light": return .light; case "system": return nil; default: return .dark }
