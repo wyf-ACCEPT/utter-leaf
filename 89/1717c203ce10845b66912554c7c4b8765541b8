@@ -1,0 +1,35 @@
+DESIGN.md
+  s_299dc04098b816::t_b311975a3c6dbf 120,123-124
+README.md
+  s_299dc04098b816::t_7d70b213e2e341 20,58,122,158
+Sources/UtterLeaf/MeetingCaptionPanel.swift
+  s_299dc04098b816::t_7ca297fec623b8 10,17,19-21,26-46,50,56,69-82,87-89,91-121,123-124,126-127,130,139-147
+Sources/UtterLeaf/MeetingModel.swift
+  s_299dc04098b816::t_179a59eff0f0d9 20-22,46-47,82
+Sources/UtterLeaf/MeetingStore.swift
+  s_299dc04098b816::t_9fd708727f870d 5,34-39
+Sources/UtterLeaf/MeetingsView.swift
+  s_299dc04098b816::t_ce3d5f27910a3a 21-25
+Sources/UtterLeafCore/MeetingCaption.swift
+  s_299dc04098b816::t_5e0f4cb4c45baf 10-15,25
+Tests/UtterLeafCoreTests/MeetingCaptionTests.swift
+  s_299dc04098b816::t_ee728adb40d2c7 14-22,37,46,49,100-119
+UX-CONTRACT.md
+  s_299dc04098b816::t_04d2641b7f3aa1 103,108-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "891717c203ce10845b66912554c7c4b8765541b8",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
