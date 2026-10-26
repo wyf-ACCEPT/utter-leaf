@@ -54,9 +54,9 @@ final class MeetingWorkflowTests: XCTestCase {
         let filename = MeetingTextExport.filename(value, section: .raw)
         XCTAssertFalse(filename.contains("/")); XCTAssertFalse(filename.contains(":"))
         XCTAssertFalse(filename.contains("\\")); XCTAssertFalse(filename.contains("\n"))
-        XCTAssertTrue(filename.hasSuffix("-原始转录.txt"))
+        XCTAssertTrue(filename.hasSuffix(".txt")); XCTAssertTrue(filename.contains("-meeting-"))
         value.title = "   "
-        XCTAssertEqual(MeetingTextExport.filename(value, section: .brief), "会议-Brief.txt")
+        XCTAssertEqual(MeetingTextExport.filename(value, section: .brief), MeetingNaming.stem(value) + ".txt")
     }
     func testBriefCanUseCleanedTextWithoutChangingOriginalOrSourceIDs() throws {
         var value = meeting(); value.cleaned = ["u0": "Cleaned statement", "u1": "Another cleaned statement"]

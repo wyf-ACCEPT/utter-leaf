@@ -123,8 +123,10 @@ struct MeetingsView: View {
                 Spacer()
                 Button("回听") { model.playback() }.disabled(model.recording).handCursor()
                 Button("停止播放", action: model.stopPlayback).handCursor()
+                Button(model.audioExporting ? "导出中…" : "导出 M4A", action: model.exportAudio).handCursor().disabled(model.recording || model.audioExporting || value.state == "saving")
             }
             if !model.recording {
+                if !value.segments.isEmpty { MeetingNamingView(model: model, meeting: value) }
                 workflow(value)
             }
             LeafSegments(title: "会议内容", selection: $tab, items: [LeafSegment("笔记", "我的笔记"), LeafSegment("转录", "原始转录"), LeafSegment("整理稿", "整理转录"), LeafSegment("Brief", "Brief")])

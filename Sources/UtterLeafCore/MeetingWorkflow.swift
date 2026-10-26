@@ -41,9 +41,6 @@ public enum MeetingTextExport {
         return "\(meeting.title)\n\(date) · \(MeetingCaptionPolicy.recordingTime(meeting.seconds))\n\(section.title)\n\n\(text)\n"
     }
     public static func filename(_ meeting: MeetingRecord, section: MeetingTextSection) -> String {
-        let invalid = CharacterSet.controlCharacters.union(CharacterSet(charactersIn: "/:\\"))
-        let title = String(meeting.title.unicodeScalars.map { invalid.contains($0) ? "_" : String($0) }.joined().prefix(100))
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return (title.isEmpty || title.allSatisfy({ $0 == "." }) ? "会议" : title) + "-" + section.title + ".txt"
+        MeetingNaming.stem(meeting) + ".txt"
     }
 }

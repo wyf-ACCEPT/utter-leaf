@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import UniformTypeIdentifiers
 import UtterLeafCore
 
 @MainActor final class MeetingModel: ObservableObject {
@@ -11,6 +12,10 @@ import UtterLeafCore
     @Published var active: MeetingRecord?
     @Published var message = ""
     @Published var elapsed = 0.0
+    @Published var audioExporting = false
+    private var exportTask: Task<Void, Never>?
+    @Published var namingMeetingID: UUID?
+    private var namingTask: Task<Void, Never>?
     @Published var progress: MeetingWorkProgress?
     @Published var busy = false { didSet { if !busy { progress = nil } } }
     @Published var recording = false { didSet { onCaptionUpdate?() } }
@@ -230,6 +235,7 @@ import UtterLeafCore
                         edit { $0.segments = result.segments; $0.rawResultHash = TextEnvelope.hash(String(decoding: result.data, as: UTF8.self)); $0.state = "transcribed"; $0.failureCode = nil }
                         message = "整场转录已完成，说话人编号仅属于本场会议；已注册声纹会参与匹配。"
                         busy = false
+                        if current?.nameCandidates == nil { suggestNames() }
                         return
                     }
                     if attempt % 10 == 0 { message = "豆包仍在处理完整会议，原请求已保留，可停止等待后再核对。" }
@@ -298,6 +304,56 @@ import UtterLeafCore
                 }
                 edit { $0.state = "ready"; $0.briefNeedsUpdate = false }; busy = false; message = "会议笔记已保存。可复制；开启溯源编号后可编辑原稿并核对原文。"
             } catch { busy = false; fail(error) }
+        }
+    }
+    func suggestNames() {
+        guard let value = current, !value.segments.isEmpty, namingMeetingID == nil else { return }
+        namingMeetingID = value.id
+        namingTask = Task {
+            defer { namingMeetingID = nil }
+            do {
+                let prefs = ledger.database.preferences
+                let price = PriceSnapshot(version: "meeting-naming-v1", currency: "CNY", inputPerMillion: prefs.flashInput, cachedPerMillion: prefs.flashCached, outputPerMillion: prefs.flashOutput, note: "会议命名候选")
+                let result = try await api.brief(content: MeetingNaming.envelope(value), meeting: value.id, price: price, system: MeetingNaming.prompt, usageModel: "deepseek-flash-meeting-naming", maxTokens: 512)
+                try Task.checkCancellation()
+                let names = try MeetingNaming.candidates(result, created: value.created)
+                guard var latest = store.index.meetings.first(where: { $0.id == value.id }) else { return }
+                latest.nameCandidates = names; try store.save(latest)
+                if active?.id == latest.id { active = latest }
+                if current?.id == value.id { message = "已生成 3 个候选名称，点选后用于标题及导出文件名。" }
+            } catch { if current?.id == value.id, !(error is CancellationError) { message = "候选名称生成失败，可稍后重试；原会议内容保留。" } }
+        }
+    }
+    func applyName(_ name: String) {
+        guard let value = current, value.nameCandidates?.contains(name) == true else { return }
+        let used = Set(store.index.meetings.filter { $0.id != value.id }.compactMap(\.fileStem))
+        var stem = name, suffix = 2
+        while used.contains(stem) { stem = name + "-\(suffix)"; suffix += 1 }
+        edit { $0.title = stem; $0.fileStem = stem }
+    }
+    func exportAudio() {
+        guard let value = current, !recording, !audioExporting, FileManager.default.fileExists(atPath: store.audio(value.id).path) else { message = "请等待录音保存完成后再导出音频。"; return }
+        let save = NSSavePanel(); save.allowedContentTypes = [.mpeg4Audio]
+        save.nameFieldStringValue = MeetingNaming.stem(value) + ".m4a"; save.canCreateDirectories = true
+        guard let window = NSApp.keyWindow else { message = "请在主窗口中导出。"; return }
+        audioExporting = true
+        save.beginSheetModal(for: window) { [weak self] response in
+            guard let self else { return }
+            guard response == .OK, let destination = save.url else { audioExporting = false; return }
+            exportTask = Task {
+                defer { self.audioExporting = false }
+                let temporary = FileManager.default.temporaryDirectory.appendingPathComponent("utterleaf-export-" + UUID().uuidString + ".m4a")
+                let staged = destination.deletingLastPathComponent().appendingPathComponent("." + UUID().uuidString + ".m4a")
+                defer { try? FileManager.default.removeItem(at: temporary); try? FileManager.default.removeItem(at: staged) }
+                do {
+                    try await MeetingAudioExport.convert(source: self.store.audio(value.id), destination: temporary)
+                    try Task.checkCancellation()
+                    try FileManager.default.copyItem(at: temporary, to: staged)
+                    if FileManager.default.fileExists(atPath: destination.path) { _ = try FileManager.default.replaceItemAt(destination, withItemAt: staged) }
+                    else { try FileManager.default.moveItem(at: staged, to: destination) }
+                    self.message = "M4A 已导出，原始录音保留。"
+                } catch { self.message = "M4A 导出失败，原始录音与目标文件已保留。" }
+            }
         }
     }
     func stopWaiting() { guard !recording, canStopWaiting else { return }; operation?.cancel() }
@@ -376,5 +432,5 @@ import UtterLeafCore
         do { stopPlayback(); try store.deleteAudio(value.id); message = "本机音频已删除，文字记录仍保留。" }
         catch { message = "音频未完整删除，请检查本机文件权限。" }
     }
-    func shutdown() { flushDraft(); if recording { edit { $0.state = "interrupted"; $0.seconds = elapsed } }; tick?.cancel(); operation?.cancel(); liveSessions.values.forEach { $0.cancel() }; recorder.shutdown(); stopPlayback() }
+    func shutdown() { exportTask?.cancel(); namingTask?.cancel(); flushDraft(); if recording { edit { $0.state = "interrupted"; $0.seconds = elapsed } }; tick?.cancel(); operation?.cancel(); liveSessions.values.forEach { $0.cancel() }; recorder.shutdown(); stopPlayback() }
 }
