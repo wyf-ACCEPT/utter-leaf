@@ -34,6 +34,8 @@ public struct MeetingRecord: Codable, Identifiable {
     public var speakerNames: [String: String] = [:]
     public var voiceprints: [VoiceIdentity] = []
     public var systemAudio = false
+    public var importedAudioFile: String?
+    public var importedOriginalName: String?
     public var requestID: String?
     public var submission: String?
     public var failureCode: String?

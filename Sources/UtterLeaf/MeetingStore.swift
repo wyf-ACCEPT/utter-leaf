@@ -14,7 +14,7 @@ import UtterLeafCore
             let file = self.root.appendingPathComponent("index.json")
             if FileManager.default.fileExists(atPath: file.path) {
                 index = try JSONDecoder().decode(Index.self, from: Data(contentsOf: file))
-                for i in index.meetings.indices where ["recording", "paused", "preparing", "saving", "transcribing", "summarizing"].contains(index.meetings[i].state) {
+                for i in index.meetings.indices where ["recording", "paused", "preparing", "importing", "saving", "transcribing", "summarizing"].contains(index.meetings[i].state) {
                     index.meetings[i].state = "interrupted"
                 }
             }
@@ -57,9 +57,17 @@ import UtterLeafCore
         if FileManager.default.fileExists(atPath: folder(id).path) { try FileManager.default.removeItem(at: folder(id)) }
         index.meetings.removeAll { $0.id == id }; try persist()
     }
+    func originalAudio(_ id: UUID) -> URL? {
+        guard let name = index.meetings.first(where: { $0.id == id })?.importedAudioFile,
+              name.hasPrefix("imported-audio."), !name.contains("/"), !name.contains("\\") else { return nil }
+        let file = folder(id).appendingPathComponent(name)
+        return FileManager.default.fileExists(atPath: file.path) ? file : nil
+    }
     func deleteAudio(_ id: UUID) throws {
         let folder = folder(id)
-        for name in ["meeting.wav", "microphone.pcm", "system.pcm", "request.json"] {
+        let imported = index.meetings.first(where: { $0.id == id })?.importedAudioFile
+        let safeImported = imported.flatMap { $0.hasPrefix("imported-audio.") && !$0.contains("/") && !$0.contains("\\") ? $0 : nil }
+        for name in ["meeting.wav", "microphone.pcm", "system.pcm", "request.json"] + (safeImported.map { [$0] } ?? []) {
             let file = folder.appendingPathComponent(name)
             if FileManager.default.fileExists(atPath: file.path) { try FileManager.default.removeItem(at: file) }
         }

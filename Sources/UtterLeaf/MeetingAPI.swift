@@ -81,7 +81,7 @@ import UtterLeafCore
         throw AppFailure("声纹列表过大或分页异常，已保留本地名单。", code: "voiceprint_pagination")
     }
     /// Build the experimental audio.data request as a private disk file in bounded memory.
-    static func buildUpload(audio: URL, destination: URL, voices: [VoiceIdentity]) async throws {
+    static func buildUpload(audio: URL, destination: URL, voices: [VoiceIdentity], seconds: Double? = nil) async throws {
         try await Task.detached(priority: .utility) {
             let source = try FileHandle(forReadingFrom: audio); defer { try? source.close() }
             FileManager.default.createFile(atPath: destination.path, contents: nil, attributes: [.posixPermissions: 0o600])
@@ -93,7 +93,7 @@ import UtterLeafCore
             }
             try output.write(contentsOf: Data("\"},\"request\":".utf8))
             let bytes = try audio.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 44
-            try output.write(contentsOf: JSONSerialization.data(withJSONObject: MeetingProtocol.request(voices: voices, seconds: Double(max(0, bytes - 44)) / 32000)))
+            try output.write(contentsOf: JSONSerialization.data(withJSONObject: MeetingProtocol.request(voices: voices, seconds: seconds ?? Double(max(0, bytes - 44)) / 32000)))
             try output.write(contentsOf: Data("}".utf8)); try output.synchronize()
         }.value
     }
@@ -101,7 +101,11 @@ import UtterLeafCore
         var call = call; onCall?(call)
         let req = request("https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit", key: try credentials("DOUBAO_API_KEY"), resource: ASRPipeline.file.resource, requestID: call.requestID)
         let delegate = MeetingUploadProgress { percent in Task { @MainActor in progress?(percent) } }
-        let (data, response) = try await session.upload(for: req, fromFile: upload, delegate: delegate)
+        let data: Data, response: URLResponse
+        if let fetch {
+            var synthetic = req; synthetic.httpBody = try Data(contentsOf: upload)
+            (data, response) = try await fetch(synthetic)
+        } else { (data, response) = try await session.upload(for: req, fromFile: upload, delegate: delegate) }
         let (_, http) = try decode(data, response)
         call.httpStatus = http.statusCode; call.providerStatus = http.value(forHTTPHeaderField: "X-Api-Status-Code")
         call.logID = http.value(forHTTPHeaderField: "X-Tt-Logid")
