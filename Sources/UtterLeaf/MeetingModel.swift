@@ -243,7 +243,7 @@ import UtterLeafCore
                     message = "逐句整理会议转录 \(offset + 1) / \(value.segments.count)…"
                     let response = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows), meeting: value.id, price: price, system: MeetingProtocol.cleanupPrompt)
                     let cleaned = try MeetingProtocol.cleaned(response, expected: rows)
-                    output.merge(cleaned) { _, new in new }; edit { $0.cleaned = output }
+                    output.merge(cleaned) { _, new in new }; edit { $0.cleaned = output; if !$0.brief.isEmpty { $0.briefNeedsUpdate = true } }
                 }
                 edit { $0.state = "transcribed" }; busy = false; message = "逐句整理稿已保存，原始转录与说话人归属保持独立。"
             } catch { busy = false; fail(error) }
@@ -251,7 +251,7 @@ import UtterLeafCore
     }
     func summarize() {
         guard let value = current, !value.segments.isEmpty, !blocksDictation else { return }
-        busy = true; edit { $0.state = "summarizing" }; message = "根据你的笔记和带说话人的原文整理…"
+        busy = true; edit { $0.state = "summarizing"; $0.briefNeedsUpdate = true }; message = "根据你的笔记和带说话人的原文整理…"
         operation = Task {
             do {
                 let prefs = ledger.database.preferences
@@ -265,7 +265,7 @@ import UtterLeafCore
                 var parts: [String] = []
                 for (i, rows) in chunks.enumerated() {
                     try Task.checkCancellation(); message = "整理会议片段 \(i + 1) / \(chunks.count)…"
-                    let result = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows), meeting: value.id, price: price)
+                    let result = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows, preferCleaned: true), meeting: value.id, price: price)
                     guard MeetingProtocol.hasValidReferences(result, segments: rows) else { throw AppFailure("笔记原文引用缺失或不正确，已保留原始转录。可重试整理。", code: "meeting_brief_references") }
                     parts.append(result)
                     edit { $0.brief = parts.joined(separator: "\n\n---\n\n") }
@@ -279,7 +279,7 @@ import UtterLeafCore
                         edit { $0.brief = merged }
                     }
                 }
-                edit { $0.state = "ready" }; busy = false; message = "会议笔记已保存。可复制；开启溯源编号后可编辑原稿并核对原文。"
+                edit { $0.state = "ready"; $0.briefNeedsUpdate = false }; busy = false; message = "会议笔记已保存。可复制；开启溯源编号后可编辑原稿并核对原文。"
             } catch { busy = false; fail(error) }
         }
     }
