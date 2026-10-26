@@ -1,0 +1,27 @@
+DESIGN.md
+  s_299dc04098b816::t_43be772ca5032d 120,131-132
+README.md
+  s_299dc04098b816::t_6eb73a686851e4 20,58,122,158
+Sources/UtterLeaf/MeetingCaptionPanel.swift
+  s_299dc04098b816::t_de13bcee9efe7a 7,20-25,55,76-78,81-98,100-143,146,157-164,182,209
+Tests/UtterLeafCoreTests/MeetingOverlayInteractionTests.swift
+  s_299dc04098b816::t_29edce54ccd6b6 1-83
+UX-CONTRACT.md
+  s_299dc04098b816::t_15c4bff26080b7 111,124-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0fad3c8952a35e94b57771229451ce6be19d4a9e",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
