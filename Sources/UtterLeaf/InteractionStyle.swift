@@ -29,7 +29,10 @@ struct SidebarItem: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Button(action: action) {
-            Label(title, systemImage: icon).font(.system(size: LeafType.scaled(14), weight: selected ? .semibold : .regular))
+            HStack(spacing: 10) {
+                Image(systemName: icon).resizable().scaledToFit().frame(width: 20, height: 20).accessibilityHidden(true)
+                Text(title).font(.system(size: LeafType.scaled(14), weight: selected ? .semibold : .regular))
+            }
                 .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 14).frame(height: 46)
                 .foregroundStyle(selected || hovered ? LeafTheme.leaf : LeafTheme.muted)
                 .background(LeafTheme.leaf.opacity(selected ? 0.14 : hovered ? 0.075 : 0), in: RoundedRectangle(cornerRadius: 12))
@@ -37,6 +40,7 @@ struct SidebarItem: View {
                 .contentShape(RoundedRectangle(cornerRadius: 12))
         }.buttonStyle(.plain).handCursor().onHover { hovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
+            .accessibilityLabel(title)
             .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
