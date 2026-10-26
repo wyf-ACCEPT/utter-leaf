@@ -4,6 +4,7 @@ import UtterLeafCore
 
 @MainActor final class MeetingCaptionPanel {
     private(set) var panel: RecordingPanel?
+    private var interaction: MeetingOverlayInteractionView?
     private weak var model: MeetingModel?
     private var revision = 0
     private var desiredVisible = false
@@ -16,9 +17,12 @@ import UtterLeafCore
         panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true
         panel.hidesOnDeactivate = false; panel.ignoresMouseEvents = false; panel.animationBehavior = .none
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        let host = CaptionHostingView(rootView: MeetingCaptionView(model: model, store: store))
-        host.sizingOptions = []
-        panel.contentView = host
+        let interaction = MeetingOverlayInteractionView(frame: .zero)
+        interaction.onPause = { [weak model] in model?.togglePause() }
+        interaction.onCollapse = { [weak model] in model?.captionsCollapsed.toggle() }
+        interaction.onHide = { [weak model] in model?.floatingCaptions = false; model?.saveOptions() }
+        panel.contentView = MeetingCaptionContentView(rootView: MeetingCaptionView(model: model, store: store), interaction: interaction)
+        self.interaction = interaction
         self.panel = panel
         model.onCaptionUpdate = { [weak self] in self?.refresh() }
         refresh()
@@ -48,6 +52,7 @@ import UtterLeafCore
     }
     private func refresh() {
         guard let model, let panel else { return }
+        interaction?.update(paused: model.paused, collapsed: model.captionsCollapsed, recording: model.recording)
         let visible = MeetingCaptionPolicy.shouldShow(recording: model.recording, paused: model.paused, live: model.live, enabled: model.floatingCaptions)
         if visible { updateFrame() }
         guard desiredVisible != visible else { return }
@@ -68,21 +73,77 @@ import UtterLeafCore
     func close() { dismissal?.cancel(); desiredVisible = false; revision += 1; panel?.orderOut(nil) }
 }
 
-// Native dragging preserves the destination application's keyboard focus.
-private struct CaptionDragHandle: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView { Handle() }
-    func updateNSView(_ nsView: NSView, context: Context) {}
-    private final class Handle: NSView {
+// One native interaction surface covers the entire overlay; controls retain their own hit regions.
+final class MeetingOverlayInteractionView: NSView {
+    final class Control: NSButton {
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
-        override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
+    }
+    let pauseButton = Control(), collapseButton = Control(), hideButton = Control()
+    var onPause: (() -> Void)?
+    var onCollapse: (() -> Void)?
+    var onHide: (() -> Void)?
+    private var collapsed = false
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        for button in [pauseButton, collapseButton, hideButton] {
+            button.isBordered = false; button.imagePosition = .imageOnly
+            button.refusesFirstResponder = true; button.focusRingType = .none
+            button.contentTintColor = NSColor(LeafTheme.muted)
+            button.target = self; addSubview(button)
+        }
+        pauseButton.action = #selector(togglePause)
+        collapseButton.action = #selector(toggleCollapse)
+        hideButton.action = #selector(hideOverlay)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .openHand)
+        for button in [pauseButton, collapseButton, hideButton] { addCursorRect(button.frame, cursor: .pointingHand) }
+    }
+    func update(paused: Bool, collapsed: Bool, recording: Bool) {
+        self.collapsed = collapsed
+        configure(pauseButton, symbol: paused ? "play.fill" : "pause.fill", label: paused ? "继续录音" : "暂停录音", identifier: "meeting-overlay-pause")
+        configure(collapseButton, symbol: collapsed ? "arrow.up.left.and.arrow.down.right" : "minus", label: collapsed ? "展开悬浮窗" : "收起悬浮窗", identifier: "meeting-overlay-collapse")
+        configure(hideButton, symbol: "xmark", label: "隐藏悬浮窗", identifier: "meeting-overlay-hide")
+        pauseButton.isEnabled = recording
+        needsLayout = true
+    }
+    private func configure(_ button: NSButton, symbol: String, label: String, identifier: String) {
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        button.setAccessibilityLabel(label); button.setAccessibilityIdentifier(identifier); button.toolTip = label
+    }
+    override func layout() {
+        super.layout()
+        let inset: CGFloat = collapsed ? 16 : 24
+        let top: CGFloat = collapsed ? 14 : 16
+        for (index, button) in [pauseButton, collapseButton, hideButton].enumerated() {
+            button.frame = NSRect(x: max(0, bounds.width - inset - 80) + CGFloat(index) * 28, y: bounds.height - top - 24, width: 24, height: 24)
+        }
+        window?.invalidateCursorRects(for: self)
+    }
+    @objc private func togglePause() { onPause?() }
+    @objc private func toggleCollapse() { onCollapse?() }
+    @objc private func hideOverlay() { onHide?() }
+}
+final class MeetingCaptionContentView<Content: View>: NSView {
+    let interaction: MeetingOverlayInteractionView
+    private let host: NSHostingView<Content>
+    init(rootView: Content, interaction: MeetingOverlayInteractionView) {
+        self.interaction = interaction; host = NSHostingView(rootView: rootView)
+        super.init(frame: .zero)
+        host.sizingOptions = []
+        host.autoresizingMask = [.width, .height]; interaction.autoresizingMask = [.width, .height]
+        addSubview(host); addSubview(interaction)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func layout() {
+        super.layout(); host.frame = bounds; interaction.frame = bounds
     }
 }
-private final class CaptionHostingView<Content: View>: NSHostingView<Content> {
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-}
 
-private struct MeetingCaptionView: View {
+struct MeetingCaptionView: View {
     @ObservedObject var model: MeetingModel
     @ObservedObject var store: LocalStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -93,24 +154,14 @@ private struct MeetingCaptionView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZStack {
-                CaptionDragHandle().accessibilityLabel("拖动悬浮字幕")
-                HStack(spacing: 7) {
-                    Image(systemName: model.live && !model.paused ? "captions.bubble" : (model.paused ? "pause.circle" : "record.circle"))
-                        .foregroundStyle(model.paused ? LeafTheme.muted : LeafTheme.leaf).allowsHitTesting(false)
-                    Text(model.captionsCollapsed ? recordingStatus + " " + timer : (model.live && !model.paused ? model.captionStatus : recordingStatus))
-                        .monospacedDigit().lineLimit(1).allowsHitTesting(false)
-                    Spacer(minLength: 4)
-                    Button {
-                        model.captionsCollapsed.toggle()
-                    } label: { Image(systemName: model.captionsCollapsed ? "arrow.up.left.and.arrow.down.right" : "minus") }
-                        .handCursor().accessibilityLabel(model.captionsCollapsed ? "展开字幕" : "收起字幕").help(model.captionsCollapsed ? "展开字幕" : "收起字幕")
-                    Button {
-                        model.floatingCaptions = false; model.saveOptions()
-                    } label: { Image(systemName: "xmark") }
-                        .handCursor().accessibilityLabel("隐藏字幕").help("隐藏悬浮窗，可从会议页重新显示")
-                }.buttonStyle(.borderless).font(.system(size: 12)).foregroundStyle(LeafTheme.muted)
-            }.frame(height: 24)
+            HStack(spacing: 7) {
+                Image(systemName: model.live && !model.paused ? "captions.bubble" : (model.paused ? "pause.circle" : "record.circle"))
+                    .foregroundStyle(model.paused ? LeafTheme.muted : LeafTheme.leaf)
+                Text(model.captionsCollapsed ? timer + " " + (model.paused ? "已暂停" : "录制中") : (model.live && !model.paused ? model.captionStatus : recordingStatus))
+                    .monospacedDigit().lineLimit(1)
+                Spacer(minLength: 4)
+                Color.clear.frame(width: 80, height: 24)
+            }.font(.system(size: 12)).foregroundStyle(LeafTheme.muted).frame(height: 24)
             if !model.captionsCollapsed, !model.live || model.paused {
                 Text(timer).font(.system(size: 32, weight: .medium, design: .rounded)).monospacedDigit()
                     .accessibilityLabel("会议录音时长").accessibilityValue(timer)
@@ -128,7 +179,7 @@ private struct MeetingCaptionView: View {
                         .font(.system(size: 12)).foregroundStyle(LeafTheme.muted)
                 } else {
                     Text("等待发言…").font(.system(size: LeafType.scaled(21), weight: .medium, design: .rounded)).foregroundStyle(LeafTheme.muted)
-                    Text("拖动顶部移动 · 收起或隐藏不影响录音").font(.system(size: 12)).foregroundStyle(LeafTheme.muted)
+                    Text("拖动窗口移动 · 收起或隐藏不影响录音").font(.system(size: 12)).foregroundStyle(LeafTheme.muted)
                 }
             }
         }.padding(.horizontal, model.captionsCollapsed ? 16 : 24).padding(.vertical, model.captionsCollapsed ? 14 : 16)
@@ -155,7 +206,7 @@ struct MeetingCaptionSettings: View {
                     .accessibilityLabel("字幕背景透明度")
                 Text("\(Int(((1 - model.captionOpacity) * 100).rounded()))%").monospacedDigit().frame(width: 46, alignment: .trailing)
             }
-            Text("默认半透明，文字保持清晰。拖动顶部移动；收起后可展开，隐藏后可从会议页重新显示。关闭实时字幕时显示录音状态和计时；暂停时显示已暂停，结束后隐藏。浮层不增加 API 调用。")
+            Text("默认半透明，文字保持清晰。拖动文字或空白处移动；按钮可暂停、继续，收起后可展开，隐藏后可从会议页重新显示。关闭实时字幕时显示录音状态和计时；暂停时显示已暂停，结束后隐藏。浮层不增加 API 调用。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
     }
