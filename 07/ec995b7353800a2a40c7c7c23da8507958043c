@@ -1,0 +1,23 @@
+Sources/UtterLeaf/MeetingTextFile.swift
+  s_299dc04098b816::t_6ffb3a368fc99e 1-18
+Sources/UtterLeaf/MeetingsView.swift
+  s_299dc04098b816::t_ca8b78947c0677 32-42,104,106-119,141-144,192-199,208-273
+Tests/UtterLeafCoreTests/MeetingPresentationTests.swift
+  s_299dc04098b816::t_0971fb18aaaf16 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "07ec995b7353800a2a40c7c7c23da8507958043c",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
