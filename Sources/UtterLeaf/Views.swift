@@ -125,7 +125,7 @@ struct PageHeading: View {
 struct RootView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var store: LocalStore
-    let pages = [("听写", "waveform"), ("会议", "person.3.sequence"), ("本地历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
+    let pages = [("听写", "waveform"), ("会议", "person.2"), ("本地历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 30) {
