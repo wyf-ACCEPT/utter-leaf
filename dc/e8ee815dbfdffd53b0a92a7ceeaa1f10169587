@@ -1,0 +1,54 @@
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_cc38d12da0fd5c 88,95,106-109
+  s_299dc04098b816::t_3c58695119f7ff 87
+  s_299dc04098b816::t_11a552b4301a16 31-33,89-94,113-115
+  s_299dc04098b816::t_b0946efd9c19a2 96-105
+mobile/ios/Runner/KeyboardReturn.swift
+  s_299dc04098b816::t_551f95d060b94b 19-24,32-33,38-40,47-49
+  s_299dc04098b816::t_9910425deed6e4 41-46
+  s_299dc04098b816::t_ba2f3c0457dad0 9-18,25
+mobile/ios/Runner/Runner-Bridging-Header.h
+  s_299dc04098b816::t_551f95d060b94b 2
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_6c0eb0f5d546bf 14
+  s_299dc04098b816::t_8b90f367904e7f 32-36,42-43,46-47,53-55,117,125-126,128-129,143,147,165-167,169
+  s_299dc04098b816::t_551f95d060b94b 28-31,118-120,124,131-133
+  s_299dc04098b816::t_747c9e65ee198c 11-12,25
+  s_299dc04098b816::t_0126c2c5aa6b2c 123
+  s_299dc04098b816::t_6da235f755a47a 7,48-52,121-122,127,130
+  s_299dc04098b816::t_bca92d98cb608d 13
+mobile/ios/ThirdParty/KeyboardHostBundleID/KBHostArbiterHook.m
+  s_299dc04098b816::t_0126c2c5aa6b2c 1-184
+mobile/ios/Runner/PrivateKeyboardReturn.m
+  s_299dc04098b816::t_551f95d060b94b 1-20
+mobile/ios/Runner/PrivateKeyboardReturn.h
+  s_299dc04098b816::t_551f95d060b94b 1-7
+mobile/ios/ThirdParty/KeyboardHostBundleID/KBHostArbiterHook.h
+  s_299dc04098b816::t_0126c2c5aa6b2c 1-58
+mobile/README.md
+  s_299dc04098b816::t_46994f653d14cb 33,46-47
+mobile/ios/Runner.xcodeproj/project.pbxproj
+  s_299dc04098b816::t_3f965ec672561b 28-29,31,80,102,106,163-172,194,225,351,444,455,801,825,849
+mobile/ios/ThirdParty/KeyboardHostBundleID/LICENSE
+  s_299dc04098b816::t_e05db147239ae1 1-21
+mobile/ios/UtterLeafKeyboard/Keyboard-Bridging-Header.h
+  s_299dc04098b816::t_f1fea3555d8971 1
+mobile/ios/ThirdParty/KeyboardHostBundleID/README.md
+  s_299dc04098b816::t_3075de46f4535b 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dce8ee815dbfdffd53b0a92a7ceeaa1f10169587",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
