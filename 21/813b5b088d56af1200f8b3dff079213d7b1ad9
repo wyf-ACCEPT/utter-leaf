@@ -1,0 +1,33 @@
+Sources/UtterLeaf/MeetingAudioExport.swift
+  s_299dc04098b816::t_a07cc280a4a8f2 1-16
+Sources/UtterLeaf/MeetingModel.swift
+  s_299dc04098b816::t_e5b714104bf5b1 3,15-18,238,309-358,435
+Sources/UtterLeaf/MeetingNamingView.swift
+  s_299dc04098b816::t_7106c30214c574 1-28
+Sources/UtterLeaf/MeetingsView.swift
+  s_299dc04098b816::t_8bfccb1fed17da 126,129
+Sources/UtterLeafCore/MeetingNaming.swift
+  s_299dc04098b816::t_d03856c94084bf 1-31
+Sources/UtterLeafCore/MeetingWorkflow.swift
+  s_299dc04098b816::t_0fe3735ebc0070 44
+Tests/UtterLeafCoreTests/MeetingRefinementTests.swift
+  s_299dc04098b816::t_73bd3583bbf29b 26-66
+Tests/UtterLeafCoreTests/MeetingWorkflowTests.swift
+  s_299dc04098b816::t_eb9ea1d31d4540 57,59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "21813b5b088d56af1200f8b3dff079213d7b1ad9",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
