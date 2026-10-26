@@ -117,6 +117,7 @@ public struct HistoryJob: Codable, Identifiable {
     public var vocabularyHash: String?
     public var insertionMethod: String?
     public var insertionErrorCode: String?
+    public var kind: String?
     public var targetBundleID: String?
     public var targetCaptureErrorCode: String?
     public var targetCaptureAttempts: Int?

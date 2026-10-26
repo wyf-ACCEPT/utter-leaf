@@ -35,9 +35,16 @@ import UtterLeafCore
             model.hotkeyRegistered = hotkey.register()
         }
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        model.meetings.onCaptureState = { [weak self] recording, seconds, paused in
+            guard let self else { return }
+            item.button?.title = recording ? String(format: " %02d:%02d", Int(seconds) / 60, Int(seconds) % 60) : ""
+            item.button?.toolTip = recording ? (paused ? "会议已暂停" : "会议录音中") : "UtterLeaf"
+            item.button?.image = NSImage(systemSymbolName: recording ? "waveform" : "leaf", accessibilityDescription: recording ? "会议录音" : "UtterLeaf")
+        }
         item.button?.image = NSImage(systemSymbolName: "leaf", accessibilityDescription: "UtterLeaf")
         let menu = NSMenu()
         menu.addItem(withTitle: "打开 UtterLeaf", action: #selector(openMain), keyEquivalent: "")
+        menu.addItem(withTitle: "打开会议", action: #selector(openMeetings), keyEquivalent: "")
         menu.addItem(withTitle: "开始 / 结束录音    Fn", action: #selector(toggleRecording), keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "退出 UtterLeaf", action: #selector(quit), keyEquivalent: "q")
@@ -60,16 +67,17 @@ import UtterLeafCore
         if ProcessInfo.processInfo.arguments.contains("--provider-smoke") {
             Task { await SmokeRunner.run(model: model); NSApp.terminate(nil) }
         } else {
-            model.store.billingSync.isDictating = { [weak self] in self?.model.busy ?? false }
+            model.store.billingSync.isDictating = { [weak self] in (self?.model.busy ?? false) || (self?.model.meetings.blocksDictation ?? false) }
             model.store.billingSync.start(); showMain()
         }
     }
     func showMain() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
+    @objc func openMeetings() { model.route = "会议"; showMain() }
     @objc func openMain() { showMain() }
     @objc func toggleRecording() { model.toggle() }
     @objc func quit() { model.abort(); NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        pill.closeImmediately(); model.store.billingSync.stop(); hotkey.unregister(); model.abort(); return .terminateNow
+        pill.closeImmediately(); model.meetings.shutdown(); model.store.billingSync.stop(); hotkey.unregister(); model.abort(); return .terminateNow
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showMain(); return true }
     func updatePanel() {

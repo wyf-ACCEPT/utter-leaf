@@ -19,7 +19,7 @@ struct UsageBudgetView: View {
             budgetRow(days: 30, limit: store.database.preferences.monthlyBudget ?? 20)
             Divider().overlay(LeafTheme.line)
             sharedSummary
-            Text("包含豆包 ASR + DeepSeek 整理的已知估算，不受下方筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。")
+            Text("包含听写与会议的豆包 ASR + DeepSeek 已知估算；已写字数与预计还能写按短听写口径，不受下方筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.sheet(isPresented: $editing) { BudgetEditor(store: store) }
     }

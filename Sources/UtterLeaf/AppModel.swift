@@ -16,6 +16,11 @@ import UtterLeafCore
     @Published var hotkeyRegistered = true
     @Published var inserting = false
     var pillOutcome: PillPresentation.Stage = .cancelled
+    lazy var meetings: MeetingModel = {
+        let value = MeetingModel(ledger: store)
+        value.dictationBusy = { [weak self] in self?.busy ?? false }
+        return value
+    }()
     let store: LocalStore
     private let captureTarget: (@MainActor () -> (any DictationTarget)?)?
     private var jobAutomatic = true
@@ -59,6 +64,7 @@ import UtterLeafCore
         else if !busy { start() }
     }
     func start() {
+        guard !meetings.usesMicrophone else { message = "会议正在录音，请先结束会议录音。"; return }
         guard !busy, !inserting else { return }
         guard let pipeline = store.database.preferences.pipeline else {
             route = "模型与设置"; message = "先选择这次试用的 ASR 管线。"; showWindow?(); return

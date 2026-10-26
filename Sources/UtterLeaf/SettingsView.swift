@@ -62,7 +62,7 @@ struct SettingsView: View {
         Surface(title: "本地历史与隐私") {
             LeafSegments(title: "正文保留", selection: binding(\.retention), items: [LeafSegment("both", "原始 + 最终稿"), LeafSegment("final", "仅最终稿"), LeafSegment("none", "仅用量")])
             Text("当前设置应用于新记录。已有正文保留至手动清除。音频不落盘，最长录音 5 分钟。用量记录不含正文，保存在 Application Support/UtterLeaf；不会主动同步或上传到公司服务。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            Button("清除全部本地正文…", role: .destructive) { confirmClear = true }.disabled(model.busy || model.inserting)
+            Button("清除全部听写正文…", role: .destructive) { confirmClear = true }.disabled(model.busy || model.inserting)
         }
         BillingSyncView(store: store)
         Surface(title: "计价设置") {
@@ -101,8 +101,8 @@ struct SettingsView: View {
             refresh(); savedPrompt = (try? model.prompt()) ?? ""; promptText = model.promptEditorDraft ?? savedPrompt
         }
         .onChange(of: promptText) { _, value in model.promptEditorDraft = value }
-        .confirmationDialog("清除全部本地原始转写和最终稿？此操作不能撤销，用量记录与当前预览会保留。", isPresented: $confirmClear) {
-            Button("清除全部本地正文", role: .destructive) { store.clearText(); feedback = "已清除本地正文，保留用量与字符计数。" }
+        .confirmationDialog("清除全部听写原始转写和最终稿？会议记录需在会议页面处理。此操作不能撤销，用量记录与当前预览会保留。", isPresented: $confirmClear) {
+            Button("清除全部听写正文", role: .destructive) { store.clearText(); feedback = "已清除听写正文，保留用量与字符计数。" }
             Button("取消", role: .cancel) {}
         }
         .confirmationDialog("恢复内置 v6？当前编辑器中未保存的修改将丢失，已保存的自定义版本仍可回滚。", isPresented: $confirmReset) {

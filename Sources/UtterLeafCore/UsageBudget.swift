@@ -22,7 +22,7 @@ public struct UsageBudget {
         let cutoff = now.addingTimeInterval(-Double(days) * 86400)
         var seenJobs = Set<UUID>()
         writtenCharacters = jobs.filter {
-            $0.created >= cutoff && $0.created <= now && seenJobs.insert($0.id).inserted
+            $0.kind != "meeting" && $0.created >= cutoff && $0.created <= now && seenJobs.insert($0.id).inserted
         }.reduce(0) { $0 + max(0, $1.finalCharacters) }
         let rows = calls.filter { $0.price.currency == "CNY" && $0.started >= now.addingTimeInterval(-Double(days) * 86400) && $0.started <= now }
         spent = rows.compactMap(\.estimatedAmount).reduce(0, +)
@@ -32,7 +32,7 @@ public struct UsageBudget {
         let grouped = Dictionary(grouping: rows, by: \.jobID)
         var characters = 0
         var matchedCost = 0.0
-        for job in jobs where job.finalCharacters > 0 {
+        for job in jobs where job.kind != "meeting" && job.finalCharacters > 0 {
             guard let items = grouped[job.id], !items.isEmpty,
                   items.allSatisfy({ $0.estimatedAmount != nil && $0.status == .succeeded }),
                   items.contains(where: { $0.provider == "Doubao" }) else { continue }
