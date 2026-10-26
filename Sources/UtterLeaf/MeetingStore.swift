@@ -2,7 +2,7 @@ import Foundation
 import UtterLeafCore
 
 @MainActor final class MeetingStore: ObservableObject {
-    struct Index: Codable { var meetings: [MeetingRecord] = []; var voices: [VoiceIdentity] = []; var voiceMutationUncertain: Bool?; var systemAudio: Bool?; var liveCaptions: Bool? }
+    struct Index: Codable { var meetings: [MeetingRecord] = []; var voices: [VoiceIdentity] = []; var voiceMutationUncertain: Bool?; var systemAudio: Bool?; var liveCaptions: Bool?; var floatingCaptions: Bool? }
     @Published private(set) var index = Index()
     @Published var error: String?
     let root: URL
@@ -31,7 +31,7 @@ import UtterLeafCore
         else { index.meetings.insert(value, at: 0) }
         try persist()
     }
-    func saveOptions(systemAudio: Bool, live: Bool) throws { index.systemAudio = systemAudio; index.liveCaptions = live; try persist() }
+    func saveOptions(systemAudio: Bool, live: Bool, floating: Bool = true) throws { index.systemAudio = systemAudio; index.liveCaptions = live; index.floatingCaptions = floating; try persist() }
     func markVoiceMutation(_ uncertain: Bool) throws { index.voiceMutationUncertain = uncertain; try persist() }
     func saveVoices(_ voices: [VoiceIdentity]) throws { index.voices = voices; try persist() }
     private func persist() throws {

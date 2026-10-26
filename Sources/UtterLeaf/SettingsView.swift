@@ -26,6 +26,7 @@ struct SettingsView: View {
             LeafSegments(title: "界面主题", selection: Binding(get: { store.database.preferences.appearance ?? "dark" }, set: { store.database.preferences.appearance = $0; store.save() }), items: [LeafSegment("dark", "深色"), LeafSegment("light", "浅色"), LeafSegment("system", "跟随系统")])
             Text("首次打开默认深色；切换后应用于主窗口和录音浮层。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
+        MeetingCaptionSettings(model: model.meetings)
         SoundSettingsView(store: store, sounds: model.sounds).disabled(model.busy || model.inserting)
         Surface(title: "语音识别") {
             LeafSegments(title: "ASR 管线", selection: binding(\.pipeline), items: [LeafSegment(Optional(ASRPipeline.final), "流式 · 结束后返回"), LeafSegment(Optional(ASRPipeline.realtime), "流式 · 实时模式"), LeafSegment(Optional(ASRPipeline.file), "文件标准版")])
