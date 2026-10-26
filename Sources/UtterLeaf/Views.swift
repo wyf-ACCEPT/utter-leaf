@@ -16,6 +16,8 @@ enum LeafTheme {
     static let ink = adaptive(0x1B2A23, 0xE7F0EA)
     static let muted = adaptive(0x5B6A62, 0xA8BBB0)
     static let line = adaptive(0xD3DDD6, 0x35463C)
+    static let usageDictation = adaptive(0x2D5E46, 0x4E8766)
+    static let usageMeeting = adaptive(0x9ACFAF, 0xA6DBBA)
     static let actionInk = adaptive(0xFFFFFF, 0x102A1C)
     static func scheme(_ preference: String?) -> ColorScheme? {
         switch preference ?? "dark" { case "light": return .light; case "system": return nil; default: return .dark }
@@ -336,7 +338,9 @@ struct HistoryView: View {
     }
 }
 
-struct UsageView: View {
+struct UsageDetailsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var purpose = UsagePurpose.all
     @ObservedObject var store: LocalStore
     @State private var days = 7
     @State private var provider = "全部"
@@ -348,13 +352,19 @@ struct UsageView: View {
     var calls: [UsageCall] {
         store.database.calls.filter {
             (days == 0 || (days == -1 ? $0.started >= Calendar.current.startOfDay(for: startDate) && $0.started < Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: endDate))! : $0.started >= Date().addingTimeInterval(-Double(days) * 86400)))
+            && purpose.matches($0, jobs: store.database.jobs)
             && (provider == "全部" || $0.provider == provider) && (modelFilter == "全部" || $0.model == modelFilter)
         }
     }
     var body: some View {
-        PageHeading(title: "每次开口，都算得清楚。", subtitle: "逐次 API 回执 · 费用估算与实际核对分别统计")
-        UsageBudgetView(store: store)
-        BillingSyncView(store: store)
+        VStack(spacing: 16) {
+            HStack { Text("筛选与费用明细").font(LeafType.headline); Spacer(); Button("完成") { dismiss() }.keyboardShortcut(.cancelAction).handCursor() }
+            ScrollView { VStack(alignment: .leading, spacing: 18) { detailsContent }.padding(4) }
+        }.padding(24).frame(width: 810, height: 660).background(LeafTheme.mist).foregroundStyle(LeafTheme.ink)
+    }
+    @ViewBuilder private var detailsContent: some View {
+        LeafSegments(title: "用途", selection: $purpose, items: [LeafSegment(UsagePurpose.all, "全部"), LeafSegment(.dictation, "听写"), LeafSegment(.meeting, "会议")])
+            .onChange(of: purpose) { _, _ in modelFilter = "全部" }
         LeafSegments(title: "日期", selection: $days, items: [LeafSegment(7, "最近 7 天"), LeafSegment(30, "最近 30 天"), LeafSegment(0, "全部"), LeafSegment(-1, "自定")])
         LeafSegments(title: "供应商", selection: $provider, items: [LeafSegment("全部", "全部"), LeafSegment("Doubao", "豆包"), LeafSegment("DeepSeek", "DeepSeek")])
             .onChange(of: provider) { _, _ in modelFilter = "全部" }
@@ -416,10 +426,10 @@ struct UsageView: View {
             }
         }
         Color.clear.frame(height: 0).sheet(isPresented: $showingCalls) {
-            CallHistorySheet(store: store, calls: calls, filterDescription: "\(days == 7 ? "最近 7 天" : days == 30 ? "最近 30 天" : days == 0 ? "全部日期" : "自定日期") · \(provider == "全部" ? "全部供应商" : provider) · \(modelFilter == "全部" ? "全部模型" : modelTitle(modelFilter))")
+            CallHistorySheet(store: store, calls: calls, filterDescription: "\(purpose == .all ? "全部用途" : purpose == .meeting ? "会议" : "听写") · \(days == 7 ? "最近 7 天" : days == 30 ? "最近 30 天" : days == 0 ? "全部日期" : "自定日期") · \(provider == "全部" ? "全部供应商" : provider) · \(modelFilter == "全部" ? "全部模型" : modelTitle(modelFilter))")
         }
     }
-    var availableModels: [String] { Array(Set(store.database.calls.filter { provider == "全部" || $0.provider == provider }.map(\.model))).sorted() }
+    var availableModels: [String] { Array(Set(store.database.calls.filter { (provider == "全部" || $0.provider == provider) && purpose.matches($0, jobs: store.database.jobs) }.map(\.model))).sorted() }
     func modelTitle(_ id: String) -> String {
         switch id { case "v2-final": return "结束后返回"; case "v2-realtime": return "实时模式"; case "v2-file": return "文件标准版"; case "deepseek-flash": return "DeepSeek Flash"; default: return id }
     }
