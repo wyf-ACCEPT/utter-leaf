@@ -99,6 +99,12 @@ public enum MeetingProtocol {
         }
         return output
     }
+    public static func briefForDisplay(_ text: String, references: Bool) -> String {
+        guard !references else { return text }
+        // Match only generated utterance citations; preserve ordinary Markdown links and numbers.
+        let pattern = try! NSRegularExpression(pattern: #"[ \t]*\[u[0-9]+\]"#)
+        return pattern.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "")
+    }
     public static func hasValidReferences(_ text: String, segments: [MeetingUtterance]) -> Bool {
         let ids = Set(segments.map { "[" + $0.id + "]" })
         let pattern = try! NSRegularExpression(pattern: "\\[u[0-9]+\\]")
