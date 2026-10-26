@@ -17,7 +17,7 @@ Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-part
 
 **Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; iOS remains planned.
 
-The latest local suite passes **109 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The current local suite contains **112 tests**. Its latest full run has no failures (3 desktop checks skipped); the new overlay interaction checks also pass separately (3/3). Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -55,7 +55,7 @@ The file route preserves an experimentally verified `audio.data` submission path
 
 ### Meetings (Phase 2 preview)
 
-The **会议** page records microphone audio with optional system audio, supports pause/resume and local notes, and retains recordings on disk for playback or explicit deletion. Sessions are separate from five-minute dictation and currently cap at three hours. Optional live captions incur separate streaming calls; their speaker labels are provisional. When enabled, captions float at the center of the screen by default without taking keyboard focus. Drag its header to move it; collapse it to a small restore bubble or hide/show it from the meeting page. Models & Settings offers 2/3/5 lines and background transparency (25% by default), keeping text opaque. Live transcripts scroll within a bounded viewport. Turn off the floating overlay in Models & Settings; without live captions the overlay shows recording status and elapsed time. Pausing shows a paused timer; ending the meeting hides it. The overlay adds no API call. After recording, whole-session ASR produces timestamped speaker turns, with independent cleaned transcript and Brief generation. Brief source numbers are hidden by default; a persistent toggle reveals the retained references and original editable draft without regeneration. Copy follows this visibility setting. A post-meeting next-step card guides original transcription → cleaned transcript → Brief, with explicit paid actions. Each content tab can copy or export its own UTF-8 TXT through the native save dialog; cleaned exports require complete cleanup.
+The **会议** page records microphone audio with optional system audio, supports pause/resume and local notes, and retains recordings on disk for playback or explicit deletion. Sessions are separate from five-minute dictation and currently cap at three hours. Optional live captions incur separate streaming calls; their speaker labels are provisional. When enabled, captions float at the center of the screen by default without taking keyboard focus. Drag any text or blank area to move it; the overlay also has Pause/Resume controls. Collapse it to a small restore bubble or hide/show it from the meeting page. Models & Settings offers 2/3/5 lines and background transparency (25% by default), keeping text opaque. Live transcripts scroll within a bounded viewport. Turn off the floating overlay in Models & Settings; without live captions the overlay shows recording status and elapsed time. Pausing shows a paused timer; ending the meeting hides it. The overlay adds no API call. After recording, whole-session ASR produces timestamped speaker turns, with independent cleaned transcript and Brief generation. Brief source numbers are hidden by default; a persistent toggle reveals the retained references and original editable draft without regeneration. Copy follows this visibility setting. A post-meeting next-step card guides original transcription → cleaned transcript → Brief, with explicit paid actions. Each content tab can copy or export its own UTF-8 TXT through the native save dialog; cleaned exports require complete cleanup.
 
 Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. Registration currently requires a user-provided HTTPS signed URL for a 5–30 second single-speaker sample; there is no automatic local-sample upload. The provider retains voiceprint data, and its deletion API performs soft deletion, not physical erasure. Speech IDs within one meeting are never treated as persistent identities by themselves. See the [meeting implementation and validation limits](docs/6x26-meeting-implementation.md).
 
@@ -119,7 +119,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-最新本地自动测试 **109 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+当前自动测试共 **112 项**；最新完整运行无失败（跳过 3 项桌面测试），新增浮窗交互测试另行验证 3/3 通过。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -155,7 +155,7 @@ open .local/UtterLeaf.app
 
 ### 会议（Phase 2 首版）
 
-「会议」页面可采集麦克风及可选系统声音，支持暂停/恢复、随手笔记、本机录音回听与删除。会议独立于五分钟听写，初版单场最长三小时。实时字幕会产生额外流式调用，其说话人编号仅为暂定。开启时默认在屏幕中央悬浮显示，不抢键盘焦点；可拖动顶部移动、收起或隐藏，也可从会议页恢复显示。设置中可选 2/3/5 行及背景透明度（默认 25%），文字保持清晰。实时原始转录在限高区域内滚动。可在「模型与设置 → 会议字幕与录制状态」关闭悬浮。未开实时字幕时仍显示录音状态和计时；暂停时显示已暂停，结束后自动隐藏。浮层不额外调用 API；结束后通过整场 ASR 生成带时间与说话人的转录，再分别生成逐句整理稿和Brief。溯源编号默认隐藏，可用开关开启；切换不需重新生成，复制遵循当前显示设置，带编号原稿始终保留。会后以“原始转录 → 整理转录 → Brief”引导下一步，模型调用仍由你点击触发。每个内容标签页支持复制及通过原生保存窗口导出 UTF-8 TXT；整理稿须完成后才能导出。
+「会议」页面可采集麦克风及可选系统声音，支持暂停/恢复、随手笔记、本机录音回听与删除。会议独立于五分钟听写，初版单场最长三小时。实时字幕会产生额外流式调用，其说话人编号仅为暂定。开启时默认在屏幕中央悬浮显示，不抢键盘焦点；可拖动任意文字或空白处移动，也可直接暂停/继续、收起或隐藏，也可从会议页恢复显示。设置中可选 2/3/5 行及背景透明度（默认 25%），文字保持清晰。实时原始转录在限高区域内滚动。可在「模型与设置 → 会议字幕与录制状态」关闭悬浮。未开实时字幕时仍显示录音状态和计时；暂停时显示已暂停，结束后自动隐藏。浮层不额外调用 API；结束后通过整场 ASR 生成带时间与说话人的转录，再分别生成逐句整理稿和Brief。溯源编号默认隐藏，可用开关开启；切换不需重新生成，复制遵循当前显示设置，带编号原稿始终保留。会后以“原始转录 → 整理转录 → Brief”引导下一步，模型调用仍由你点击触发。每个内容标签页支持复制及通过原生保存窗口导出 UTF-8 TXT；整理稿须完成后才能导出。
 
 声纹库支持刷新、启停、改名及软删除。注册目前使用你提供的 HTTPS 签名 URL，音频为 5–30 秒清晰单人语音，尚不自动上传本机样本。声纹由豆包保存，删除接口为软删除，不承诺物理擦除；单场说话人编号不会自动当成跨会议身份。参见[实施与验收边界](docs/6x26-meeting-implementation.md)。
 
