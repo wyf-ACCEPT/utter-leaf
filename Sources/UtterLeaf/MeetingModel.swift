@@ -17,6 +17,9 @@ import UtterLeafCore
     @Published var live = true { didSet { onCaptionUpdate?() } }
     @Published var systemAudio = true
     @Published var floatingCaptions = true { didSet { onCaptionUpdate?() } }
+    @Published var captionOpacity = 0.75
+    @Published var captionLineCount = 3 { didSet { onCaptionUpdate?() } }
+    @Published var captionsCollapsed = false { didSet { onCaptionUpdate?() } }
     @Published var captionLines: [MeetingCaptionLine] = [] { didSet { if oldValue != captionLines { onCaptionUpdate?() } } }
     @Published var captionStatus = "等待发言"
     var onCaptionUpdate: (() -> Void)?
@@ -40,6 +43,8 @@ import UtterLeafCore
         self.ledger = ledger; store = MeetingStore(root: ledger.root)
         self.api.onCall = { [weak ledger] in ledger?.update($0) }
         floatingCaptions = store.index.floatingCaptions ?? true
+        captionOpacity = MeetingCaptionPolicy.opacity(store.index.captionOpacity)
+        captionLineCount = MeetingCaptionPolicy.lineCount(store.index.captionLineCount)
         live = store.index.liveCaptions ?? true; systemAudio = store.index.systemAudio ?? true
         for value in store.index.meetings { syncUsage(value) }
         recorder.onFailure = { [weak self] in
@@ -74,7 +79,7 @@ import UtterLeafCore
         if active != nil { active = value }
         do { try store.save(value); syncUsage(value) } catch { message = store.error ?? "会议保存失败。" }
     }
-    func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live, floating: floatingCaptions) } catch { message = store.error ?? "会议设置保存失败。" } }
+    func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live, floating: floatingCaptions, captionOpacity: captionOpacity, captionLineCount: captionLineCount) } catch { message = store.error ?? "会议设置保存失败。" } }
     func create(systemAudio: Bool) {
         guard !blocksDictation, dictationBusy?() != true, store.error == nil, ledger.storageError == nil else { message = "请先结束当前听写或会议，并检查本地存储。"; return }
         guard store.index.voices.filter(\.enabled).count <= 50 else { message = "一次会议最多启用 50 位声纹身份。"; return }

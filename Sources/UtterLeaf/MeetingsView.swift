@@ -18,6 +18,11 @@ struct MeetingsView: View {
                 Button { showVoices = true } label: { Label("说话人声纹", systemImage: "person.wave.2") }.buttonStyle(.bordered).handCursor()
                 Spacer()
                 if model.recording {
+                    if model.live {
+                        Button(model.floatingCaptions ? "隐藏悬浮字幕" : "显示悬浮字幕") {
+                            model.floatingCaptions.toggle(); model.saveOptions()
+                        }.buttonStyle(.bordered).handCursor()
+                    }
                     Text(clock(model.elapsed)).monospacedDigit().foregroundStyle(LeafTheme.leaf)
                     Button(model.paused ? "继续" : "暂停", action: model.togglePause).buttonStyle(.bordered).handCursor()
                     Button("结束会议", action: model.stop).buttonStyle(PrimaryStyle()).handCursor()

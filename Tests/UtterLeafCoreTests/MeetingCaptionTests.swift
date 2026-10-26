@@ -11,6 +11,15 @@ final class MeetingCaptionTests: XCTestCase {
         XCTAssertFalse(MeetingCaptionPolicy.shouldShow(recording: true, paused: false, live: false, enabled: true))
         XCTAssertFalse(MeetingCaptionPolicy.shouldShow(recording: true, paused: false, live: true, enabled: false))
     }
+    func testCaptionPresentationDefaultsAndInvalidStoredValues() {
+        XCTAssertEqual(MeetingCaptionPolicy.opacity(nil), 0.75)
+        XCTAssertEqual(MeetingCaptionPolicy.opacity(.nan), 0.75)
+        XCTAssertEqual(MeetingCaptionPolicy.opacity(0), 0.35)
+        XCTAssertEqual(MeetingCaptionPolicy.opacity(2), 1)
+        XCTAssertEqual(MeetingCaptionPolicy.lineCount(nil), 3)
+        XCTAssertEqual(MeetingCaptionPolicy.lineCount(100), 3)
+        XCTAssertEqual(MeetingCaptionPolicy.lineCount(5), 5)
+    }
     func testPartialUtteranceReplacesPreviousTextAndRetainsSourceIdentity() {
         let row = MeetingUtterance(id: "u0", start: 0, end: 1, speaker: "1", text: "First")
         var lines = MeetingCaptionPolicy.updating([], source: "microphone", row: row)
@@ -25,7 +34,7 @@ final class MeetingCaptionTests: XCTestCase {
         for i in 0..<20 {
             lines = MeetingCaptionPolicy.updating(lines, source: "system", row: .init(id: "u\(i)", start: Double(i), end: Double(i + 1), speaker: "1", text: String(repeating: "字", count: 1000) + "最新发言"))
         }
-        XCTAssertEqual(lines.count, 3); XCTAssertEqual(lines.last?.text.count, 240)
+        XCTAssertEqual(lines.count, 5); XCTAssertEqual(lines.last?.text.count, 240)
         XCTAssertTrue(lines.last?.text.hasSuffix("最新发言") == true)
         XCTAssertEqual(MeetingCaptionPolicy.updating(lines, source: "system", row: .init(id: "u", start: 100, end: 101, speaker: "1", text: "  \n")), lines)
     }
@@ -34,9 +43,10 @@ final class MeetingCaptionTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: folder) }
         let model = MeetingModel(ledger: LocalStore(root: folder))
         XCTAssertTrue(model.live); XCTAssertTrue(model.floatingCaptions)
-        model.floatingCaptions = false; model.saveOptions()
+        model.floatingCaptions = false; model.captionOpacity = 0.4; model.captionLineCount = 5; model.saveOptions()
         let restored = MeetingModel(ledger: LocalStore(root: folder))
         XCTAssertTrue(restored.live); XCTAssertFalse(restored.floatingCaptions)
+        XCTAssertEqual(restored.captionOpacity, 0.4); XCTAssertEqual(restored.captionLineCount, 5)
     }
 }
 
@@ -87,6 +97,26 @@ extension MeetingCaptionTests {
                 try image.representation(using: .png, properties: [:])?.write(to: file)
             }
         }
+        let originalFrame = try XCTUnwrap(controller.panel?.frame)
+        // Simulate a user-selected location without synthesizing system input.
+        let moved = originalFrame.offsetBy(dx: 25, dy: 20)
+        controller.panel?.setFrame(moved, display: true)
+        model.captionLineCount = 5
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(controller.panel!.frame.minX, moved.minX, accuracy: 1)
+        XCTAssertEqual(controller.panel!.frame.maxY, moved.maxY, accuracy: 1)
+        XCTAssertEqual(controller.panel!.frame.height, 240, accuracy: 1)
+        model.captionsCollapsed = true
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(controller.panel!.frame.width, 260, accuracy: 1)
+        XCTAssertEqual(controller.panel!.frame.height, 52, accuracy: 1)
+        XCTAssertTrue(model.recording); XCTAssertTrue(model.live)
+        model.captionsCollapsed = false
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(controller.panel!.frame.width, originalFrame.width, accuracy: 1)
+        XCTAssertEqual(controller.panel!.frame.height, 240, accuracy: 1)
+        XCTAssertEqual(NSApp.keyWindow, originalKey)
+        XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.processIdentifier, originalApp)
         model.paused = true; try await Task.sleep(for: .milliseconds(300))
         XCTAssertFalse(controller.panel?.isVisible == true)
         model.paused = false; try await Task.sleep(for: .milliseconds(50))
