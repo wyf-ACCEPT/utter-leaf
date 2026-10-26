@@ -144,13 +144,22 @@ struct MeetingsView: View {
                     }
                 }
             default:
-                if value.brief.isEmpty { Text("转录完成后，结合你的笔记生成摘要、决定、待办和未决问题。每条保留原文引用。").foregroundStyle(LeafTheme.muted) }
-                else {
-                    TextEditor(text: Binding(get: { model.current?.brief ?? "" }, set: { text in model.editText { $0.brief = text } })).frame(minHeight: 300).leafInput().accessibilityLabel("会议 Brief")
+                Toggle("显示溯源编号", isOn: Binding(get: { model.briefReferences }, set: { model.briefReferences = $0; model.saveOptions() }))
+                    .help("默认关闭；切换只影响显示与复制，无需重新生成纪要")
+                if value.brief.isEmpty { Text("转录完成后，结合你的笔记生成摘要、决定、待办和未决问题。").foregroundStyle(LeafTheme.muted) }
+                else if model.briefReferences {
+                    TextEditor(text: Binding(get: { model.current?.brief ?? "" }, set: { text in model.editText { $0.brief = text } })).frame(minHeight: 300).leafInput().accessibilityLabel("会议 Brief 原稿")
                     HStack {
                         TextField("原文编号，例如 u12", text: Binding(get: { focusedSegment ?? "" }, set: { focusedSegment = $0 })).leafInput().accessibilityLabel("原文发言编号")
                         Button("查看原文") { tab = "转录" }.handCursor()
                     }
+                } else {
+                    ScrollView {
+                        Text(MeetingProtocol.briefForDisplay(value.brief, references: false))
+                            .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                    }.frame(height: 360).scrollIndicators(.visible).accessibilityLabel("会议 Brief，无溯源编号")
+                    Button("编辑原稿") { model.briefReferences = true; model.saveOptions() }
+                        .buttonStyle(.bordered).handCursor().help("展开带溯源编号的原稿进行编辑")
                 }
             }
             if !model.recording {
@@ -161,7 +170,7 @@ struct MeetingsView: View {
                     Button("生成 / 更新 Brief", action: model.summarize).disabled(model.busy || value.segments.isEmpty).handCursor()
                     Spacer()
                     Button("复制") {
-                        let text = tab == "笔记" ? value.notes : tab == "Brief" ? value.brief : value.segments.map { "[\(clock($0.start))] \(value.name(for: value.speaker(for: $0)))：\($0.text)" }.joined(separator: "\n")
+                        let text = tab == "笔记" ? value.notes : tab == "Brief" ? MeetingProtocol.briefForDisplay(value.brief, references: model.briefReferences) : value.segments.map { "[\(clock($0.start))] \(value.name(for: value.speaker(for: $0)))：\($0.text)" }.joined(separator: "\n")
                         NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string)
                     }.handCursor()
                 }.buttonStyle(.bordered)

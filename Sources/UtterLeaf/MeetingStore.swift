@@ -2,7 +2,7 @@ import Foundation
 import UtterLeafCore
 
 @MainActor final class MeetingStore: ObservableObject {
-    struct Index: Codable { var meetings: [MeetingRecord] = []; var voices: [VoiceIdentity] = []; var voiceMutationUncertain: Bool?; var systemAudio: Bool?; var liveCaptions: Bool?; var floatingCaptions: Bool?; var captionOpacity: Double?; var captionLineCount: Int? }
+    struct Index: Codable { var meetings: [MeetingRecord] = []; var voices: [VoiceIdentity] = []; var voiceMutationUncertain: Bool?; var systemAudio: Bool?; var liveCaptions: Bool?; var floatingCaptions: Bool?; var captionOpacity: Double?; var captionLineCount: Int?; var briefReferences: Bool? }
     @Published private(set) var index = Index()
     @Published var error: String?
     let root: URL
@@ -31,10 +31,11 @@ import UtterLeafCore
         else { index.meetings.insert(value, at: 0) }
         try persist()
     }
-    func saveOptions(systemAudio: Bool, live: Bool, floating: Bool = true, captionOpacity: Double = 0.75, captionLineCount: Int = 3) throws {
+    func saveOptions(systemAudio: Bool, live: Bool, floating: Bool = true, captionOpacity: Double = 0.75, captionLineCount: Int = 3, briefReferences: Bool = false) throws {
         index.systemAudio = systemAudio; index.liveCaptions = live; index.floatingCaptions = floating
         index.captionOpacity = MeetingCaptionPolicy.opacity(captionOpacity)
         index.captionLineCount = MeetingCaptionPolicy.lineCount(captionLineCount)
+        index.briefReferences = briefReferences
         try persist()
     }
     func markVoiceMutation(_ uncertain: Bool) throws { index.voiceMutationUncertain = uncertain; try persist() }

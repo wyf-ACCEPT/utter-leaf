@@ -122,3 +122,5 @@ Meeting floating captions initially center in the active screen, with a native d
 SidebarItem owns a fixed20×20pt aspect-fit SF Symbol slot and10pt text gap. Meetings uses person.2, keeping all navigation labels aligned without the wide person.3.sequence symbol.
 
 Live meeting transcripts share the bounded transcript scrolling contract: a360pt scroll area with visible native scroll indicators, a lazy stack and selectable speaker/timestamp text. Growing partial text never increases the outer page height. Final transcripts retain their420pt viewport.
+
+Brief source references are a local presentation preference, default off. Off shows a bounded selectable reading view and copies citation-free text; on exposes the retained editable source draft and source lookup. The “编辑原稿” action explicitly opens that source view. The model still generates and validates citations, so switching never calls an API or destroys the source draft. Existing meetings follow the same setting.

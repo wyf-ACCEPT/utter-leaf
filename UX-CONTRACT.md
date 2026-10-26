@@ -109,3 +109,7 @@ Budget color semantics correction: remaining is the prominent left-aligned green
 ## Meeting floating caption controls
 
 User decision2026-10-26: caption overlays accept drag/control clicks but never keyboard focus. A native header drag handle owns movement; window geometry is clamped when showing/resizing, with current position retained across pause/resume. Collapse keeps a restore bubble; hide persists floating=false and the meeting toolbar can restore it. Neither action changes capture/live connections. Settings persist 2/3/5 text lines and background transparency0–65%, default25%; missing/invalid values use defaults. Text opacity stays1. Reuse LeafSegments and native Slider. Native panel tests verify focus, size, state and retention.
+
+## Brief source-number visibility
+
+User decision2026-10-26: persistent “显示溯源编号” toggle defaults off. The citation-bearing Brief remains the source of truth; display/copy remove only [uN] markers when off and restore raw text when on. Markdown links and other bracketed text remain. Off uses a bounded selectable reading view; “编辑原稿” opens the source view, which retains the existing TextEditor and original-ID lookup. No additional generation, deletion, billing, transcript migration or API call occurs on toggle. Missing stored preference means false.

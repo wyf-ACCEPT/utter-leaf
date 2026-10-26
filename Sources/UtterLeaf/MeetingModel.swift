@@ -17,6 +17,7 @@ import UtterLeafCore
     @Published var live = true { didSet { onCaptionUpdate?() } }
     @Published var systemAudio = true
     @Published var floatingCaptions = true { didSet { onCaptionUpdate?() } }
+    @Published var briefReferences = false
     @Published var captionOpacity = 0.75
     @Published var captionLineCount = 3 { didSet { onCaptionUpdate?() } }
     @Published var captionsCollapsed = false { didSet { onCaptionUpdate?() } }
@@ -43,6 +44,7 @@ import UtterLeafCore
         self.ledger = ledger; store = MeetingStore(root: ledger.root)
         self.api.onCall = { [weak ledger] in ledger?.update($0) }
         floatingCaptions = store.index.floatingCaptions ?? true
+        briefReferences = store.index.briefReferences ?? false
         captionOpacity = MeetingCaptionPolicy.opacity(store.index.captionOpacity)
         captionLineCount = MeetingCaptionPolicy.lineCount(store.index.captionLineCount)
         live = store.index.liveCaptions ?? true; systemAudio = store.index.systemAudio ?? true
@@ -79,7 +81,7 @@ import UtterLeafCore
         if active != nil { active = value }
         do { try store.save(value); syncUsage(value) } catch { message = store.error ?? "会议保存失败。" }
     }
-    func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live, floating: floatingCaptions, captionOpacity: captionOpacity, captionLineCount: captionLineCount) } catch { message = store.error ?? "会议设置保存失败。" } }
+    func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live, floating: floatingCaptions, captionOpacity: captionOpacity, captionLineCount: captionLineCount, briefReferences: briefReferences) } catch { message = store.error ?? "会议设置保存失败。" } }
     func create(systemAudio: Bool) {
         guard !blocksDictation, dictationBusy?() != true, store.error == nil, ledger.storageError == nil else { message = "请先结束当前听写或会议，并检查本地存储。"; return }
         guard store.index.voices.filter(\.enabled).count <= 50 else { message = "一次会议最多启用 50 位声纹身份。"; return }
@@ -277,7 +279,7 @@ import UtterLeafCore
                         edit { $0.brief = merged }
                     }
                 }
-                edit { $0.state = "ready" }; busy = false; message = "会议笔记已保存。可编辑、复制，并通过发言编号核对原文。"
+                edit { $0.state = "ready" }; busy = false; message = "会议笔记已保存。可复制；开启溯源编号后可编辑原稿并核对原文。"
             } catch { busy = false; fail(error) }
         }
     }

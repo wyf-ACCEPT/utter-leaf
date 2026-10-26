@@ -23,6 +23,23 @@ final class MeetingTests: XCTestCase {
         XCTAssertFalse(MeetingProtocol.hasValidReferences("Invented source [u99]", segments: rows))
         XCTAssertFalse(MeetingProtocol.hasValidReferences("No source", segments: rows))
     }
+    func testBriefReferencesAreOptionalWithoutChangingStoredSource() {
+        let raw = "# Summary\nDecision [u9][u11]。\n- Follow up [u0].\nLink [docs](https://example.com) and [123] remain."
+        let clean = MeetingProtocol.briefForDisplay(raw, references: false)
+        XCTAssertEqual(clean, "# Summary\nDecision。\n- Follow up.\nLink [docs](https://example.com) and [123] remain.")
+        XCTAssertEqual(MeetingProtocol.briefForDisplay(raw, references: true), raw)
+        XCTAssertTrue(raw.contains("[u9]"))
+    }
+    @MainActor func testBriefReferencePreferenceDefaultsOffAndPersists() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = MeetingModel(ledger: LocalStore(root: root))
+        XCTAssertFalse(model.briefReferences)
+        model.briefReferences = true; model.saveOptions()
+        XCTAssertTrue(MeetingModel(ledger: LocalStore(root: root)).briefReferences)
+        model.briefReferences = false; model.saveOptions()
+        XCTAssertFalse(MeetingModel(ledger: LocalStore(root: root)).briefReferences)
+    }
     func testCleanedTranscriptRequiresEveryOriginalUtteranceExactlyOnce() throws {
         let rows = try MeetingProtocol.segments(fixture())
         XCTAssertEqual(try MeetingProtocol.cleaned("{\"utterances\":[{\"id\":\"u0\",\"text\":\"Cleaned statement\"}]}", expected: rows)["u0"], "Cleaned statement")
