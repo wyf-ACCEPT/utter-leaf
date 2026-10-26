@@ -25,7 +25,10 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		9A7910810D561D09E612A791 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4B804E474CC67F5DBF8112 /* KeyboardViewController.swift */; };
 		9BA1A371BACA73BE5A2FAAA3 /* DictationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AECB64FF37FCA9EB76A81B3 /* DictationCoordinator.swift */; };
+		B1DD8E7A30D8A4565E9C262C /* PrivateKeyboardReturn.m in Sources */ = {isa = PBXBuildFile; fileRef = 255C5D942E07AFD759E337C6 /* PrivateKeyboardReturn.m */; };
+		C102443BF37B85A2E081EF3D /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = AADCFB9DD4CE30D370F17679 /* LICENSE */; };
 		C4B10B7F83264CBFB73D560B /* DictationExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2BA6E3721A0A4411CC859 /* DictationExchange.swift */; };
+		D21FDCC22E8AFC0EA26A46B8 /* KBHostArbiterHook.m in Sources */ = {isa = PBXBuildFile; fileRef = E4DB9A0C567DF085D358B4FD /* KBHostArbiterHook.m */; };
 		FA642423BCB0186F47F808F8 /* UtterLeafKeyboard.appex in Embed Keyboard Extension */ = {isa = PBXBuildFile; fileRef = BAACF76A478EAC76F779B724 /* UtterLeafKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -74,6 +77,7 @@
 		0C9F47E8F5EECB04618DC5FD /* MobileProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileProvider.swift; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		255C5D942E07AFD759E337C6 /* PrivateKeyboardReturn.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = PrivateKeyboardReturn.m; sourceTree = "<group>"; };
 		27BF7EE0CEFE36637E160F5D /* PersonalKeys.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PersonalKeys.swift; sourceTree = "<group>"; };
 		2C4B804E474CC67F5DBF8112 /* KeyboardViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
@@ -95,9 +99,11 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AADCFB9DD4CE30D370F17679 /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; path = LICENSE; sourceTree = "<group>"; };
 		B4E1A43C57B122644637F8F5 /* cleanup.txt */ = {isa = PBXFileReference; includeInIndex = 1; path = cleanup.txt; sourceTree = "<group>"; };
 		BAACF76A478EAC76F779B724 /* UtterLeafKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UtterLeafKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F3F3793973746856FE814 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		E4DB9A0C567DF085D358B4FD /* KBHostArbiterHook.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = KBHostArbiterHook.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +160,16 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		90259EB61F370004C577F0AE /* KeyboardHostBundleID */ = {
+			isa = PBXGroup;
+			children = (
+				E4DB9A0C567DF085D358B4FD /* KBHostArbiterHook.m */,
+				AADCFB9DD4CE30D370F17679 /* LICENSE */,
+			);
+			name = KeyboardHostBundleID;
+			path = ThirdParty/KeyboardHostBundleID;
+			sourceTree = "<group>";
+		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
 			isa = PBXGroup;
 			children = (
@@ -175,6 +191,7 @@
 				3D8C69001F3CBD735078CFD8 /* Shared */,
 				3EA3963DDFDDF862181A0E71 /* Frameworks */,
 				FEA2A78318157F9FD8C0AF95 /* UtterLeafKeyboard */,
+				90259EB61F370004C577F0AE /* KeyboardHostBundleID */,
 			);
 			sourceTree = "<group>";
 		};
@@ -205,6 +222,7 @@
 				6AECB64FF37FCA9EB76A81B3 /* DictationCoordinator.swift */,
 				B4E1A43C57B122644637F8F5 /* cleanup.txt */,
 				8CC147277812F6F8A02F4311 /* KeyboardReturn.swift */,
+				255C5D942E07AFD759E337C6 /* PrivateKeyboardReturn.m */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -330,6 +348,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C102443BF37B85A2E081EF3D /* LICENSE in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -422,6 +441,7 @@
 				C4B10B7F83264CBFB73D560B /* DictationExchange.swift in Sources */,
 				8D03768ACB271601A95C15DB /* Wire.swift in Sources */,
 				291F07E690913F7529E9D126 /* KeyboardReturn.swift in Sources */,
+				B1DD8E7A30D8A4565E9C262C /* PrivateKeyboardReturn.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,6 +452,7 @@
 				9A7910810D561D09E612A791 /* KeyboardViewController.swift in Sources */,
 				5D3974B265BB94D54226F3A1 /* DictationExchange.swift in Sources */,
 				4A889E71B4C96C0F437E3B10 /* KeyboardDelivery.swift in Sources */,
+				D21FDCC22E8AFC0EA26A46B8 /* KBHostArbiterHook.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -777,6 +798,7 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "UtterLeafKeyboard/Keyboard-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -800,6 +822,7 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "UtterLeafKeyboard/Keyboard-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -823,6 +846,7 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "UtterLeafKeyboard/Keyboard-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
