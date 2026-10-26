@@ -28,6 +28,9 @@ import UIKit
     }
     override init() {
         super.init()
+        #if UTTERLEAF_NAVIGATION_TEST
+        error = "当前为跳转测试版：不录音、不调用 API。请从原 App 的言叶键盘点击开始。"
+        #endif
         PersonalKeys.importPersonalBundle()
         // A terminated recorder never leaves a live command that can restart the microphone.
         let old = DictationExchange.read("state")
@@ -81,9 +84,35 @@ import UIKit
         }
         UserDefaults.standard.set(id, forKey: "claimedHandoff")
         host = ticket["host"] as? String
+        #if targetEnvironment(simulator) || UTTERLEAF_NAVIGATION_TEST
+        // Exercise real extension/host navigation in the simulator without recording or API calls.
+        #if UTTERLEAF_NAVIGATION_TEST
+        let navigationOnly = true
+        #else
+        let navigationOnly = ProcessInfo.processInfo.arguments.contains("--navigation-smoke")
+        #endif
+        if navigationOnly {
+            Task {
+                var target = host
+                var fixedFixture = false
+                #if targetEnvironment(simulator)
+                if target == nil, ProcessInfo.processInfo.arguments.contains("--navigation-fixture") {
+                    target = "network.utterleaf.navigation.fixture"; fixedFixture = true
+                }
+                #endif
+                let returned = await KeyboardReturn.attempt(host: target)
+                try? DictationExchange.write(["simulation": true, "returned": returned, "hostResolved": host != nil,
+                    "fixedFixture": fixedFixture], to: "navigation-smoke")
+            }
+            return
+        }
+        #endif
         start(id: id, keyboard: true)
     }
     func start(id: String = UUID().uuidString, keyboard: Bool = false) {
+        #if UTTERLEAF_NAVIGATION_TEST
+        error = "跳转测试版不会录音。请从原 App 的言叶键盘开始测试。"; return
+        #endif
         guard !["starting", "recording", "processing"].contains(phase) else { return }
         requestID = id; fromKeyboard = keyboard; generation = UUID()
         returnStatus = ""; if !keyboard { host = nil }

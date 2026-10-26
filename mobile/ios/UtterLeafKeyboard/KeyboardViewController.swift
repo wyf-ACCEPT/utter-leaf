@@ -4,10 +4,14 @@ import UIKit
 final class KeyboardViewController: UIInputViewController {
     private let model = KeyboardModel()
     private var timer: Timer?
+    private var resolverTrace: [String: Any] = [:]
     override func viewDidLoad() {
         super.viewDidLoad()
         hasDictationKey = true
-        // Let the keyboard-style UIInputView paint the same background as the system dock.
+        // Create the optional client before the input destination becomes active.
+        KBHostArbiterHook.activeArbiterCheck()
+        // The keyboard-style UIInputView paints the same system background as the bottom dock.
+        // Do not cover it with the main app's botanical surface.
         view.backgroundColor = .clear
         let host = UIHostingController(rootView: KeyboardSurface(model: model, controller: self))
         addChild(host); host.view.backgroundColor = .clear
@@ -18,18 +22,37 @@ final class KeyboardViewController: UIInputViewController {
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated); refresh()
+        KBHostArbiterHook.activeArbiterCheck()
         timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in self?.refresh() }
     }
-    override func viewWillDisappear(_ animated: Bool) { super.viewWillDisappear(animated); timer?.invalidate(); timer = nil }
-    fileprivate func prepare() {
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated); timer?.invalidate(); timer = nil
+        KBHostArbiterHook.invalidateCache(); model.host = nil
+    }
+    fileprivate func prepare() async -> URL? {
+        guard hasFullAccess, !model.launching else { return nil }
+        model.launching = true
+        defer { model.launching = false }
+        let originalDocument = textDocumentProxy.documentIdentifier
         let record: [String: Any] = ["requestID": model.nextID, "document": textDocumentProxy.documentIdentifier.uuidString,
             "before": String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)),
             "after": String((textDocumentProxy.documentContextAfterInput ?? "").prefix(80)), "created": Date().timeIntervalSince1970]
         // Target context is local to this extension and never sent to an API or the main app.
         UserDefaults.standard.set(record, forKey: "pendingTarget")
+        model.host = await resolveHostForCurrentTap()
+        guard viewIfLoaded?.window != nil, textDocumentProxy.documentIdentifier == originalDocument else { return nil }
         var ticket: [String: Any] = ["requestID": model.nextID, "created": Date().timeIntervalSince1970]
         if let host = model.host { ticket["host"] = host }
-        try? DictationExchange.write(ticket, to: "handoff")
+        do { try DictationExchange.write(ticket, to: "handoff") }
+        catch { model.status = "无法共享录音请求，请重新允许完全访问。"; return nil }
+        var trace = resolverTrace
+        trace["hostResolved"] = model.host != nil
+        trace["hostKind"] = model.host == "com.tencent.xin" ? "wechat" : model.host == nil ? "missing" : "other"
+        trace["os"] = UIDevice.current.systemVersion; trace["updated"] = Date().timeIntervalSince1970
+        try? DictationExchange.write(trace, to: "keyboard-navigation")
+        var parts = URLComponents(); parts.scheme = "utterleaf"; parts.host = "dictate"
+        parts.queryItems = [URLQueryItem(name: "request", value: model.nextID)]
+        return parts.url
     }
     fileprivate func command(_ action: String) {
         let state = DictationExchange.read("state")
@@ -61,7 +84,6 @@ final class KeyboardViewController: UIInputViewController {
         default: overrideUserInterfaceStyle = .unspecified
         }
         model.showSwitcher = needsInputModeSwitchKey
-        model.host = freshHost()
         guard hasFullAccess else { model.status = "请为言叶键盘允许完全访问"; return }
         let state = DictationExchange.read("state"), phase = state["phase"] as? String ?? "idle"
         if let updated = state["updated"] as? Double, Date().timeIntervalSince1970 - updated >= 900 {
@@ -92,6 +114,23 @@ final class KeyboardViewController: UIInputViewController {
         }
         return nil
     }
+    private func resolveHostForCurrentTap() async -> String? {
+        guard viewIfLoaded?.window != nil else { return nil }
+        if #available(iOS 26.4, *) {
+            let generation = KBHostArbiterHook.captureGeneration()
+            resolverTrace = ["before": generation, "arbiter": NSClassFromString("_UIKeyboardArbiterClient") != nil,
+                "destination": NSClassFromString("_UIKeyboardArbiterClientInputDestination") != nil]
+            resolverTrace["hook"] = KBHostArbiterHook.diagnostics()
+            KBHostArbiterHook.activeArbiterCheck()
+            for _ in 0..<20 {
+                guard viewIfLoaded?.window != nil, !Task.isCancelled else { return nil }
+                if let host = KBHostArbiterHook.hostBundleId(capturedAfter: generation) { resolverTrace["after"] = KBHostArbiterHook.captureGeneration(); return host }
+                try? await Task.sleep(nanoseconds: 20_000_000)
+            }
+            resolverTrace["after"] = KBHostArbiterHook.captureGeneration(); return nil
+        }
+        return freshHost()
+    }
 }
 
 private final class KeyboardModel: ObservableObject {
@@ -101,9 +140,11 @@ private final class KeyboardModel: ObservableObject {
     @Published var fullAccess = false
     @Published var showSwitcher = true
     @Published var host: String?
+    @Published var launching = false
 }
 
 private struct KeyboardSurface: View {
+    @Environment(\.openURL) private var openURL
     @ObservedObject var model: KeyboardModel
     unowned var controller: KeyboardViewController
     private let leaf = Color(UIColor { $0.userInterfaceStyle == .dark
@@ -121,9 +162,11 @@ private struct KeyboardSurface: View {
                 } else if ["starting", "processing"].contains(model.phase) {
                     ProgressView().tint(leaf).frame(height: 48)
                 } else {
-                    Link(destination: handoffURL) {
+                    Button {
+                        Task { if let url = await controller.prepare() { openURL(url) } }
+                    } label: {
                         Label("开始说话", systemImage: "mic.fill")
-                    }.simultaneousGesture(TapGesture().onEnded { controller.prepare() }).disabled(!model.fullAccess)
+                    }.disabled(!model.fullAccess || model.launching)
                 }
             }.font(.title3.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 52)
                 .background(leaf.opacity(0.16), in: Capsule()).foregroundStyle(leaf)
@@ -135,11 +178,5 @@ private struct KeyboardSurface: View {
                 Button { controller.textDocumentProxy.deleteBackward() } label: { Image(systemName: "delete.left") }.accessibilityLabel("删除")
             }.font(.title3).frame(height: 40)
         }.padding(18).foregroundStyle(.primary)
-    }
-    private var handoffURL: URL {
-        var parts = URLComponents(); parts.scheme = "utterleaf"; parts.host = "dictate"
-        parts.queryItems = [URLQueryItem(name: "request", value: model.nextID)]
-        if let host = model.host { parts.queryItems?.append(URLQueryItem(name: "host", value: host)) }
-        return parts.url!
     }
 }
