@@ -45,6 +45,17 @@ final class MeetingPresentationTests: XCTestCase {
                 try image.representation(using: .png, properties: [:])?.write(to: url)
             }
         }
+        let progress = NSHostingView(rootView: VStack(spacing: 20) {
+            MeetingProcessingView(work: MeetingWorkProgress(.queued, started: Date().addingTimeInterval(-75)), canStop: false, stop: {})
+            MeetingProcessingView(work: MeetingWorkProgress(.uploading, completed: 42, total: 100), canStop: false, stop: {})
+            MeetingProcessingView(work: MeetingWorkProgress(.cleaning, completed: 60, total: 804), canStop: false, stop: {})
+        }.padding(24).frame(width: 800, height: 440).background(LeafTheme.mist).preferredColorScheme(.dark))
+        progress.frame = NSRect(x: 0, y: 0, width: 800, height: 440); progress.layoutSubtreeIfNeeded()
+        if let image = progress.bitmapImageRepForCachingDisplay(in: progress.bounds) {
+            progress.cacheDisplay(in: progress.bounds, to: image)
+            let path = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".local/verification/meeting-processing-preview.png")
+            try image.representation(using: .png, properties: [:])?.write(to: path)
+        }
         XCTAssertTrue(model.store.index.meetings.count == 1)
     }
 }
