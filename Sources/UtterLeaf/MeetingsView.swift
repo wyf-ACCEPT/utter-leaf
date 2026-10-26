@@ -99,12 +99,17 @@ struct MeetingsView: View {
                 if value.segments.isEmpty {
                     if model.recording {
                         Text("实时说话人仅为暂定编号；暂停前后、麦克风与系统音轨的编号不能直接视为同一个人。会后完整识别将统一校正。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                        ForEach(model.liveSegments.keys.sorted(), id: \.self) { source in
-                            Text(source == "system" ? "系统音轨 · 暂定" : "麦克风音轨 · 暂定").font(LeafType.headline)
-                            ForEach(model.liveSegments[source] ?? []) { row in
-                                Text("[\(row.start < 0 ? "实时" : clock(row.start))] \(row.speaker == "unknown" ? "说话人待确认" : "说话人 " + row.speaker)：\(row.text)").textSelection(.enabled)
-                            }
-                        }
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 14) {
+                                ForEach(model.liveSegments.keys.sorted(), id: \.self) { source in
+                                    Text(source == "system" ? "系统音轨 · 暂定" : "麦克风音轨 · 暂定").font(LeafType.headline)
+                                    ForEach(model.liveSegments[source] ?? []) { row in
+                                        Text("[\(row.start < 0 ? "实时" : clock(row.start))] \(row.speaker == "unknown" ? "说话人待确认" : "说话人 " + row.speaker)：\(row.text)").textSelection(.enabled)
+                                    }
+                                }
+                            }.frame(maxWidth: .infinity, alignment: .leading)
+                        }.frame(height: 360).scrollIndicators(.visible).accessibilityLabel("实时原始转录，可滚动")
+
                     } else { Text("尚无完整转录。结束会议后可提交识别，或核对已有任务。").foregroundStyle(LeafTheme.muted) }
                 } else {
                     Text("说话人名称可修改；同名表示你确认属于同一个人。未知身份请保留未知，不靠文本猜人名。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
