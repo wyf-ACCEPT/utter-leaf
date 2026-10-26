@@ -4,12 +4,19 @@ import UtterLeafCore
 @testable import UtterLeaf
 
 final class MeetingCaptionTests: XCTestCase {
-    func testPanelOnlyAppearsForActiveLiveRecordingAndEnabledPreference() {
+    func testPanelShowsRecordingStateWithoutLiveCaptionsAndRespectsHidePreference() {
         XCTAssertTrue(MeetingCaptionPolicy.shouldShow(recording: true, paused: false, live: true, enabled: true))
         XCTAssertFalse(MeetingCaptionPolicy.shouldShow(recording: false, paused: false, live: true, enabled: true))
-        XCTAssertFalse(MeetingCaptionPolicy.shouldShow(recording: true, paused: true, live: true, enabled: true))
-        XCTAssertFalse(MeetingCaptionPolicy.shouldShow(recording: true, paused: false, live: false, enabled: true))
+        XCTAssertTrue(MeetingCaptionPolicy.shouldShow(recording: true, paused: true, live: true, enabled: true))
+        XCTAssertTrue(MeetingCaptionPolicy.shouldShow(recording: true, paused: false, live: false, enabled: true))
         XCTAssertFalse(MeetingCaptionPolicy.shouldShow(recording: true, paused: false, live: true, enabled: false))
+    }
+    func testRecordingTimerFormatsElapsedTimeAndRejectsInvalidValues() {
+        XCTAssertEqual(MeetingCaptionPolicy.recordingTime(125.9), "02:05")
+        XCTAssertEqual(MeetingCaptionPolicy.recordingTime(3661), "1:01:01")
+        XCTAssertEqual(MeetingCaptionPolicy.recordingTime(-4), "00:00")
+        XCTAssertEqual(MeetingCaptionPolicy.recordingTime(.infinity), "00:00")
+        XCTAssertEqual(MeetingCaptionPolicy.recordingTime(.greatestFiniteMagnitude), "3:00:00")
     }
     func testCaptionPresentationDefaultsAndInvalidStoredValues() {
         XCTAssertEqual(MeetingCaptionPolicy.opacity(nil), 0.75)
@@ -117,13 +124,25 @@ extension MeetingCaptionTests {
         XCTAssertEqual(controller.panel!.frame.height, 240, accuracy: 1)
         XCTAssertEqual(NSApp.keyWindow, originalKey)
         XCTAssertEqual(NSWorkspace.shared.frontmostApplication?.processIdentifier, originalApp)
+        model.live = false; model.elapsed = 125
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertTrue(controller.panel?.isVisible == true)
+        XCTAssertEqual(controller.panel!.frame.width, 360, accuracy: 1)
+        XCTAssertEqual(controller.panel!.frame.height, 136, accuracy: 1)
+        XCTAssertTrue(store.database.calls.isEmpty)
+        if let view = controller.panel?.contentView, let image = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: image)
+            let file = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".local/verification/meeting-recording-status-preview.png")
+            try image.representation(using: .png, properties: [:])?.write(to: file)
+        }
         model.paused = true; try await Task.sleep(for: .milliseconds(300))
-        XCTAssertFalse(controller.panel?.isVisible == true)
+        XCTAssertTrue(controller.panel?.isVisible == true)
         model.paused = false; try await Task.sleep(for: .milliseconds(50))
         XCTAssertTrue(controller.panel?.isVisible == true)
         model.floatingCaptions = false; try await Task.sleep(for: .milliseconds(300))
         XCTAssertFalse(controller.panel?.isVisible == true)
-        XCTAssertTrue(model.live)
+        XCTAssertFalse(model.live)
+        XCTAssertTrue(store.database.calls.isEmpty)
         model.floatingCaptions = true; model.recording = false; try await Task.sleep(for: .milliseconds(300))
         XCTAssertFalse(controller.panel?.isVisible == true)
     }
