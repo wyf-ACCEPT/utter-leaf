@@ -151,3 +151,6 @@ Imported audio fidelity: keep original device bytes privately, use converted WAV
 | Busy / motion | Flutter state + SoundWave | No waveform while processing; audio-level-driven recording waveform, Reduce Motion phase disabled |
 
 The iOS dictation app is independent of active macOS meetings. Personal installation is not public distribution. Device signing, Full Access, real microphone capture, background return and host-field insertion must be validated on iPhone separately from Flutter tests and simulator builds.
+
+
+The iOS keyboard backdrop is system-owned through UIInputViewStyle.keyboard. Neither the controller nor the SwiftUI content draws an opaque root fill. Keyboard appearance follows the host field; the system switcher dock and extension canvas therefore share the native material. Simulator light and dark fixture checks verify the joined surface.
