@@ -29,7 +29,7 @@ public enum MeetingTextExport {
         case .raw, .cleaned:
             guard !meeting.segments.isEmpty, section != .cleaned || MeetingWorkflow.cleaned(meeting) else { return nil }
             text = meeting.segments.map { row in
-                let words = section == .cleaned ? (meeting.cleaned?[row.id] ?? row.text) : row.text
+                let words = section == .cleaned ? (meeting.cleaned?[row.id] ?? meeting.text(for: row)) : meeting.text(for: row)
                 return "[\(MeetingCaptionPolicy.recordingTime(row.start))] \(meeting.name(for: meeting.speaker(for: row)))：\(words)"
             }.joined(separator: "\n\n")
         }

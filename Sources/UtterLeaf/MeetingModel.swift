@@ -11,7 +11,8 @@ import UtterLeafCore
     @Published var active: MeetingRecord?
     @Published var message = ""
     @Published var elapsed = 0.0
-    @Published var busy = false
+    @Published var progress: MeetingWorkProgress?
+    @Published var busy = false { didSet { if !busy { progress = nil } } }
     @Published var recording = false { didSet { onCaptionUpdate?() } }
     @Published var paused = false { didSet { onCaptionUpdate?() } }
     @Published var live = true { didSet { onCaptionUpdate?() } }
@@ -151,6 +152,7 @@ import UtterLeafCore
     func stop() {
         guard recording else { return }
         recording = false; paused = false; onCaptureState?(false, elapsed, false); busy = true; tick?.cancel(); elapsed = recorder.elapsed
+        progress = MeetingWorkProgress(.saving)
         finishLive(); edit { $0.seconds = elapsed; $0.state = "saving" }
         operation = Task {
             do {
@@ -181,18 +183,24 @@ import UtterLeafCore
         guard ledger.storageError == nil else { message = "用量账本不可写，已停止发送会议音频。"; return }
         guard value.seconds >= 1 else { message = "会议音频太短，请保留至少一秒有效录音。"; return }
         busy = true; edit { $0.state = "transcribing" }; message = value.requestID == nil ? "准备完整会议转录与说话人识别…" : "核对上次提交的会议任务，不重复提交。"
+        progress = MeetingWorkProgress(.preparing)
         operation = Task {
+            api.onRecognitionStatus = { [weak self] code in
+                guard let self, busy else { return }
+                let stage: MeetingWorkProgress.Stage = code == "20000002" ? .queued : .recognizing
+                if ["20000001", "20000002"].contains(code), progress?.stage != stage { progress = MeetingWorkProgress(stage) }
+            }
             api.onRawResult = { [store] data in
                 let path = store.folder(value.id).appendingPathComponent("provider-result.json")
                 try data.write(to: path, options: .atomic)
                 try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path.path)
             }
-            defer { api.onRawResult = nil }
+            defer { api.onRawResult = nil; api.onRecognitionStatus = nil }
             do {
                 let call: UsageCall
                 if let id = value.requestID {
                     guard let existing = ledger.database.calls.first(where: { $0.requestID == id }) else { throw AppFailure("原转录请求回执缺失，已停止自动重新提交。", code: "meeting_receipt_missing") }
-                    call = existing
+                    call = existing; progress = MeetingWorkProgress(.recognizing)
                 } else {
                     let upload = store.folder(value.id).appendingPathComponent("request.json")
                     try await MeetingAPI.buildUpload(audio: store.audio(value.id), destination: upload, voices: value.voiceprints)
@@ -204,7 +212,12 @@ import UtterLeafCore
                     edit { $0.requestID = pending.requestID; $0.submission = "uncertain" }
                     if store.error != nil { throw AppFailure("请求 ID 保存失败，已停止发送。", code: "meeting_storage") }
                     try Task.checkCancellation()
-                    call = try await api.submit(upload: upload, call: pending)
+                    progress = MeetingWorkProgress(.uploading, total: 100)
+                    call = try await api.submit(upload: upload, call: pending) { [weak self] percent in
+                        guard let self, progress?.stage == .uploading else { return }
+                        progress?.completed = percent
+                    }
+                    progress = MeetingWorkProgress(.queued)
                     edit { $0.submission = "accepted" }
                     try? FileManager.default.removeItem(at: upload)
                 }
@@ -216,7 +229,8 @@ import UtterLeafCore
                         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path.path)
                         edit { $0.segments = result.segments; $0.rawResultHash = TextEnvelope.hash(String(decoding: result.data, as: UTF8.self)); $0.state = "transcribed"; $0.failureCode = nil }
                         message = "整场转录已完成，说话人编号仅属于本场会议；已注册声纹会参与匹配。"
-                        busy = false; return
+                        busy = false
+                        return
                     }
                     if attempt % 10 == 0 { message = "豆包仍在处理完整会议，原请求已保留，可停止等待后再核对。" }
                     try await Task.sleep(for: .seconds(3))
@@ -231,7 +245,7 @@ import UtterLeafCore
     }
     func cleanTranscript() {
         guard let value = current, !value.segments.isEmpty, !blocksDictation else { return }
-        busy = true; edit { $0.state = "summarizing" }
+        busy = true; progress = MeetingWorkProgress(.cleaning, total: value.segments.count); edit { $0.state = "summarizing" }
         operation = Task {
             do {
                 let prefs = ledger.database.preferences
@@ -243,6 +257,7 @@ import UtterLeafCore
                     message = "逐句整理会议转录 \(offset + 1) / \(value.segments.count)…"
                     let response = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows), meeting: value.id, price: price, system: MeetingProtocol.cleanupPrompt)
                     let cleaned = try MeetingProtocol.cleaned(response, expected: rows)
+                    progress?.completed += rows.count
                     output.merge(cleaned) { _, new in new }; edit { $0.cleaned = output; if !$0.brief.isEmpty { $0.briefNeedsUpdate = true } }
                 }
                 edit { $0.state = "transcribed" }; busy = false; message = "逐句整理稿已保存，原始转录与说话人归属保持独立。"
@@ -262,18 +277,20 @@ import UtterLeafCore
                     chunk.append(row); size += row.text.count
                 }
                 if !chunk.isEmpty { chunks.append(chunk) }
+                progress = MeetingWorkProgress(.briefing, total: chunks.count)
                 var parts: [String] = []
                 for (i, rows) in chunks.enumerated() {
                     try Task.checkCancellation(); message = "整理会议片段 \(i + 1) / \(chunks.count)…"
                     let result = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows, preferCleaned: true), meeting: value.id, price: price)
                     guard MeetingProtocol.hasValidReferences(result, segments: rows) else { throw AppFailure("笔记原文引用缺失或不正确，已保留原始转录。可重试整理。", code: "meeting_brief_references") }
-                    parts.append(result)
+                    parts.append(result); progress?.completed = parts.count
                     edit { $0.brief = parts.joined(separator: "\n\n---\n\n") }
                 }
                 if parts.count > 1 {
                     let joined = parts.joined(separator: "\n\n")
                     if joined.count <= 60000 {
                         let data = try JSONSerialization.data(withJSONObject: ["partial_notes": parts, "user_notes": value.notes])
+                        progress = MeetingWorkProgress(.merging)
                         let merged = try await api.brief(content: "以下 JSON 为分段笔记数据，请合并，保留原文 [uN] 引用：\n" + String(decoding: data, as: UTF8.self), meeting: value.id, price: price)
                         guard MeetingProtocol.hasValidReferences(merged, segments: value.segments) else { throw AppFailure("合并笔记的引用校验未通过，分段笔记仍保留。", code: "meeting_brief_references") }
                         edit { $0.brief = merged }

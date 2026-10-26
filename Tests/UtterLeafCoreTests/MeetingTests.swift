@@ -171,7 +171,7 @@ final class MeetingTests: XCTestCase {
             return (try JSONSerialization.data(withJSONObject: payload), HTTPURLResponse(url: req.url!, statusCode: 200, httpVersion: nil, headerFields: ["X-Api-Status-Code": "20000000"])!)
         }
         let model = MeetingModel(ledger: ledger, api: api)
-        var record = MeetingRecord(); record.seconds = 10; record.requestID = "durable-request"; record.state = "interrupted"
+        var record = MeetingRecord(); record.seconds = 10; record.nameCandidates = []; record.requestID = "durable-request"; record.state = "interrupted"
         let call = UsageCall(jobID: record.id, provider: "Doubao", model: "meeting-ssd300", requestID: "durable-request", price: .asr(.file))
         ledger.update(call); try model.store.prepare(record.id); try model.store.save(record); model.select(record.id)
         model.transcribe()
