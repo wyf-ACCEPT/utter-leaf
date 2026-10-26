@@ -1,10 +1,14 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import UtterLeafCore
 
 struct MeetingsView: View {
     @ObservedObject var model: MeetingModel
     @ObservedObject var meetings: MeetingStore
     @State private var tab = "笔记"
+    @State private var exporting = false
+    @State private var exportFile = MeetingTextFile(text: "")
+    @State private var exportName = "会议.txt"
     @State private var search = ""
     @State private var showVoices = false
     @State private var confirmMeetingDeletion = false
@@ -77,6 +81,13 @@ struct MeetingsView: View {
         }
         .onChange(of: model.systemAudio) { _, _ in model.saveOptions() }
         .onChange(of: model.live) { _, _ in model.saveOptions() }
+        .fileExporter(isPresented: $exporting, document: exportFile, contentType: .plainText, defaultFilename: exportName) { result in
+            switch result {
+            case .success: model.message = "TXT 已导出。"
+            case .failure(let error):
+                if (error as NSError).code != NSUserCancelledError { model.message = "TXT 导出失败，请检查保存位置后重试。" }
+            }
+        }
         .sheet(isPresented: $showVoices) { VoiceprintView(model: model, store: meetings) }
         .sheet(item: $correcting) { row in
             MeetingSpeakerEditor(row: row, initial: model.current?.speaker(for: row) ?? row.speaker) { speaker in
@@ -113,7 +124,11 @@ struct MeetingsView: View {
                             model.message = "已复制\(section.title)。"
                         }
                     } label: { Label("复制", systemImage: "doc.on.doc") }.handCursor()
-
+                    Button {
+                        guard let text = MeetingTextExport.document(value, section: section, references: model.briefReferences) else { return }
+                        exportFile = MeetingTextFile(text: text); exportName = MeetingTextExport.filename(value, section: section); exporting = true
+                    } label: { Label("导出 TXT", systemImage: "square.and.arrow.up") }
+                        .handCursor().help("导出当前的\(section.title)，使用 UTF-8 编码")
                 }.buttonStyle(.bordered)
                     .disabled(MeetingTextExport.body(value, section: section, references: model.briefReferences) == nil)
             }
