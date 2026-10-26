@@ -6,10 +6,11 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
                     newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
 }
 @MainActor final class Providers {
+    var streamResourceTimeout: TimeInterval = Double(RecordingLimit.seconds + 120)
     private let delegate = NoRedirectDelegate()
     lazy var session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 30; config.timeoutIntervalForResource = Double(RecordingLimit.seconds + 120)
+        config.timeoutIntervalForRequest = 30; config.timeoutIntervalForResource = streamResourceTimeout
         config.urlCache = nil; config.httpCookieStorage = nil
         return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }()
@@ -21,6 +22,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
     var currentCall: UsageCall?
     var onCall: ((UsageCall) -> Void)?
     var onPartial: ((String) -> Void)?
+    var onSpeakerResult: (([MeetingUtterance]) -> Void)?
     func record(_ call: UsageCall) { currentCall = call; onCall?(call) }
     func finishCall(error: Error? = nil) {
         guard var call = currentCall, call.status == .pending else { return }
@@ -36,7 +38,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
         }
         call.fillLocalEstimate(); record(call)
     }
-    func startStream(pipeline: ASRPipeline, job: UUID, price: PriceSnapshot) async throws {
+    func startStream(pipeline: ASRPipeline, job: UUID, price: PriceSnapshot, speakerInfo: Bool = false) async throws {
         let secret = try Credentials.load("DOUBAO_API_KEY")
         let call = UsageCall(jobID: job, provider: "Doubao", model: pipeline.rawValue, price: price)
         record(call); sentBytes = 0; sequence = 2
@@ -48,15 +50,18 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
         request.setValue("-1", forHTTPHeaderField: "X-Api-Sequence")
         let ws = session.webSocketTask(with: request); ws.maximumMessageSize = 8 * 1024 * 1024
         socket = ws; ws.resume()
-        let config: [String: Any] = ["user": ["uid": "utterleaf-personal"],
+        var config: [String: Any] = ["user": ["uid": "utterleaf-personal"],
             "audio": ["format": "pcm", "codec": "raw", "rate": 16000, "bits": 16, "channel": 1],
             "request": ["model_name": "bigmodel", "enable_itn": true, "enable_punc": true, "enable_ddc": false, "show_utterances": true]]
+        if speakerInfo, var options = config["request"] as? [String: Any] {
+            options["enable_speaker_info"] = true; options["enable_nonstream"] = true; config["request"] = options
+        }
         do {
             try await ws.send(.data(DoubaoWire.encode(kind: 1, sequence: 1, payload: JSONSerialization.data(withJSONObject: config))))
             try Task.checkCancellation()
             receiver = Task { [weak self] in
                 var latest = ""
-                for _ in 0..<5000 {
+                for _ in 0..<(speakerInfo ? 200000 : 5000) {
                     try Task.checkCancellation()
                     let message = try await ws.receive()
                     guard case .data(let data) = message else { throw AppFailure("ASR 返回了不支持的数据。", code: "ws_text_frame") }
@@ -65,6 +70,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
                     if let text = (response.body["result"] as? [String: Any])?["text"] as? String {
                         latest = text; self?.onPartial?(text)
                     }
+                    if speakerInfo, let utterances = try? MeetingProtocol.segments(response.body) { self?.onSpeakerResult?(utterances) }
                     if response.final { return latest }
                 }
                 throw AppFailure("ASR 返回包过多。", code: "ws_packet_limit")

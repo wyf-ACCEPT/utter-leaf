@@ -15,9 +15,9 @@ Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-part
 
 ### Status
 
-**Working personal development build — October 25, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. Meeting transcription and iOS are planned, not implemented.
+**Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; iOS remains planned.
 
-The latest local suite passes **75 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The latest local suite passes **89 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -53,11 +53,17 @@ The build script stages and signs the bundle, verifies it, then replaces the ins
 
 The file route preserves an experimentally verified `audio.data` submission path. This path is not explicitly listed in the referenced official file-ASR schema; use a streaming route if compatibility fails.
 
+### Meetings (Phase 2 preview)
+
+The **会议** page records microphone audio with optional system audio, supports pause/resume and local notes, and retains recordings on disk for playback or explicit deletion. Sessions are separate from five-minute dictation and currently cap at three hours. Optional live captions incur separate streaming calls; their speaker labels are provisional. After recording, whole-session ASR produces timestamped speaker turns, with independent cleaned transcript and source-referenced Brief generation.
+
+Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. Registration currently requires a user-provided HTTPS signed URL for a 5–30 second single-speaker sample; there is no automatic local-sample upload. The provider retains voiceprint data, and its deletion API performs soft deletion, not physical erasure. Speech IDs within one meeting are never treated as persistent identities by themselves. See the [meeting implementation and validation limits](docs/6x26-meeting-implementation.md).
+
 ### Privacy and local data
 
 **Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend or automatic cross-device sync.
 
-Recording audio stays in memory. History and usage are stored at:
+Short-dictation audio stays in memory; meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
 
 ```text
 ~/Library/Application Support/UtterLeaf/ledger.json
@@ -111,9 +117,9 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 ### 当前状态
 
-**截至 2026-10-25，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录和 iOS 尚未实现。
+**截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-最新本地自动测试 **75 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+最新本地自动测试 **89 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -147,11 +153,17 @@ open .local/UtterLeaf.app
 
 文件管线保留实验中验证过的 `audio.data` 接法，但所参考官方文件 ASR schema 未明确列出此字段；兼容性失败时请切换流式管线。
 
+### 会议（Phase 2 首版）
+
+「会议」页面可采集麦克风及可选系统声音，支持暂停/恢复、随手笔记、本机录音回听与删除。会议独立于五分钟听写，初版单场最长三小时。实时字幕会产生额外流式调用，其说话人编号仅为暂定；结束后通过整场 ASR 生成带时间与说话人的转录，再分别生成逐句整理稿和带原文引用的 Brief。
+
+声纹库支持刷新、启停、改名及软删除。注册目前使用你提供的 HTTPS 签名 URL，音频为 5–30 秒清晰单人语音，尚不自动上传本机样本。声纹由豆包保存，删除接口为软删除，不承诺物理擦除；单场说话人编号不会自动当成跨会议身份。参见[实施与验收边界](docs/6x26-meeting-implementation.md)。
+
 ### 隐私与本地数据
 
 **本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端，也不自动跨设备同步。
 
-录音仅存内存。历史账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
+短听写录音仅存内存；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
 
 凭证、私人录音、历史账本、构建产物和个人交接资料均被 Git 排除。仓库中的 `App/Sounds/` WAV 是原创界面提示音，不是用户录音。
 

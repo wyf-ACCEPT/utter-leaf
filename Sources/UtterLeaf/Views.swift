@@ -123,7 +123,7 @@ struct PageHeading: View {
 struct RootView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var store: LocalStore
-    let pages = [("听写", "waveform"), ("本地历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
+    let pages = [("听写", "waveform"), ("会议", "person.3.sequence"), ("本地历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 30) {
@@ -144,7 +144,7 @@ struct RootView: View {
                     Text("给表达一点空间。").font(.system(size: LeafType.scaled(12))).foregroundStyle(LeafTheme.muted)
                     HStack { Text("Fn").font(.system(size: LeafType.scaled(12), design: .monospaced)); Text("开始 / 结束").font(.system(size: LeafType.scaled(11))) }
                         .foregroundStyle(LeafTheme.leaf)
-                    Text("个人版 · 0.1.0").font(.system(size: LeafType.scaled(10))).foregroundStyle(LeafTheme.muted)
+                    Text("个人版 · 0.2.0").font(.system(size: LeafType.scaled(10))).foregroundStyle(LeafTheme.muted)
                 }.padding(.bottom, 14)
             }.padding(20).frame(width: 220).background(LeafTheme.mist)
             Rectangle().fill(LeafTheme.line).frame(width: 1)
@@ -152,6 +152,7 @@ struct RootView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if let error = store.storageError { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
                     switch model.route {
+                    case "会议": MeetingsView(model: model.meetings, meetings: model.meetings.store)
                     case "本地历史": HistoryView(store: store)
                     case "词汇表": VocabularyView(store: store)
                     case "用量与费用": UsageView(store: store)
@@ -298,7 +299,7 @@ struct HistoryView: View {
     @State private var query = ""
     @State private var limit = 30
     @State private var expanded: UUID?
-    var rows: [HistoryJob] { store.database.jobs.filter { query.isEmpty || ($0.finalText ?? "").localizedCaseInsensitiveContains(query) || ($0.rawText ?? "").localizedCaseInsensitiveContains(query) } }
+    var rows: [HistoryJob] { store.database.jobs.filter { $0.kind != "meeting" && (query.isEmpty || ($0.finalText ?? "").localizedCaseInsensitiveContains(query) || ($0.rawText ?? "").localizedCaseInsensitiveContains(query)) } }
     var body: some View {
         PageHeading(title: "说过的话，都有迹可循。", subtitle: "仅保存在这台 Mac · 原始转写与最终稿分开保留")
         HStack {

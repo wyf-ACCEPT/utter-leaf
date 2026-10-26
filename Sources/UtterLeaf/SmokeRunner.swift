@@ -4,6 +4,7 @@ import UtterLeafCore
 
 @MainActor enum SmokeRunner {
     static func run(model: AppModel) async {
+        if ProcessInfo.processInfo.arguments.contains("--meeting-smoke") { await MeetingSmokeRunner.run(); return }
         // Synthetic fixture only. Never read historical recordings or write to the user's ledger.
         let api = Providers()
         var receipts: [UsageCall] = []
