@@ -30,8 +30,10 @@ import UtterLeafCore
             return a.width * a.height < b.width * b.height
         } ?? NSScreen.main)
         let bounds = screen?.visibleFrame
-        let width = model.captionsCollapsed ? 260.0 : min(660, max(300, (bounds?.width ?? 708) - 48))
-        let height = model.captionsCollapsed ? 52.0 : Double(100 + 28 * MeetingCaptionPolicy.lineCount(model.captionLineCount))
+        let transcript = model.live && !model.paused
+        let preferredWidth = transcript ? 660.0 : 360.0
+        let width = model.captionsCollapsed ? 260.0 : min(preferredWidth, max(300, (bounds?.width ?? 708) - 48))
+        let height = model.captionsCollapsed ? 52.0 : (transcript ? Double(100 + 28 * MeetingCaptionPolicy.lineCount(model.captionLineCount)) : 136.0)
         var frame = NSRect(x: positioned ? panel.frame.minX : (bounds ?? panel.frame).midX - width / 2,
                            y: positioned ? panel.frame.maxY - height : (bounds ?? panel.frame).midY - height / 2,
                            width: width, height: height)
@@ -84,6 +86,8 @@ private struct MeetingCaptionView: View {
     @ObservedObject var model: MeetingModel
     @ObservedObject var store: LocalStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private var timer: String { MeetingCaptionPolicy.recordingTime(model.elapsed) }
+    private var recordingStatus: String { model.paused ? "已暂停" : "正在录制" }
     private var previous: [MeetingCaptionLine] {
         Array(model.captionLines.dropLast().suffix(max(0, MeetingCaptionPolicy.lineCount(model.captionLineCount) - 2)))
     }
@@ -92,8 +96,10 @@ private struct MeetingCaptionView: View {
             ZStack {
                 CaptionDragHandle().accessibilityLabel("拖动悬浮字幕")
                 HStack(spacing: 7) {
-                    Image(systemName: "captions.bubble").allowsHitTesting(false)
-                    Text(model.captionsCollapsed ? "会议字幕" : model.captionStatus).lineLimit(1).allowsHitTesting(false)
+                    Image(systemName: model.live && !model.paused ? "captions.bubble" : (model.paused ? "pause.circle" : "record.circle"))
+                        .foregroundStyle(model.paused ? LeafTheme.muted : LeafTheme.leaf).allowsHitTesting(false)
+                    Text(model.captionsCollapsed ? recordingStatus + " " + timer : (model.live && !model.paused ? model.captionStatus : recordingStatus))
+                        .monospacedDigit().lineLimit(1).allowsHitTesting(false)
                     Spacer(minLength: 4)
                     Button {
                         model.captionsCollapsed.toggle()
@@ -102,10 +108,15 @@ private struct MeetingCaptionView: View {
                     Button {
                         model.floatingCaptions = false; model.saveOptions()
                     } label: { Image(systemName: "xmark") }
-                        .handCursor().accessibilityLabel("隐藏字幕").help("隐藏字幕，可从会议页重新显示")
+                        .handCursor().accessibilityLabel("隐藏字幕").help("隐藏悬浮窗，可从会议页重新显示")
                 }.buttonStyle(.borderless).font(.system(size: 12)).foregroundStyle(LeafTheme.muted)
             }.frame(height: 24)
-            if !model.captionsCollapsed {
+            if !model.captionsCollapsed, !model.live || model.paused {
+                Text(timer).font(.system(size: 32, weight: .medium, design: .rounded)).monospacedDigit()
+                    .accessibilityLabel("会议录音时长").accessibilityValue(timer)
+                Text(model.paused ? "录音已暂停，计时暂停" : "仅录音 · 结束后自动转录")
+                    .font(.system(size: 12)).foregroundStyle(LeafTheme.muted)
+            } else if !model.captionsCollapsed {
                 ForEach(previous) { line in
                     Text(line.text).font(.system(size: 15)).foregroundStyle(LeafTheme.muted).lineLimit(1).truncationMode(.head)
                 }
@@ -127,16 +138,16 @@ private struct MeetingCaptionView: View {
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(LeafTheme.line.opacity(0.6)).allowsHitTesting(false))
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.16), value: model.captionLines.last?.id)
             .preferredColorScheme(LeafTheme.scheme(store.database.preferences.appearance))
-            .accessibilityElement(children: .contain).accessibilityLabel("会议悬浮字幕")
+            .accessibilityElement(children: .contain).accessibilityLabel("会议录制悬浮窗")
     }
 }
 
 struct MeetingCaptionSettings: View {
     @ObservedObject var model: MeetingModel
     var body: some View {
-        Surface(title: "会议字幕") {
+        Surface(title: "会议字幕与录制状态") {
             Toggle("会议实时字幕", isOn: Binding(get: { model.live }, set: { model.live = $0; model.saveOptions() })).disabled(model.blocksDictation)
-            Toggle("悬浮字幕", isOn: Binding(get: { model.floatingCaptions }, set: { model.floatingCaptions = $0; model.saveOptions() }))
+            Toggle("会议悬浮窗", isOn: Binding(get: { model.floatingCaptions }, set: { model.floatingCaptions = $0; model.saveOptions() }))
             LeafSegments(title: "字幕行数", selection: Binding(get: { model.captionLineCount }, set: { model.captionLineCount = $0; model.saveOptions() }), items: MeetingCaptionPolicy.lineOptions.map { LeafSegment($0, "\($0) 行") })
             HStack {
                 Text("背景透明度")
@@ -144,7 +155,7 @@ struct MeetingCaptionSettings: View {
                     .accessibilityLabel("字幕背景透明度")
                 Text("\(Int(((1 - model.captionOpacity) * 100).rounded()))%").monospacedDigit().frame(width: 46, alignment: .trailing)
             }
-            Text("默认半透明，文字保持清晰。拖动顶部移动；收起后可展开，隐藏后可从会议页重新显示。暂停或结束后自动隐藏。浮层使用现有实时字幕，不增加 API 调用。")
+            Text("默认半透明，文字保持清晰。拖动顶部移动；收起后可展开，隐藏后可从会议页重新显示。关闭实时字幕时显示录音状态和计时；暂停时显示已暂停，结束后隐藏。浮层不增加 API 调用。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
     }

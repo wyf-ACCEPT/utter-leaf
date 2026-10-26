@@ -124,3 +124,5 @@ SidebarItem owns a fixed20×20pt aspect-fit SF Symbol slot and10pt text gap. Mee
 Live meeting transcripts share the bounded transcript scrolling contract: a360pt scroll area with visible native scroll indicators, a lazy stack and selectable speaker/timestamp text. Growing partial text never increases the outer page height. Final transcripts retain their420pt viewport.
 
 Brief source references are a local presentation preference, default off. Off shows a bounded selectable reading view and copies citation-free text; on exposes the retained editable source draft and source lookup. The “编辑原稿” action explicitly opens that source view. The model still generates and validates citations, so switching never calls an API or destroys the source draft. Existing meetings follow the same setting.
+
+The meeting overlay doubles as a recording indicator when live captions are off: a360×136pt translucent timer card using the same header, controls and typography. A record symbol with “正在录制” or pause symbol with “已暂停” identifies state without color alone. Collapsed mode retains the timer. Time follows recorder elapsed seconds, without decorative animation or network requests.
