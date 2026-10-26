@@ -25,7 +25,7 @@ struct BillingSyncView: View {
             }
             VStack(alignment: .leading, spacing: 7) {
                 Text("豆包 · 官方实例账单").font(LeafType.headline)
-                if let success = ledger.doubao.succeeded, ledger.scope == config.instanceID {
+                if let success = ledger.doubao.succeeded, ledger.scope == config.scopeKey {
                     let amount = ledger.bills.reduce(Decimal.zero) { $0 + $1.payable }
                     Text("近 30 天已出账应付 \(billingMoney(amount, "CNY")) · \(ledger.bills.count) 条明细")
                     Text("最近成功 \(stamp(success))；小时账单可能延迟数小时，空结果不代表免费。")
@@ -92,7 +92,7 @@ struct BillingSettings: View {
     @State private var initial = BillingConfiguration()
     @State private var discard = false
     @State private var keysAvailable = false
-    private var valid: Bool { [draft.instanceID, draft.product].allSatisfy { $0.count <= 256 && !$0.contains(where: { $0.isNewline }) } }
+    private var valid: Bool { draft.validScope && draft.instanceID.count <= 2570 && draft.product.count <= 256 && !draft.product.contains(where: { $0.isNewline }) }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("官方核对设置").font(.system(size: 25, weight: .medium))
@@ -103,11 +103,11 @@ struct BillingSettings: View {
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     Divider()
                     Text("豆包 · 个人火山账单").font(LeafType.headline)
-                    LabeledContent("账单实例 ID") { TextField("费用中心中的 InstanceNo", text: $draft.instanceID).leafInput().accessibilityLabel("豆包账单实例 ID") }
+                    LabeledContent("账单实例 ID") { TextField("多个 InstanceNo 用逗号分隔", text: $draft.instanceID).leafInput().accessibilityLabel("豆包账单实例 ID") }
                     LabeledContent("产品代码（可选）") { TextField("账单中的 Product", text: $draft.product).leafInput().accessibilityLabel("豆包账单产品代码") }
-                    Text("实例 ID 不一定等于语音 App ID。留空时暂停豆包查询，仍可同步 DeepSeek。只读凭证可查询的范围取决于火山账户授权。")
+                    Text("最多 10 个实例 ID，用逗号分隔；文件与流式实例可一起核对。实例 ID 不一定等于语音 App ID。留空时暂停豆包查询，仍可同步 DeepSeek。只读凭证可查询的范围取决于火山账户授权。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                    Toggle("确认此账单实例仅用于 UtterLeaf，显示区间差额", isOn: $draft.exclusiveInstance)
+                    Toggle("确认这些账单实例仅用于 UtterLeaf，显示区间差额", isOn: $draft.exclusiveInstance)
                     Text("仅查询最近 30 天；重复账单按明细 ID 去重。小时汇总不会分摊到单次调用，也不会覆盖手工核对金额。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     Label(keysAvailable ? "本机账单凭证可读" : "本机账单凭证待配置", systemImage: keysAvailable ? "checkmark.circle" : "key")
@@ -122,16 +122,16 @@ struct BillingSettings: View {
                     Text("DeepSeek · 余额查询").font(LeafType.headline)
                     Text("沿用本机 DEEPSEEK_API_KEY。只保存余额快照，不上传录音或正文。余额变化不自动计为 UtterLeaf 的实际费用。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                    if !valid { Text("实例 ID 与产品代码最多 256 个字符，且不能包含换行。").font(LeafType.caption).foregroundStyle(.orange) }
+                    if !valid { Text("最多 10 个实例 ID，每个最多 256 字符，仅限字母、数字及 _ . : -；产品代码最多 256 字符，不含换行。").font(LeafType.caption).foregroundStyle(.orange) }
                 }.padding(.trailing, 6)
             }
             HStack {
                 Button("取消") { cancel() }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("保存设置") {
-                    draft.instanceID = draft.instanceID.trimmingCharacters(in: .whitespacesAndNewlines)
+                    draft.instanceID = draft.scopeKey
                     draft.product = draft.product.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if draft.instanceID != initial.instanceID || draft.product != initial.product {
+                    if draft.scopeKey != initial.scopeKey || draft.product != initial.product {
                         var ledger = store.database.billingLedger ?? BillingLedger(); ledger.bills = []; ledger.scope = nil; ledger.doubao = BillingSyncStatus()
                         store.database.billingLedger = ledger
                     }
