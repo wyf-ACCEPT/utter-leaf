@@ -13,9 +13,13 @@ UtterLeaf is a personal macOS dictation app inspired by Typeless. Press **Fn**, 
 
 Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-party runtime service. The current app interface is in Chinese; this README is bilingual.
 
-### Status
+### Personal iPhone app
 
-**Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; iOS remains planned.
+A Flutter dictation app and native keyboard extension are being developed in [`mobile/`](mobile/README.md). This first iOS version excludes meetings and public distribution. Physical-device acceptance is tracked separately from simulator builds.
+
+## Status
+
+**Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
 The latest local suite passes **121 tests**, including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
