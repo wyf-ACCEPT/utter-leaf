@@ -12,10 +12,15 @@ import UtterLeafCore
     @Published var message = ""
     @Published var elapsed = 0.0
     @Published var busy = false
-    @Published var recording = false
-    @Published var paused = false
-    @Published var live = true
+    @Published var recording = false { didSet { onCaptionUpdate?() } }
+    @Published var paused = false { didSet { onCaptionUpdate?() } }
+    @Published var live = true { didSet { onCaptionUpdate?() } }
     @Published var systemAudio = true
+    @Published var floatingCaptions = true { didSet { onCaptionUpdate?() } }
+    @Published var captionLines: [MeetingCaptionLine] = [] { didSet { if oldValue != captionLines { onCaptionUpdate?() } } }
+    @Published var captionStatus = "等待发言"
+    var onCaptionUpdate: (() -> Void)?
+    private var captionRound = UUID()
     @Published var liveSegments: [String: [MeetingUtterance]] = [:]
     @Published var voiceBusy = false
     private var draftSave: Task<Void, Never>?
@@ -34,6 +39,7 @@ import UtterLeafCore
         self.api = api ?? MeetingAPI()
         self.ledger = ledger; store = MeetingStore(root: ledger.root)
         self.api.onCall = { [weak ledger] in ledger?.update($0) }
+        floatingCaptions = store.index.floatingCaptions ?? true
         live = store.index.liveCaptions ?? true; systemAudio = store.index.systemAudio ?? true
         for value in store.index.meetings { syncUsage(value) }
         recorder.onFailure = { [weak self] in
@@ -68,7 +74,7 @@ import UtterLeafCore
         if active != nil { active = value }
         do { try store.save(value); syncUsage(value) } catch { message = store.error ?? "会议保存失败。" }
     }
-    func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live) } catch { message = store.error ?? "会议设置保存失败。" } }
+    func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live, floating: floatingCaptions) } catch { message = store.error ?? "会议设置保存失败。" } }
     func create(systemAudio: Bool) {
         guard !blocksDictation, dictationBusy?() != true, store.error == nil, ledger.storageError == nil else { message = "请先结束当前听写或会议，并检查本地存储。"; return }
         guard store.index.voices.filter(\.enabled).count <= 50 else { message = "一次会议最多启用 50 位声纹身份。"; return }
@@ -104,16 +110,23 @@ import UtterLeafCore
     }
     private func startLive(token: UUID) async {
         guard let meeting = current else { return }
+        let round = UUID(); captionRound = round; captionLines = []; liveSegments = [:]; captionStatus = "等待发言"
         for source in meeting.systemAudio ? ["microphone", "system"] : ["microphone"] {
             let session = MeetingLive()
-            session.onFailure = { [weak self] in self?.message = "实时字幕连接中断；本机录音继续，会后可完整转录。" }
+            session.onFailure = { [weak self] in
+                guard let self, captionRound == round, recording, !paused else { return }
+                captionStatus = "部分字幕连接中断，录音继续"; message = "实时字幕连接中断；本机录音继续，会后可完整转录。"
+            }
             do {
                 try await session.start(job: meeting.id, price: .asr(.realtime, stream: ledger.database.preferences.streamPrice), onCall: { [weak ledger] in ledger?.update($0) }) { [weak self] rows in
-                    guard let self, generation == token else { return }; liveSegments[source] = rows
+                    guard let self, generation == token, captionRound == round, recording, !paused else { return }
+                    liveSegments[source] = rows
+                    if let row = rows.last { captionLines = MeetingCaptionPolicy.updating(captionLines, source: source, row: row) }
+                    if !captionStatus.contains("中断") { captionStatus = "实时转录 · 说话人暂定" }
                 }
-                guard recording, !paused, generation == token else { session.cancel(); return }
+                guard recording, !paused, generation == token, captionRound == round else { session.cancel(); return }
                 liveSessions[source] = session
-            } catch { message = "实时字幕暂不可用；本机录音继续，会后可完整转录。" }
+            } catch { if captionRound == round { captionStatus = "字幕暂不可用，录音继续"; message = "实时字幕暂不可用；本机录音继续，会后可完整转录。" } }
         }
     }
     func togglePause() {
@@ -127,7 +140,7 @@ import UtterLeafCore
         }
         onCaptureState?(true, elapsed, paused)
     }
-    private func finishLive() { liveSessions.values.forEach { $0.finish() }; liveSessions.removeAll() }
+    private func finishLive() { captionRound = UUID(); liveSessions.values.forEach { $0.finish() }; liveSessions.removeAll() }
     func stop() {
         guard recording else { return }
         recording = false; paused = false; onCaptureState?(false, elapsed, false); busy = true; tick?.cancel(); elapsed = recorder.elapsed

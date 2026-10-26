@@ -102,7 +102,7 @@ struct MeetingsView: View {
                         ForEach(model.liveSegments.keys.sorted(), id: \.self) { source in
                             Text(source == "system" ? "系统音轨 · 暂定" : "麦克风音轨 · 暂定").font(LeafType.headline)
                             ForEach(model.liveSegments[source] ?? []) { row in
-                                Text("[\(clock(row.start))] 说话人 \(row.speaker)：\(row.text)").textSelection(.enabled)
+                                Text("[\(row.start < 0 ? "实时" : clock(row.start))] \(row.speaker == "unknown" ? "说话人待确认" : "说话人 " + row.speaker)：\(row.text)").textSelection(.enabled)
                             }
                         }
                     } else { Text("尚无完整转录。结束会议后可提交识别，或核对已有任务。").foregroundStyle(LeafTheme.muted) }

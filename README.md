@@ -17,7 +17,7 @@ Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-part
 
 **Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; iOS remains planned.
 
-The latest local suite passes **89 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The latest local suite passes **97 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -27,7 +27,7 @@ The latest local suite passes **89 tests**. Short synthetic API checks and real 
 - **Optional DeepSeek Flash cleanup:** removes disfluencies, preserves meaning, converts spoken symbols, and favors digits in numbered English expressions such as `session one → session 1`. Transcript data is JSON-wrapped and treated as data, not executable instructions.
 - **Contextual vocabulary** for names, preferred spellings and commonly confused terms, rather than unconditional replacement.
 - **Guarded automatic insertion**, with an optional preview mode. If the target app, field or caret changes, the text is retained for recovery. Clipboard paste is used where appropriate; insertion is verified where the target exposes enough information.
-- **Local history** with configurable text retention, plus usage counts, CNY cost estimates, provider cost shares, and rolling 7/30-day budget indicators. Budgets are reminders, not usage limits or provider balances.
+- **Local history** with configurable text retention, plus usage counts, CNY cost estimates, and rolling 7/30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
 - **Dark mode by default**, light/system themes, a lightweight audio-reactive capsule, reduced-motion support and three bundled sound sets.
 
 ### Build and run
@@ -55,7 +55,7 @@ The file route preserves an experimentally verified `audio.data` submission path
 
 ### Meetings (Phase 2 preview)
 
-The **会议** page records microphone audio with optional system audio, supports pause/resume and local notes, and retains recordings on disk for playback or explicit deletion. Sessions are separate from five-minute dictation and currently cap at three hours. Optional live captions incur separate streaming calls; their speaker labels are provisional. After recording, whole-session ASR produces timestamped speaker turns, with independent cleaned transcript and source-referenced Brief generation.
+The **会议** page records microphone audio with optional system audio, supports pause/resume and local notes, and retains recordings on disk for playback or explicit deletion. Sessions are separate from five-minute dictation and currently cap at three hours. Optional live captions incur separate streaming calls; their speaker labels are provisional. When enabled, captions float at the center of the screen by default without taking focus or intercepting clicks. Turn off the floating overlay in Models & Settings; pausing or ending the meeting hides it. The overlay reuses the existing stream and adds no API call. After recording, whole-session ASR produces timestamped speaker turns, with independent cleaned transcript and source-referenced Brief generation.
 
 Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. Registration currently requires a user-provided HTTPS signed URL for a 5–30 second single-speaker sample; there is no automatic local-sample upload. The provider retains voiceprint data, and its deletion API performs soft deletion, not physical erasure. Speech IDs within one meeting are never treated as persistent identities by themselves. See the [meeting implementation and validation limits](docs/6x26-meeting-implementation.md).
 
@@ -119,7 +119,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-最新本地自动测试 **89 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+最新本地自动测试 **97 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -155,7 +155,7 @@ open .local/UtterLeaf.app
 
 ### 会议（Phase 2 首版）
 
-「会议」页面可采集麦克风及可选系统声音，支持暂停/恢复、随手笔记、本机录音回听与删除。会议独立于五分钟听写，初版单场最长三小时。实时字幕会产生额外流式调用，其说话人编号仅为暂定；结束后通过整场 ASR 生成带时间与说话人的转录，再分别生成逐句整理稿和带原文引用的 Brief。
+「会议」页面可采集麦克风及可选系统声音，支持暂停/恢复、随手笔记、本机录音回听与删除。会议独立于五分钟听写，初版单场最长三小时。实时字幕会产生额外流式调用，其说话人编号仅为暂定。开启时默认在屏幕中央悬浮显示，不抢焦点、鼠标可穿透；可在「模型与设置 → 会议字幕」关闭悬浮，暂停或结束时自动隐藏。浮层复用已有字幕，不额外调用 API；结束后通过整场 ASR 生成带时间与说话人的转录，再分别生成逐句整理稿和带原文引用的 Brief。
 
 声纹库支持刷新、启停、改名及软删除。注册目前使用你提供的 HTTPS 签名 URL，音频为 5–30 秒清晰单人语音，尚不自动上传本机样本。声纹由豆包保存，删除接口为软删除，不承诺物理擦除；单场说话人编号不会自动当成跨会议身份。参见[实施与验收边界](docs/6x26-meeting-implementation.md)。
 

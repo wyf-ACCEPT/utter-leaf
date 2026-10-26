@@ -45,20 +45,22 @@ public struct MeetingRecord: Codable, Identifiable {
 }
 public enum MeetingProtocolError: Error { case malformed, noSpeakers, invalidURL, invalidBrief }
 public enum MeetingProtocol {
-    public static func segments(_ json: [String: Any]) throws -> [MeetingUtterance] {
+    public static func segments(_ json: [String: Any], provisional: Bool = false) throws -> [MeetingUtterance] {
         guard let result = json["result"] as? [String: Any], let rows = result["utterances"] as? [[String: Any]], !rows.isEmpty else { throw MeetingProtocolError.malformed }
         var output: [MeetingUtterance] = []
         for (i, row) in rows.enumerated() {
-            guard let text = row["text"] as? String, let start = row["start_time"] as? NSNumber,
-                  let end = row["end_time"] as? NSNumber, start.doubleValue >= 0,
-                  end.doubleValue >= start.doubleValue, start.doubleValue.isFinite, end.doubleValue.isFinite else { throw MeetingProtocolError.malformed }
+            guard let text = row["text"] as? String else { if provisional { continue }; throw MeetingProtocolError.malformed }
+            let start = (row["start_time"] as? NSNumber)?.doubleValue ?? -1
+            let end = (row["end_time"] as? NSNumber)?.doubleValue ?? -1
+            if !provisional && (start < 0 || end < start || !start.isFinite || !end.isFinite) { throw MeetingProtocolError.malformed }
             let additions = row["additions"] as? [String: Any] ?? [:]
             let value = additions["speaker_id"] ?? additions["speaker"] ?? row["speaker_id"]
             let speaker = (value as? String) ?? (value as? NSNumber)?.stringValue ?? "unknown"
-            output.append(.init(id: "u\(i)", start: start.doubleValue / 1000, end: end.doubleValue / 1000,
-                                speaker: speaker.isEmpty ? "unknown" : speaker, text: text))
+            output.append(.init(id: "u\(i)", start: start >= 0 && start.isFinite ? start / 1000 : -1, end: end >= 0 && end.isFinite ? end / 1000 : -1,
+                                speaker: speaker.isEmpty || speaker == "-1" ? "unknown" : speaker, text: text))
         }
-        guard output.contains(where: { $0.speaker != "unknown" }) else { throw MeetingProtocolError.noSpeakers }
+        guard !output.isEmpty else { throw MeetingProtocolError.malformed }
+        guard provisional || output.contains(where: { $0.speaker != "unknown" }) else { throw MeetingProtocolError.noSpeakers }
         return output
     }
     public static func request(voices: [VoiceIdentity], seconds: Double = 180) -> [String: Any] {

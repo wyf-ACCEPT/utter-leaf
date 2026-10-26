@@ -22,6 +22,7 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
     var currentCall: UsageCall?
     var onCall: ((UsageCall) -> Void)?
     var onPartial: ((String) -> Void)?
+    var onStreamResponse: (([String: Any]) -> Void)?
     var onSpeakerResult: (([MeetingUtterance]) -> Void)?
     func record(_ call: UsageCall) { currentCall = call; onCall?(call) }
     func finishCall(error: Error? = nil) {
@@ -66,11 +67,12 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
                     let message = try await ws.receive()
                     guard case .data(let data) = message else { throw AppFailure("ASR 返回了不支持的数据。", code: "ws_text_frame") }
                     let response = try DoubaoWire.decode(data)
+                    self?.onStreamResponse?(response.body)
                     if response.code != 0 { throw AppFailure("ASR 返回错误 \(response.code)。请检查语音资源权限。", code: "asr_\(response.code)") }
                     if let text = (response.body["result"] as? [String: Any])?["text"] as? String {
                         latest = text; self?.onPartial?(text)
                     }
-                    if speakerInfo, let utterances = try? MeetingProtocol.segments(response.body) { self?.onSpeakerResult?(utterances) }
+                    if speakerInfo, let utterances = try? MeetingProtocol.segments(response.body, provisional: true) { self?.onSpeakerResult?(utterances) }
                     if response.final { return latest }
                 }
                 throw AppFailure("ASR 返回包过多。", code: "ws_packet_limit")

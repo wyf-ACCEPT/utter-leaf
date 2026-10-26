@@ -7,9 +7,11 @@ import UtterLeafCore
     var body: some Scene { Settings { EmptyView() } }
 }
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
-    let model = AppModel()
+    let model = AppModel(store: ProcessInfo.processInfo.arguments.contains("--provider-smoke")
+        ? LocalStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("utterleaf-smoke-" + UUID().uuidString)) : nil)
     let hotkey = GlobalHotKey()
     let pill = PillPresentation()
+    let meetingCaptions = MeetingCaptionPanel()
     var window: NSWindow!
     var panel: NSPanel!
     var item: NSStatusItem!
@@ -35,6 +37,7 @@ import UtterLeafCore
             model.hotkeyRegistered = hotkey.register()
         }
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        meetingCaptions.attach(model: model.meetings, store: model.store)
         model.meetings.onCaptureState = { [weak self] recording, seconds, paused in
             guard let self else { return }
             item.button?.title = recording ? String(format: " %02d:%02d", Int(seconds) / 60, Int(seconds) % 60) : ""
@@ -77,7 +80,7 @@ import UtterLeafCore
     @objc func toggleRecording() { model.toggle() }
     @objc func quit() { model.abort(); NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        pill.closeImmediately(); model.meetings.shutdown(); model.store.billingSync.stop(); hotkey.unregister(); model.abort(); return .terminateNow
+        pill.closeImmediately(); meetingCaptions.close(); model.meetings.shutdown(); model.store.billingSync.stop(); hotkey.unregister(); model.abort(); return .terminateNow
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showMain(); return true }
     func updatePanel() {
