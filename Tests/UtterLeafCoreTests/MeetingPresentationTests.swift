@@ -25,13 +25,17 @@ final class MeetingPresentationTests: XCTestCase {
         let model = MeetingModel(ledger: LocalStore(root: root))
         var record = MeetingRecord(); record.title = "产品评审 · 合成会议"; record.state = "transcribed"; record.seconds = 125
         record.segments = [.init(id: "u0", start: 0, end: 30, speaker: "1", text: "嗯，那个，我们周三先完成设计稿。"), .init(id: "u1", start: 30, end: 65, speaker: "2", text: "好的，然后周五一起确认。")]
-        record.speakerNames = ["1": "Alice", "2": "Bob"]
+        for number in 3...5 {
+            let start = Double(number) * 10
+            record.segments.append(MeetingUtterance(id: "u\(number)", start: start, end: start + 5, speaker: String(number), text: "合成发言 \(number)"))
+        }
+        record.speakerNames = ["1": "Alice", "2": "Bob", "3": "Carol", "4": "Dave", "5": "Eve"]
         record.notes = "先确认方案与交付时间。"
         for stage in ["raw", "cleaned", "brief"] {
-            if stage != "raw" { record.cleaned = ["u0": "我们周三先完成设计稿。", "u1": "好的，周五一起确认。"] }
+            if stage != "raw" { record.cleaned = Dictionary(uniqueKeysWithValues: record.segments.map { ($0.id, "整理后的合成发言：" + $0.text) }) }
             if stage == "brief" { record.brief = "# 会议纪要\n\n周三完成设计稿，周五一起确认。[u0][u1]"; record.state = "ready" }
             try model.store.save(record); model.selected = record.id
-            let view = NSHostingView(rootView: ScrollView { MeetingsView(model: model, meetings: model.store).padding(24) }.frame(width: 1000, height: 1000).background(LeafTheme.mist).preferredColorScheme(.dark))
+            let view = NSHostingView(rootView: ScrollView { MeetingsView(model: model, meetings: model.store, initialTab: stage == "brief" ? "Brief" : "整理稿").padding(24) }.frame(width: 1000, height: 1000).background(LeafTheme.mist).preferredColorScheme(.dark))
             view.frame = NSRect(x: 0, y: 0, width: 1000, height: 1000)
             view.layoutSubtreeIfNeeded()
             try await Task.sleep(for: .milliseconds(100))

@@ -13,8 +13,12 @@ struct MeetingsView: View {
     @State private var showVoices = false
     @State private var confirmMeetingDeletion = false
     @State private var confirmAudioDeletion = false
+    @State private var editingSegment: MeetingUtterance?
     @State private var correcting: MeetingUtterance?
     @State private var focusedSegment: String?
+    init(model: MeetingModel, meetings: MeetingStore, initialTab: String = "笔记") {
+        self.model = model; self.meetings = meetings; _tab = State(initialValue: initialTab)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             PageHeading(title: "把讨论，留成共识。", subtitle: "本机录音 · 区分说话人 · 你的笔记与原文一起整理")
@@ -48,9 +52,7 @@ struct MeetingsView: View {
             if let error = meetings.error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
             if !model.message.isEmpty { Label(model.message, systemImage: "info.circle").font(LeafType.caption).foregroundStyle(LeafTheme.muted).textSelection(.enabled) }
             if model.busy {
-                HStack { ProgressView().controlSize(.small); Text("正在保存或处理会议…"); Spacer()
-                    if model.canStopWaiting { Button("停止等待", action: model.stopWaiting).buttonStyle(.bordered).handCursor() }
-                }
+                MeetingProcessingView(work: model.progress ?? MeetingWorkProgress(.preparing), canStop: model.canStopWaiting, stop: model.stopWaiting)
             }
             if let value = model.current {
                 detail(value)
@@ -64,18 +66,23 @@ struct MeetingsView: View {
             if !meetings.index.meetings.isEmpty {
                 Surface(title: "会议记录") {
                     TextField("搜索会议标题与内容", text: $search).leafInput().accessibilityLabel("搜索会议")
-                    ForEach(meetings.index.meetings.filter { search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) || $0.notes.localizedCaseInsensitiveContains(search) || $0.segments.contains { $0.text.localizedCaseInsensitiveContains(search) } }.prefix(50)) { value in
-                        Button { model.select(value.id) } label: {
-                            HStack {
-                                Image(systemName: value.id == model.current?.id ? "circle.inset.filled" : "waveform")
-                                VStack(alignment: .leading) {
-                                    Text(value.title).font(LeafType.headline)
-                                    Text(value.created.formatted(date: .abbreviated, time: .shortened) + " · " + clock(value.seconds) + " · " + status(value.state)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                                }
-                                Spacer(); Image(systemName: "chevron.right")
-                            }.padding(8).contentShape(Rectangle())
-                        }.buttonStyle(.plain).handCursor().disabled(model.blocksDictation)
-                    }
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            ForEach(meetings.index.meetings.filter { meeting in search.isEmpty || meeting.title.localizedCaseInsensitiveContains(search) || meeting.notes.localizedCaseInsensitiveContains(search) || meeting.segments.contains { meeting.text(for: $0).localizedCaseInsensitiveContains(search) } }) { value in
+                                Button { model.select(value.id) } label: {
+                                    HStack {
+                                        Image(systemName: value.id == model.current?.id ? "circle.inset.filled" : "waveform")
+                                        VStack(alignment: .leading) {
+                                            Text(value.title).font(LeafType.headline)
+                                            Text(value.created.formatted(date: .abbreviated, time: .shortened) + " · " + clock(value.seconds) + " · " + status(value.state)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                                        }
+                                        Spacer(); Image(systemName: "chevron.right")
+                                    }.padding(8).contentShape(Rectangle())
+                                }.buttonStyle(.plain).handCursor().disabled(model.blocksDictation)
+                            }
+                        }
+                    }.frame(height: 320).scrollIndicators(.visible).accessibilityLabel("会议记录，可滚动")
+
                 }
             }
         }
@@ -89,6 +96,11 @@ struct MeetingsView: View {
             }
         }
         .sheet(isPresented: $showVoices) { VoiceprintView(model: model, store: meetings) }
+        .sheet(item: $editingSegment) { row in
+            MeetingTranscriptEditor(row: row, text: model.current?.text(for: row) ?? row.text) { text in
+                model.edit { $0.setTranscriptText(id: row.id, text: text) }
+            }
+        }
         .sheet(item: $correcting) { row in
             MeetingSpeakerEditor(row: row, initial: model.current?.speaker(for: row) ?? row.speaker) { speaker in
                 model.edit { if $0.speakerOverrides == nil { $0.speakerOverrides = [:] }; $0.speakerOverrides?[row.id] = speaker }
@@ -112,7 +124,9 @@ struct MeetingsView: View {
                 Button("回听") { model.playback() }.disabled(model.recording).handCursor()
                 Button("停止播放", action: model.stopPlayback).handCursor()
             }
-            if !model.recording { workflow(value) }
+            if !model.recording {
+                workflow(value)
+            }
             LeafSegments(title: "会议内容", selection: $tab, items: [LeafSegment("笔记", "我的笔记"), LeafSegment("转录", "原始转录"), LeafSegment("整理稿", "整理转录"), LeafSegment("Brief", "Brief")])
             if !model.recording {
                 HStack {
@@ -137,7 +151,13 @@ struct MeetingsView: View {
                 Text("你记下的要点会和转录一起整理；输入自动保存在本机。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 TextEditor(text: Binding(get: { model.current?.notes ?? "" }, set: { text in model.editText { $0.notes = text } })).frame(minHeight: 250).leafInput().accessibilityLabel("会议随手笔记")
             case "转录", "整理稿":
-                if value.segments.isEmpty {
+                if tab == "整理稿", !MeetingWorkflow.cleaned(value) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Image(systemName: "text.badge.checkmark").font(.system(size: 24)).foregroundStyle(LeafTheme.muted)
+                        Text(model.busy ? "整理中，完成后在这里显示整理稿。" : "还没有整理转录，点击上方“整理转录”开始。")
+                            .foregroundStyle(LeafTheme.muted)
+                    }.frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
+                } else if value.segments.isEmpty {
                     if model.recording {
                         Text("实时说话人仅为暂定编号；暂停前后、麦克风与系统音轨的编号不能直接视为同一个人。会后完整识别将统一校正。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                         ScrollView {
@@ -153,15 +173,13 @@ struct MeetingsView: View {
 
                     } else { Text("尚无完整转录。结束会议后可提交识别，或核对已有任务。").foregroundStyle(LeafTheme.muted) }
                 } else {
-                    if tab == "整理稿", !MeetingWorkflow.cleaned(value) {
-                        Text(model.busy ? "整理完成前，以下先显示原始转录。" : "尚未完成整理。点击上方“整理转录”，去掉口吃并规范表达。")
-                            .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                    }
                     Text("说话人名称可修改；同名表示你确认属于同一个人。未知身份请保留未知，不靠文本猜人名。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                    ForEach(Array(Set(value.segments.map(\.speaker))).sorted(), id: \.self) { speaker in
-                        HStack {
-                            Text("标识 " + speaker).font(LeafType.caption).frame(width: 110, alignment: .leading)
-                            TextField(value.name(for: speaker), text: Binding(get: { model.current?.speakerNames[speaker] ?? "" }, set: { name in model.editText { $0.speakerNames[speaker] = name } })).leafInput().accessibilityLabel("说话人 \(speaker) 姓名")
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], alignment: .leading, spacing: 12) {
+                        ForEach(Array(Set(value.segments.map(\.speaker))).sorted(), id: \.self) { speaker in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("说话人 " + speaker).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                                TextField(value.name(for: speaker), text: Binding(get: { model.current?.speakerNames[speaker] ?? "" }, set: { name in model.editText { $0.speakerNames[speaker] = name } })).leafInput().accessibilityLabel("说话人 \(speaker) 姓名")
+                            }
                         }
                     }
                     ScrollViewReader { proxy in
@@ -174,8 +192,11 @@ struct MeetingsView: View {
                                             Text(value.name(for: value.speaker(for: row))).font(LeafType.headline)
                                             Spacer(); Text("[\(row.id)]").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                                         }
-                                        Text(tab == "整理稿" ? (value.cleaned?[row.id] ?? row.text) : row.text).textSelection(.enabled)
-                                        Button("纠正说话人") { correcting = row }.font(LeafType.caption).handCursor()
+                                        Text(tab == "整理稿" ? (value.cleaned?[row.id] ?? "") : value.text(for: row)).textSelection(.enabled)
+                                        HStack {
+                                            if tab == "转录" { Button("编辑文字") { editingSegment = row }.handCursor().disabled(model.blocksDictation) }
+                                            Button("纠正说话人") { correcting = row }.handCursor().disabled(model.blocksDictation)
+                                        }.font(LeafType.caption)
                                     }.padding(10).background(focusedSegment == row.id ? LeafTheme.leaf.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 10)).id(row.id)
                                 }
                             }

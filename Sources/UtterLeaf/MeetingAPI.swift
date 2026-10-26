@@ -19,6 +19,7 @@ import UtterLeafCore
         config.urlCache = nil; config.httpCookieStorage = nil
         return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }()
+    var onRecognitionStatus: ((String) -> Void)?
     var onRawResult: ((Data) throws -> Void)?
     var onCall: ((UsageCall) -> Void)?
     private func request(_ url: String, key: String, resource: String? = nil, requestID: String? = nil) -> URLRequest {
@@ -96,10 +97,11 @@ import UtterLeafCore
             try output.write(contentsOf: Data("}".utf8)); try output.synchronize()
         }.value
     }
-    func submit(upload: URL, call: UsageCall) async throws -> UsageCall {
+    func submit(upload: URL, call: UsageCall, progress: (@MainActor (Int) -> Void)? = nil) async throws -> UsageCall {
         var call = call; onCall?(call)
         let req = request("https://openspeech.bytedance.com/api/v3/auc/bigmodel/submit", key: try credentials("DOUBAO_API_KEY"), resource: ASRPipeline.file.resource, requestID: call.requestID)
-        let (data, response) = try await session.upload(for: req, fromFile: upload)
+        let delegate = MeetingUploadProgress { percent in Task { @MainActor in progress?(percent) } }
+        let (data, response) = try await session.upload(for: req, fromFile: upload, delegate: delegate)
         let (_, http) = try decode(data, response)
         call.httpStatus = http.statusCode; call.providerStatus = http.value(forHTTPHeaderField: "X-Api-Status-Code")
         call.logID = http.value(forHTTPHeaderField: "X-Tt-Logid")
@@ -117,6 +119,7 @@ import UtterLeafCore
         let (json, http) = try decode(data, response)
         let code = http.value(forHTTPHeaderField: "X-Api-Status-Code") ?? "missing"
         call.providerStatus = code; call.httpStatus = http.statusCode
+        onRecognitionStatus?(code)
         if ["20000001", "20000002"].contains(code) { return nil }
         guard code == "20000000" else {
             call.status = .failed; call.finished = Date(); call.errorCode = "meeting_query_" + code; onCall?(call)
@@ -130,14 +133,14 @@ import UtterLeafCore
         call.status = .succeeded; call.finished = Date(); call.estimatedAmount = call.price.estimate(seconds: call.seconds, input: nil, cached: nil, output: nil); onCall?(call)
         return (segments, data)
     }
-    func brief(content: String, meeting: UUID, price: PriceSnapshot, system: String = MeetingProtocol.prompt) async throws -> String {
-        var call = UsageCall(jobID: meeting, provider: "DeepSeek", model: "deepseek-flash-meeting", price: price)
+    func brief(content: String, meeting: UUID, price: PriceSnapshot, system: String = MeetingProtocol.prompt, usageModel: String = "deepseek-flash-meeting", maxTokens: Int = 8192) async throws -> String {
+        var call = UsageCall(jobID: meeting, provider: "DeepSeek", model: usageModel, price: price)
         call.promptHash = TextEnvelope.hash(system); onCall?(call)
         do {
             var req = URLRequest(url: URL(string: "https://api.deepseek.com/chat/completions")!); req.httpMethod = "POST"
             req.setValue("Bearer " + (try credentials("DEEPSEEK_API_KEY")), forHTTPHeaderField: "Authorization")
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try JSONSerialization.data(withJSONObject: ["model": "deepseek-flash", "thinking": ["type": "disabled"], "max_tokens": 8192,
+            req.httpBody = try JSONSerialization.data(withJSONObject: ["model": "deepseek-flash", "thinking": ["type": "disabled"], "max_tokens": maxTokens,
                 "messages": [["role": "system", "content": system], ["role": "user", "content": content]]])
             let (data, response) = try await perform(req)
             let (json, http) = try decode(data, response); call.httpStatus = http.statusCode
