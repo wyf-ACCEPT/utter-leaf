@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(CZlib)
 import CZlib
+#else
+import zlib
+#endif
 
 public enum WireError: Error { case malformed, compression, provider(UInt32), oversized }
 public enum DoubaoWire {

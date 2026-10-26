@@ -137,3 +137,17 @@ Three filename suggestions are generated once after a new complete ASR result, w
 User decision2026-10-26: defer voiceprint enrollment; support external/Apple Watch recordings. Native NSOpenPanel selects one audio file and discloses local retention plus submission to Doubao. AVAudioFile/AVAudioConverter copy privately and convert in bounded buffers to16kHz mono16bit PCM, with precise frame-derived duration. No microphone/system capture/live connection is started. Source remains untouched. Validate1s–3h and512MB, support local cancellation/recovery, remove retained copy with Delete Audio, and preserve original source text/provider receipts. File-ASR upload/query and optional title generation reuse existing request/accounting rules. Import timestamp is the record date.
 
 Imported audio fidelity: keep original device bytes privately, use converted WAV only for ASR, prefer retained original for playback, and preserve valid M4A bytes on export (container header checked). Do not rename WAV bytes as M4A. Native file panels attach to a visible main window even after background launch, refusing duplicate attached sheets.
+
+## iPhone dictation ownership
+
+| Capability | Canonical owner | Variants / verification |
+|---|---|---|
+| Theme | `mobile/lib/main.dart:Leaf` | Mirrors shared dark macOS brand tokens; native keyboard matches |
+| Recording lifecycle | `DictationCoordinator` | idle / starting / recording / processing / ready / error / cancelled; main actor, revision guards, 5-minute cap |
+| Credentials | `PersonalKeys` + Flutter `KeyField` | Device-only Keychain, masked fields, optional ignored personal seed; no keys in extension |
+| Cross-app input | `KeyboardViewController` + `DictationExchange` | App Group control/result, exact request, unchanged target for automatic insertion; explicit fallback, no Send |
+| Form / modal / feedback | Flutter Material/Cupertino controls | Native editing/IME, labelled masked fields, scrollable sheet, inline critical errors, copy acknowledgment |
+| Scrolling | Flutter SingleChildScrollView | Main page, credential sheet and bounded transcript; 320pt widget regression |
+| Busy / motion | Flutter state + SoundWave | No waveform while processing; audio-level-driven recording waveform, Reduce Motion phase disabled |
+
+The iOS dictation app is independent of active macOS meetings. Personal installation is not public distribution. Device signing, Full Access, real microphone capture, background return and host-field insertion must be validated on iPhone separately from Flutter tests and simulator builds.

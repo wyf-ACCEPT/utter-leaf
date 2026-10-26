@@ -29,3 +29,7 @@ recordings/
 __pycache__/
 *.pyc
 xcuserdata/
+
+# Personal iOS configuration
+mobile/ios/PersonalKeys.plist
+mobile/ios/LocalSigning.xcconfig

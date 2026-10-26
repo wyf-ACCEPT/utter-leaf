@@ -1,0 +1,24 @@
+# Secrets
+.env
+.env/
+ios/PersonalKeys.plist
+ios/LocalSigning.xcconfig
+*.p12
+*.mobileprovision
+# Packages
+.dart_tool/
+.pub-cache/
+.pub/
+.flutter-plugins-dependencies
+# Data
+build/
+coverage/
+*.symbols
+*.map.json
+# Cache
+.DS_Store
+*.log
+*.pyc
+*.swp
+.idea/
+*.iml
