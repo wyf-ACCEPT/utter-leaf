@@ -7,9 +7,11 @@ final class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         hasDictationKey = true
-        view.backgroundColor = UIColor(red: 20/255, green: 28/255, blue: 24/255, alpha: 1)
+        // Let the keyboard-style UIInputView paint the same background as the system dock.
+        view.backgroundColor = .clear
         let host = UIHostingController(rootView: KeyboardSurface(model: model, controller: self))
-        addChild(host); host.view.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(host.view)
+        addChild(host); host.view.backgroundColor = .clear
+        host.view.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(host.view)
         NSLayoutConstraint.activate([host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor), host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             host.view.topAnchor.constraint(equalTo: view.topAnchor), host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor), view.heightAnchor.constraint(equalToConstant: 260)])
         host.didMove(toParent: self)
@@ -53,6 +55,11 @@ final class KeyboardViewController: UIInputViewController {
     }
     private func refresh() {
         model.fullAccess = hasFullAccess
+        switch textDocumentProxy.keyboardAppearance {
+        case .dark: overrideUserInterfaceStyle = .dark
+        case .light: overrideUserInterfaceStyle = .light
+        default: overrideUserInterfaceStyle = .unspecified
+        }
         model.showSwitcher = needsInputModeSwitchKey
         model.host = freshHost()
         guard hasFullAccess else { model.status = "请为言叶键盘允许完全访问"; return }
@@ -99,7 +106,9 @@ private final class KeyboardModel: ObservableObject {
 private struct KeyboardSurface: View {
     @ObservedObject var model: KeyboardModel
     unowned var controller: KeyboardViewController
-    private let leaf = Color(red: 159/255, green: 214/255, blue: 181/255)
+    private let leaf = Color(UIColor { $0.userInterfaceStyle == .dark
+        ? UIColor(red: 159/255, green: 214/255, blue: 181/255, alpha: 1)
+        : UIColor(red: 45/255, green: 94/255, blue: 70/255, alpha: 1) })
     var body: some View {
         VStack(spacing: 18) {
             HStack { Label("言叶", systemImage: "leaf").font(.headline); Spacer(); if ["starting", "recording", "processing"].contains(model.phase) { Button("取消") { controller.command("cancel") }.font(.caption) } else { Text("个人语音输入").font(.caption).opacity(0.65) } }
@@ -125,8 +134,7 @@ private struct KeyboardSurface: View {
                 Button("空格") { controller.textDocumentProxy.insertText(" ") }.frame(maxWidth: .infinity)
                 Button { controller.textDocumentProxy.deleteBackward() } label: { Image(systemName: "delete.left") }.accessibilityLabel("删除")
             }.font(.title3).frame(height: 40)
-        }.padding(18).foregroundStyle(Color(red: 231/255, green: 240/255, blue: 234/255))
-            .background(Color(red: 20/255, green: 28/255, blue: 24/255))
+        }.padding(18).foregroundStyle(.primary)
     }
     private var handoffURL: URL {
         var parts = URLComponents(); parts.scheme = "utterleaf"; parts.host = "dictate"
