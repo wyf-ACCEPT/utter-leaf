@@ -29,9 +29,17 @@ struct MeetingsView: View {
                 }
             }
             if !model.recording {
-                Toggle("同时采集系统声音（线上会议）", isOn: $model.systemAudio).disabled(model.busy)
-                Toggle("会中实时字幕（另计流式调用费，会后仍做整场识别）", isOn: $model.live).disabled(model.busy)
-                Text("系统声音会包含其他应用播放的音频，请关闭无关音源；线下会议关闭系统声音。单场最长 3 小时，录音保存在本机，可回听或手动删除。音频与文字会发送至个人 API。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                if model.current == nil {
+                    Toggle("同时采集系统声音（线上会议）", isOn: $model.systemAudio).disabled(model.busy)
+                    Toggle("会中实时字幕（另计流式调用费，会后仍做整场识别）", isOn: $model.live).disabled(model.busy)
+                    Text("系统声音会包含其他应用播放的音频，请关闭无关音源；线下会议关闭系统声音。单场最长 3 小时，录音保存在本机，可回听或手动删除。音频与文字会发送至个人 API。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                } else {
+                    DisclosureGroup("下次会议的录音选项") {
+                        Toggle("同时采集系统声音（线上会议）", isOn: $model.systemAudio).disabled(model.busy)
+                        Toggle("会中实时字幕（另计流式调用费，会后仍做整场识别）", isOn: $model.live).disabled(model.busy)
+                        Text("系统声音会包含其他应用播放的音频，请关闭无关音源；线下会议关闭系统声音。单场最长 3 小时，录音保存在本机，可回听或手动删除。音频与文字会发送至个人 API。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                    }.font(LeafType.caption)
+                }
             }
             if let error = meetings.error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
             if !model.message.isEmpty { Label(model.message, systemImage: "info.circle").font(LeafType.caption).foregroundStyle(LeafTheme.muted).textSelection(.enabled) }
@@ -93,7 +101,22 @@ struct MeetingsView: View {
                 Button("回听") { model.playback() }.disabled(model.recording).handCursor()
                 Button("停止播放", action: model.stopPlayback).handCursor()
             }
+            if !model.recording { workflow(value) }
             LeafSegments(title: "会议内容", selection: $tab, items: [LeafSegment("笔记", "我的笔记"), LeafSegment("转录", "原始转录"), LeafSegment("整理稿", "整理转录"), LeafSegment("Brief", "Brief")])
+            if !model.recording {
+                HStack {
+                    Text(section.title).font(LeafType.headline)
+                    Spacer()
+                    Button {
+                        if let text = MeetingTextExport.body(value, section: section, references: model.briefReferences) {
+                            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string)
+                            model.message = "已复制\(section.title)。"
+                        }
+                    } label: { Label("复制", systemImage: "doc.on.doc") }.handCursor()
+
+                }.buttonStyle(.bordered)
+                    .disabled(MeetingTextExport.body(value, section: section, references: model.briefReferences) == nil)
+            }
             switch tab {
             case "笔记":
                 Text("你记下的要点会和转录一起整理；输入自动保存在本机。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
@@ -115,6 +138,10 @@ struct MeetingsView: View {
 
                     } else { Text("尚无完整转录。结束会议后可提交识别，或核对已有任务。").foregroundStyle(LeafTheme.muted) }
                 } else {
+                    if tab == "整理稿", !MeetingWorkflow.cleaned(value) {
+                        Text(model.busy ? "整理完成前，以下先显示原始转录。" : "尚未完成整理。点击上方“整理转录”，去掉口吃并规范表达。")
+                            .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                    }
                     Text("说话人名称可修改；同名表示你确认属于同一个人。未知身份请保留未知，不靠文本猜人名。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     ForEach(Array(Set(value.segments.map(\.speaker))).sorted(), id: \.self) { speaker in
                         HStack {
@@ -162,16 +189,14 @@ struct MeetingsView: View {
             }
             if !model.recording {
                 Text(model.costSummary).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                HStack {
-                    Button(value.requestID == nil ? "转录整场会议" : "核对转录", action: model.transcribe).disabled(model.busy || !value.segments.isEmpty).handCursor()
-                    Button("整理转录", action: model.cleanTranscript).disabled(model.busy || value.segments.isEmpty).handCursor()
-                    Button("生成 / 更新 Brief", action: model.summarize).disabled(model.busy || value.segments.isEmpty).handCursor()
-                    Spacer()
-                    Button("复制") {
-                        let text = tab == "笔记" ? value.notes : tab == "Brief" ? MeetingProtocol.briefForDisplay(value.brief, references: model.briefReferences) : value.segments.map { "[\(clock($0.start))] \(value.name(for: value.speaker(for: $0)))：\($0.text)" }.joined(separator: "\n")
-                        NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string)
-                    }.handCursor()
-                }.buttonStyle(.bordered)
+                DisclosureGroup("其他处理选项") {
+                    HStack {
+                        Button(value.requestID == nil ? "转录整场会议" : "核对转录", action: model.transcribe).disabled(model.busy || !value.segments.isEmpty).handCursor()
+                        Button("重新整理转录") { tab = "整理稿"; model.cleanTranscript() }.disabled(model.busy || value.segments.isEmpty).handCursor()
+                        Button(value.brief.isEmpty ? "直接生成 Brief" : "更新 Brief") { tab = "Brief"; model.summarize() }.disabled(model.busy || value.segments.isEmpty).handCursor()
+                    }.buttonStyle(.bordered)
+                }.font(LeafType.caption)
+
                 HStack {
                     Button("恢复中断音频", action: model.recover).handCursor()
                     Spacer(); Button("删除会议…", role: .destructive) { confirmMeetingDeletion = true }.handCursor()
@@ -179,6 +204,72 @@ struct MeetingsView: View {
                 }.disabled(model.busy).font(LeafType.caption)
             }
         }
+    }
+    private var section: MeetingTextSection {
+        switch tab { case "笔记": return .notes; case "转录": return .raw; case "整理稿": return .cleaned; default: return .brief }
+    }
+    @ViewBuilder private func workflow(_ value: MeetingRecord) -> some View {
+        let next = MeetingWorkflow.next(value)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                step("原始转录", done: !value.segments.isEmpty, current: next == .transcribe)
+                Image(systemName: "chevron.right").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                step("整理转录", done: MeetingWorkflow.cleaned(value), current: next == .clean)
+                Image(systemName: "chevron.right").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                step("Brief", done: !value.brief.isEmpty && value.briefNeedsUpdate != true, current: next == .brief || next == .read)
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) { workflowDescription(value); Spacer(minLength: 12); nextAction(value) }
+                VStack(alignment: .leading, spacing: 12) { workflowDescription(value); nextAction(value) }
+            }
+        }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
+            .background(LeafTheme.leaf.opacity(0.07), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(LeafTheme.leaf.opacity(0.22)))
+    }
+    private func step(_ title: String, done: Bool, current: Bool) -> some View {
+        Label(title, systemImage: done ? "checkmark.circle.fill" : (current ? "circle.inset.filled" : "circle"))
+            .font(LeafType.caption).foregroundStyle(done || current ? LeafTheme.leaf : LeafTheme.muted)
+            .accessibilityLabel(title + (done ? "，已完成" : current ? "，下一步" : "，待完成"))
+    }
+    private func workflowDescription(_ value: MeetingRecord) -> some View {
+        let next = MeetingWorkflow.next(value)
+        let heading: String
+        let detail: String
+        switch next {
+        case .transcribe:
+            heading = model.busy ? "正在准备原始转录" : "先获得完整的原始转录"
+            detail = model.busy ? "音频正在保存、提交或由豆包处理，完成后继续整理。" : "使用整场录音识别文字与说话人，再继续整理表达。"
+        case .clean:
+            heading = "原始转录已就绪，下一步整理表达"
+            detail = "去掉口吃、修正标点与拼写，保留原意和说话人；原始转录始终保留。"
+        case .brief:
+            heading = value.briefNeedsUpdate == true ? "整理稿已更新，接着更新 Brief" : "整理转录已就绪，接着提炼会议要点"
+            detail = "结合转录和你的笔记，生成摘要、决定、待办与未决问题。"
+        case .read:
+            heading = "会议内容已整理完成"
+            detail = "查看 Brief，或切换标签页复制、导出对应内容。"
+        }
+        return VStack(alignment: .leading, spacing: 5) {
+            Text(heading).font(LeafType.headline)
+            Text(detail).font(LeafType.caption).foregroundStyle(LeafTheme.muted).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    @ViewBuilder private func nextAction(_ value: MeetingRecord) -> some View {
+        let next = MeetingWorkflow.next(value)
+        Button {
+            switch next {
+            case .transcribe: tab = "转录"; model.transcribe()
+            case .clean: tab = "整理稿"; model.cleanTranscript()
+            case .brief: tab = "Brief"; model.summarize()
+            case .read: tab = "Brief"
+            }
+        } label: {
+            HStack(spacing: 8) {
+                if model.busy { ProgressView().controlSize(.small) }
+                Text(model.busy ? "处理中…" : (next == .clean ? "整理转录" : next == .brief ? (value.brief.isEmpty ? "生成 Brief" : "更新 Brief") : next == .read ? "查看 Brief" : value.requestID == nil ? "转录整场会议" : "核对转录"))
+                if !model.busy { Image(systemName: "arrow.right") }
+            }.frame(minWidth: 130)
+        }.buttonStyle(PrimaryStyle()).handCursor().disabled(model.busy)
     }
     private func clock(_ seconds: Double) -> String { let n = max(0, Int(seconds)); return n >= 3600 ? String(format: "%d:%02d:%02d", n / 3600, n / 60 % 60, n % 60) : String(format: "%02d:%02d", n / 60, n % 60) }
     private func status(_ state: String) -> String {
