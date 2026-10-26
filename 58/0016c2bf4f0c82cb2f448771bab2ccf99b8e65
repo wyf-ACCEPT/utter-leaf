@@ -1,0 +1,63 @@
+App/Info.plist
+  s_299dc04098b816::t_d0c4574d765bea 10-11
+DESIGN.md
+  s_299dc04098b816::t_a7f309b7135973 115-116
+README.md
+  s_299dc04098b816::t_675f6b8270e2b0 18,20,56-61,66,120,122,156-161,166
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_836a3f5aae8231 19-23,67
+Sources/UtterLeaf/MeetingAPI.swift
+  s_299dc04098b816::t_8685f64ce9635c 1-156
+Sources/UtterLeaf/MeetingAudio.swift
+  s_299dc04098b816::t_4bbc02afedbc8d 1-182
+Sources/UtterLeaf/MeetingLive.swift
+  s_299dc04098b816::t_e1cb6574433746 1-39
+Sources/UtterLeaf/MeetingModel.swift
+  s_299dc04098b816::t_dd7fc11b4a2dc3 1-343
+Sources/UtterLeaf/MeetingSmokeRunner.swift
+  s_299dc04098b816::t_44f00acd835d17 1-47
+Sources/UtterLeaf/MeetingStore.swift
+  s_299dc04098b816::t_bc41e1ad616448 1-61
+Sources/UtterLeaf/MeetingsView.swift
+  s_299dc04098b816::t_680954add0d494 1-251
+Sources/UtterLeaf/Providers.swift
+  s_299dc04098b816::t_5e2ae2be0f99b2 9,13,25,41,53,56-58,64,73
+Sources/UtterLeaf/SettingsView.swift
+  s_299dc04098b816::t_da2a6a73971971 65,104-105
+Sources/UtterLeaf/SmokeRunner.swift
+  s_299dc04098b816::t_4e5ad004ef5eba 7
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_eda48d8b190e09 22
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_318e8720462828 38-43,47,70,75,80
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_1143fe4a466724 126,147,155,302
+Sources/UtterLeafCore/Domain.swift
+  s_299dc04098b816::t_2be6f35ea02e24 120
+Sources/UtterLeafCore/Meeting.swift
+  s_299dc04098b816::t_d9a04db0ca4e26 1-114
+Sources/UtterLeafCore/UsageBudget.swift
+  s_299dc04098b816::t_0cabef3f8f9929 25,35
+Tests/UtterLeafCoreTests/MeetingTests.swift
+  s_299dc04098b816::t_2f19c78d3dd471 1-165
+UX-CONTRACT.md
+  s_299dc04098b816::t_fa4db30cdc6234 31,96-99
+docs/6x26-meeting-implementation.md
+  s_299dc04098b816::t_57db3a58e9d8c9 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "580016c2bf4f0c82cb2f448771bab2ccf99b8e65",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
