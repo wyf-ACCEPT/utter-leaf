@@ -1,0 +1,25 @@
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_6c0eb0f5d546bf 10-11,13-14,58-59
+  s_299dc04098b816::t_914d8d0106423d 60-62
+  s_299dc04098b816::t_b65bee5954eea3 109-111,137
+DESIGN.md
+  s_299dc04098b816::t_04632b3b36a03f 145-147
+UX-CONTRACT.md
+  s_299dc04098b816::t_b5afcfd6740830 154-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "651484292f81e2c2718df20f69f6772d8af5c077",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
