@@ -1,7 +1,7 @@
 import Foundation
 
 public struct MeetingWorkProgress: Equatable {
-    public enum Stage: String { case saving, preparing, uploading, queued, recognizing, cleaning, briefing, merging }
+    public enum Stage: String { case saving, importing, preparing, uploading, queued, recognizing, cleaning, briefing, merging }
     public var stage: Stage
     public var completed: Int
     public var total: Int
@@ -12,6 +12,7 @@ public struct MeetingWorkProgress: Equatable {
     public var fraction: Double? { total > 0 ? min(1, max(0, Double(completed) / Double(total))) : nil }
     public var title: String {
         switch stage {
+        case .importing: return "导入并转换录音"
         case .saving: return "保存会议音频"
         case .preparing: return "准备音频文件"
         case .uploading: return "上传会议音频"

@@ -42,7 +42,7 @@ import UtterLeafCore
     var onCaptureState: ((Bool, Double, Bool) -> Void)?
     var usesMicrophone: Bool { recording || ["preparing", "saving"].contains(current?.state ?? "") }
     var dictationBusy: (() -> Bool)?
-    var canStopWaiting: Bool { ["transcribing", "summarizing"].contains(current?.state ?? "") }
+    var canStopWaiting: Bool { ["importing", "transcribing", "summarizing"].contains(current?.state ?? "") }
     var blocksDictation: Bool { recording || busy }
     var current: MeetingRecord? { active ?? store.index.meetings.first { $0.id == selected } }
     init(ledger: LocalStore, api: MeetingAPI? = nil) {
@@ -88,6 +88,45 @@ import UtterLeafCore
         do { try store.save(value); syncUsage(value) } catch { message = store.error ?? "会议保存失败。" }
     }
     func saveOptions() { do { try store.saveOptions(systemAudio: systemAudio, live: live, floating: floatingCaptions, captionOpacity: captionOpacity, captionLineCount: captionLineCount, briefReferences: briefReferences) } catch { message = store.error ?? "会议设置保存失败。" } }
+    private func presentationWindow() -> NSWindow? {
+        let window = NSApp.keyWindow?.sheetParent ?? NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first { $0.canBecomeMain && $0.isVisible }
+        guard let window, window.attachedSheet == nil else { return nil }
+        return window
+    }
+    func chooseRecordingFile() {
+        guard !blocksDictation, dictationBusy?() != true, let window = presentationWindow() else { return }
+        let panel = NSOpenPanel(); panel.allowedContentTypes = [.audio]; panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false; panel.message = "选择手表或录音设备导出的音频。文件会保存在本机，并提交豆包整场转录。"
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .OK, let source = panel.url else { return }
+            self.importRecording(source)
+        }
+    }
+    func importRecording(_ source: URL) {
+        guard !blocksDictation, dictationBusy?() != true, store.error == nil, ledger.storageError == nil else { return }
+        flushDraft(); stopPlayback()
+        var value = MeetingRecord(); value.title = source.deletingPathExtension().lastPathComponent
+        value.state = "importing"; value.importedOriginalName = source.lastPathComponent
+        value.importedAudioFile = MeetingAudioImport.sourceName(source); value.systemAudio = false
+        selected = value.id; active = value; busy = true; progress = MeetingWorkProgress(.importing, total: 100)
+        do { try store.prepare(value.id); try store.save(value) } catch { busy = false; fail(error); return }
+        operation = Task {
+            let scoped = source.startAccessingSecurityScopedResource()
+            defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+            do {
+                let result = try await MeetingAudioImport.convert(source: source, folder: store.folder(value.id)) { [weak self] percent in
+                    Task { @MainActor in if self?.progress?.stage == .importing { self?.progress?.completed = percent } }
+                }
+                try Task.checkCancellation()
+                edit { $0.seconds = result.seconds; $0.importedAudioFile = result.sourceFile; $0.state = "recorded" }
+                active = nil; busy = false; message = "录音已导入本机，正在提交整场转录。"; transcribe()
+            } catch {
+                busy = false
+                if error is CancellationError { edit { $0.state = "interrupted" }; message = "已取消导入，原文件未改动。" }
+                else { fail(error); if !(error is AppFailure) { message = "录音导入或转换失败。原文件未改动，请尝试 M4A、MP3 或 WAV。" } }
+            }
+        }
+    }
     func create(systemAudio: Bool) {
         guard !blocksDictation, dictationBusy?() != true, store.error == nil, ledger.storageError == nil else { message = "请先结束当前听写或会议，并检查本地存储。"; return }
         guard store.index.voices.filter(\.enabled).count <= 50 else { message = "一次会议最多启用 50 位声纹身份。"; return }
@@ -173,6 +212,20 @@ import UtterLeafCore
     }
     func recover() {
         guard let value = current, !blocksDictation else { return }
+        if let name = value.importedAudioFile, name.hasPrefix("imported-audio."), !name.contains("/"), !name.contains("\\") {
+            let source = store.folder(value.id).appendingPathComponent(name)
+            guard FileManager.default.fileExists(atPath: source.path) else { message = "本机导入副本已删除，请重新选择录音文件。"; return }
+            busy = true; progress = MeetingWorkProgress(.importing, total: 100)
+            operation = Task {
+                do {
+                    let audio = try await MeetingAudioImport.convert(source: source, folder: store.folder(value.id)) { [weak self] percent in
+                        Task { @MainActor in if self?.progress?.stage == .importing { self?.progress?.completed = percent } }
+                    }
+                    try Task.checkCancellation(); edit { $0.seconds = audio.seconds; $0.state = "recorded" }; busy = false; message = "导入录音已恢复，可提交整场转录。"
+                } catch { busy = false; fail(error) }
+            }
+            return
+        }
         guard FileManager.default.fileExists(atPath: store.folder(value.id).appendingPathComponent("microphone.pcm").path) else { message = "本机原始音轨不存在，不能恢复。"; return }
         busy = true
         operation = Task {
@@ -208,7 +261,7 @@ import UtterLeafCore
                     call = existing; progress = MeetingWorkProgress(.recognizing)
                 } else {
                     let upload = store.folder(value.id).appendingPathComponent("request.json")
-                    try await MeetingAPI.buildUpload(audio: store.audio(value.id), destination: upload, voices: value.voiceprints)
+                    try await MeetingAPI.buildUpload(audio: store.audio(value.id), destination: upload, voices: value.voiceprints, seconds: value.seconds)
                     try Task.checkCancellation()
                     var pending = UsageCall(jobID: value.id, provider: "Doubao", model: value.seconds < 180 ? "meeting-ssd200" : "meeting-ssd300", price: .asr(.file, file: ledger.database.preferences.filePrice))
                     pending.seconds = value.seconds
@@ -335,7 +388,7 @@ import UtterLeafCore
         guard let value = current, !recording, !audioExporting, FileManager.default.fileExists(atPath: store.audio(value.id).path) else { message = "请等待录音保存完成后再导出音频。"; return }
         let save = NSSavePanel(); save.allowedContentTypes = [.mpeg4Audio]
         save.nameFieldStringValue = MeetingNaming.stem(value) + ".m4a"; save.canCreateDirectories = true
-        guard let window = NSApp.keyWindow else { message = "请在主窗口中导出。"; return }
+        guard let window = presentationWindow() else { message = "请在主窗口中导出。"; return }
         audioExporting = true
         save.beginSheetModal(for: window) { [weak self] response in
             guard let self else { return }
@@ -346,7 +399,7 @@ import UtterLeafCore
                 let staged = destination.deletingLastPathComponent().appendingPathComponent("." + UUID().uuidString + ".m4a")
                 defer { try? FileManager.default.removeItem(at: temporary); try? FileManager.default.removeItem(at: staged) }
                 do {
-                    try await MeetingAudioExport.convert(source: self.store.audio(value.id), destination: temporary)
+                    try await MeetingAudioExport.convert(source: self.store.originalAudio(value.id) ?? self.store.audio(value.id), destination: temporary)
                     try Task.checkCancellation()
                     try FileManager.default.copyItem(at: temporary, to: staged)
                     if FileManager.default.fileExists(atPath: destination.path) { _ = try FileManager.default.replaceItemAt(destination, withItemAt: staged) }
@@ -411,7 +464,7 @@ import UtterLeafCore
     }
     func playback(at seconds: Double = 0) {
         guard let value = current, !recording else { return }
-        do { player = try AVAudioPlayer(contentsOf: store.audio(value.id)); player?.currentTime = seconds; player?.play() }
+        do { player = try AVAudioPlayer(contentsOf: store.originalAudio(value.id) ?? store.audio(value.id)); player?.currentTime = seconds; player?.play() }
         catch { message = "无法回听，请先恢复录音，或检查音频是否已删除。" }
     }
     func stopPlayback() { player?.stop(); player = nil }

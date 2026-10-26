@@ -17,7 +17,7 @@ Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-part
 
 **Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; iOS remains planned.
 
-The latest local suite passes **117 tests**, including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The latest local suite passes **121 tests**, including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -119,7 +119,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-最新本地自动测试 **117 项通过**，包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+最新本地自动测试 **121 项通过**，包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -197,3 +197,7 @@ Phase 3 暂不考虑邀请码、账户、统一服务端和多人额度；跨设
 - Processing separates preparation, actual upload percentage, provider queue/recognition state and validated cleanup/Brief counts. Provider recognition has no invented percentage; elapsed wait time remains visible.
 - The cleaned-transcript tab stays empty until every source turn is cleaned. Raw transcript text can be corrected per turn while retaining immutable provider output; affected cleanup and Brief are marked for update. Speaker names use a responsive grid and meeting history scrolls in a bounded viewport.
 - After a new full transcription, personal DeepSeek Flash generates three optional filename candidates from bounded JSON-wrapped text samples. Select one to apply the title and export stem. Dates use the meeting's Asia/Shanghai date with YLDD month letters (`6x26-topic`); current documents export as `.txt` and audio is actually encoded to `.m4a`, preserving the source WAV. Naming has separate usage receipts; historical meetings provide an explicit generate/retry action.
+
+### Import external recordings
+
+Use **导入录音文件** to select an Apple Watch/recorder M4A, WAV, MP3 or another audio format supported by macOS. UtterLeaf retains a private local copy, converts in bounded memory to16kHz mono PCM WAV, then submits the existing whole-file ASR workflow. It does not start microphone/system capture or live ASR. Current limits are3hours and512MB per source file. Import can be cancelled; interrupted imports can recover from the retained copy. Deleting local meeting audio also removes that copy; the external original is never moved or modified. Playback prefers the retained original, and an already-valid M4A is copied during export without a second lossy encoding. Imported meeting dates currently use import time. Voiceprint enrollment is deferred for this iteration.

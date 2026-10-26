@@ -21,7 +21,7 @@ struct MeetingsView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            PageHeading(title: "把讨论，留成共识。", subtitle: "本机录音 · 区分说话人 · 你的笔记与原文一起整理")
+            PageHeading(title: "把讨论，留成共识。", subtitle: "录音或导入文件 · 区分说话人 · 你的笔记与原文一起整理")
             HStack {
                 Button { showVoices = true } label: { Label("说话人声纹", systemImage: "person.wave.2") }.buttonStyle(.bordered).handCursor()
                 Spacer()
@@ -33,6 +33,8 @@ struct MeetingsView: View {
                     Button(model.paused ? "继续" : "暂停", action: model.togglePause).buttonStyle(.bordered).handCursor()
                     Button("结束会议", action: model.stop).buttonStyle(PrimaryStyle()).handCursor()
                 } else {
+                    Button { model.chooseRecordingFile() } label: { Label("导入录音文件", systemImage: "square.and.arrow.down") }
+                        .buttonStyle(.bordered).handCursor().disabled(model.busy)
                     Button("新会议") { model.create(systemAudio: model.systemAudio) }.buttonStyle(PrimaryStyle()).handCursor().disabled(model.busy)
                 }
             }
@@ -60,7 +62,7 @@ struct MeetingsView: View {
                 Surface {
                     Image(systemName: "text.bubble").font(.system(size: 28)).foregroundStyle(LeafTheme.leaf)
                     Text("听会议，也记下你的判断。").font(LeafType.headline)
-                    Text("开始后可以随手记笔记。结束录音会生成带说话人的转录，再由你选择生成 brief。").foregroundStyle(LeafTheme.muted)
+                    Text("可以直接录音，也可导入手表或录音设备的音频。完整转录后继续整理转录、生成 Brief。").foregroundStyle(LeafTheme.muted)
                 }
             }
             if !meetings.index.meetings.isEmpty {
@@ -173,7 +175,7 @@ struct MeetingsView: View {
                             }.frame(maxWidth: .infinity, alignment: .leading)
                         }.frame(height: 360).scrollIndicators(.visible).accessibilityLabel("实时原始转录，可滚动")
 
-                    } else { Text("尚无完整转录。结束会议后可提交识别，或核对已有任务。").foregroundStyle(LeafTheme.muted) }
+                    } else { Text("尚无完整转录。可结束录音、导入已有音频，或核对已提交的任务。").foregroundStyle(LeafTheme.muted) }
                 } else {
                     Text("说话人名称可修改；同名表示你确认属于同一个人。未知身份请保留未知，不靠文本猜人名。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 16)], alignment: .leading, spacing: 12) {
@@ -311,7 +313,7 @@ struct MeetingsView: View {
     }
     private func clock(_ seconds: Double) -> String { let n = max(0, Int(seconds)); return n >= 3600 ? String(format: "%d:%02d:%02d", n / 3600, n / 60 % 60, n % 60) : String(format: "%02d:%02d", n / 60, n % 60) }
     private func status(_ state: String) -> String {
-        ["draft": "待开始", "preparing": "准备录音", "recording": "录音中", "paused": "已暂停", "saving": "保存音频", "recorded": "录音已保存", "transcribing": "转录中", "summarizing": "整理中", "transcribed": "转录已完成", "ready": "笔记已完成", "interrupted": "上次中断，可恢复", "pending": "等待服务端结果", "failed": "需要处理" ][state] ?? state
+        ["draft": "待开始", "preparing": "准备录音", "importing": "导入音频", "recording": "录音中", "paused": "已暂停", "saving": "保存音频", "recorded": "录音已保存", "transcribing": "转录中", "summarizing": "整理中", "transcribed": "转录已完成", "ready": "笔记已完成", "interrupted": "上次中断，可恢复", "pending": "等待服务端结果", "failed": "需要处理" ][state] ?? state
     }
 }
 
