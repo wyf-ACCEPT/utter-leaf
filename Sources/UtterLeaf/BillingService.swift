@@ -35,34 +35,37 @@ import UtterLeafCore
         var collected: [String: RemoteBill] = [:]
         let deadline = Date().addingTimeInterval(90)
         let cutoff = now.addingTimeInterval(-30 * 86400)
-        for month in BillingSyncPolicy.months(now: now) {
-            var complete = false
-            var expectedTotal: Int?
-            var observed = Set<String>()
-            for page in 0..<20 {
-                try Task.checkCancellation()
-                guard Date() < deadline else { throw URLError(.timedOut) }
-                var body: [String: Any] = ["BillPeriod": month, "InstanceNo": config.instanceID,
-                    "GroupTerm": 0, "GroupPeriod": 2, "NeedRecordNum": 1, "IgnoreZero": 0,
-                    "Offset": page * 100, "Limit": 100]
-                if !config.product.isEmpty { body["Product"] = [config.product] }
-                let data = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys, .withoutEscapingSlashes])
-                let request = VolcBillingSigner.request(body: data, accessKey: accessKey, secret: secret, date: Date())
-                let result = try BillingPayload.bills(await fetch(request), scope: config)
-                guard result.rows.allSatisfy({ $0.id.hasPrefix(month + ":") }) else { throw BillingPayloadError.invalid }
-                if let expectedTotal, expectedTotal != result.total { throw BillingPayloadError.invalid }
-                expectedTotal = result.total
-                guard result.rows.count == min(100, max(0, result.total - page * 100)) else { throw BillingPayloadError.invalid }
-                for bill in result.rows {
-                    guard observed.insert(bill.id).inserted else { throw BillingPayloadError.invalid }
+        for instance in config.instanceIDs {
+            var singleScope = config; singleScope.instanceID = instance
+            for month in BillingSyncPolicy.months(now: now) {
+                var complete = false
+                var expectedTotal: Int?
+                var observed = Set<String>()
+                for page in 0..<20 {
+                    try Task.checkCancellation()
+                    guard Date() < deadline else { throw URLError(.timedOut) }
+                    var body: [String: Any] = ["BillPeriod": month, "InstanceNo": instance,
+                        "GroupTerm": 0, "GroupPeriod": 2, "NeedRecordNum": 1, "IgnoreZero": 0,
+                        "Offset": page * 100, "Limit": 100]
+                    if !config.product.isEmpty { body["Product"] = [config.product] }
+                    let data = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys, .withoutEscapingSlashes])
+                    let request = VolcBillingSigner.request(body: data, accessKey: accessKey, secret: secret, date: Date())
+                    let result = try BillingPayload.bills(await fetch(request), scope: singleScope)
+                    guard result.rows.allSatisfy({ $0.id.hasPrefix(month + ":") }) else { throw BillingPayloadError.invalid }
+                    if let expectedTotal, expectedTotal != result.total { throw BillingPayloadError.invalid }
+                    expectedTotal = result.total
+                    guard result.rows.count == min(100, max(0, result.total - page * 100)) else { throw BillingPayloadError.invalid }
+                    for bill in result.rows {
+                        guard observed.insert(bill.id).inserted else { throw BillingPayloadError.invalid }
+                    }
+                    for bill in result.rows where bill.start >= cutoff && bill.end <= now { collected[bill.instanceID + ":" + bill.id] = bill }
+                    if observed.count == result.total { complete = true; break }
+                    guard result.rows.count == 100 else { throw BillingPayloadError.invalid }
+                    try await Task.sleep(for: .milliseconds(250))
                 }
-                for bill in result.rows where bill.start >= cutoff && bill.end <= now { collected[bill.id] = bill }
-                if observed.count == result.total { complete = true; break }
-                guard result.rows.count == 100 else { throw BillingPayloadError.invalid }
+                guard complete else { throw BillingPayloadError.paginationLimit }
                 try await Task.sleep(for: .milliseconds(250))
             }
-            guard complete else { throw BillingPayloadError.paginationLimit }
-            try await Task.sleep(for: .milliseconds(250))
         }
         return collected.values.sorted { $0.start > $1.start }
     }
@@ -130,10 +133,10 @@ import UtterLeafCore
             do {
                 let bills = try await service.bills(config: config, now: now)
                 try Task.checkCancellation()
-                guard (store.database.preferences.billing ?? BillingConfiguration()).instanceID == config.instanceID,
+                guard (store.database.preferences.billing ?? BillingConfiguration()).scopeKey == config.scopeKey,
                       (store.database.preferences.billing ?? BillingConfiguration()).product == config.product else { return }
                 change { ledger in
-                    ledger.bills = bills; ledger.scope = config.instanceID
+                    ledger.bills = bills; ledger.scope = config.scopeKey
                     ledger.doubao.succeeded = now; ledger.doubao.errorCode = nil
                 }
             } catch { change { $0.doubao.errorCode = errorCode(error) } }

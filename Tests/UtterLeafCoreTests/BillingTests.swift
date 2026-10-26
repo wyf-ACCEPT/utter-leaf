@@ -25,6 +25,50 @@ final class BillingTests: XCTestCase {
         XCTAssertThrowsError(try BillingPayload.bills(payload(amount: "NaN"), scope: config))
         XCTAssertThrowsError(try BillingPayload.bills(payload(), scope: BillingConfiguration()))
     }
+    func testMultipleInstanceScopeNormalizationAndLegacyDecoding() throws {
+        var config = try JSONDecoder().decode(BillingConfiguration.self,
+            from: Data(#"{"enabled":true,"instanceID":"fixture","product":"","exclusiveInstance":false}"#.utf8))
+        XCTAssertEqual(config.scopeKey, "fixture")
+        config.instanceID = " fixture-b，fixture, fixture-b "
+        XCTAssertEqual(config.instanceIDs, ["fixture", "fixture-b"])
+        XCTAssertEqual(config.scopeKey, "fixture,fixture-b")
+        XCTAssertTrue(config.hasScope)
+        XCTAssertEqual(try BillingPayload.bills(payload(instance: "fixture-b"), scope: config).rows.count, 1)
+        XCTAssertThrowsError(try BillingPayload.bills(payload(instance: "unselected"), scope: config))
+        config.instanceID = "invalid scope"; XCTAssertFalse(config.hasScope)
+        config.instanceID = (0..<11).map { "fixture-\($0)" }.joined(separator: ",")
+        XCTAssertFalse(config.hasScope)
+    }
+    @MainActor func testMultipleInstancesQueryIndividuallyAndPreserveLastGoodSnapshotOnFailure() async throws {
+        var config = BillingConfiguration(); config.instanceID = "fixture-b,fixture,fixture"
+        var queried = Set<String>()
+        let service = BillingService(credentials: { _ in "fixture" }, fetch: { request in
+            let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+            let instance = body["InstanceNo"] as! String
+            queried.insert(instance)
+            if body["BillPeriod"] as? String != "2026-10" { return Data(#"{"Result":{"Total":0,"List":[]}}"#.utf8) }
+            return self.payload(instance: instance)
+        })
+        let bills = try await service.bills(config: config, now: now)
+        XCTAssertEqual(queried, ["fixture", "fixture-b"])
+        XCTAssertEqual(bills.count, 2)
+        XCTAssertEqual(BillComparison(bills: bills + bills, calls: []).official, Decimal(string: "0.2"))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LocalStore(root: root); store.database.preferences.billing = config
+        var ledger = BillingLedger(); ledger.bills = bills; ledger.scope = config.scopeKey
+        ledger.deepSeek.attempted = now; ledger.doubao.succeeded = now.addingTimeInterval(-60)
+        store.database.billingLedger = ledger
+        let partial = BillingService(credentials: { _ in "fixture" }, fetch: { request in
+            let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+            if body["InstanceNo"] as? String == "fixture-b" { throw URLError(.notConnectedToInternet) }
+            return Data(#"{"Result":{"Total":0,"List":[]}}"#.utf8)
+        })
+        await BillingSync(store: store, service: partial).run(force: false, now: now)
+        XCTAssertEqual(store.database.billingLedger?.bills, bills)
+        XCTAssertEqual(store.database.billingLedger?.doubao.succeeded, ledger.doubao.succeeded)
+        XCTAssertEqual(store.database.billingLedger?.doubao.errorCode, "billing_network_-1009")
+    }
     func testTwentyMinuteDueAndCrossMonthWindow() {
         XCTAssertFalse(BillingSyncPolicy.isDue(lastAttempt: now.addingTimeInterval(-1199), now: now))
         XCTAssertTrue(BillingSyncPolicy.isDue(lastAttempt: now.addingTimeInterval(-1200), now: now))

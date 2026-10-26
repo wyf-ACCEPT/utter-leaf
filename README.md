@@ -17,7 +17,7 @@ Built with **SwiftUI, AppKit, AVAudioEngine and URLSession**, with no third-part
 
 **Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; iOS remains planned.
 
-The latest local suite passes **97 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The latest local suite passes **99 tests**. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -79,7 +79,7 @@ Credentials, private recordings, history, build products and personal handoffs a
 - End-to-end totals include **Doubao + DeepSeek**, with task-level audio duration deduplicated. Missing usage stays unknown rather than being treated as free.
 - Optional official checks run every **20 minutes while the app is running**, with startup/wake catch-up and a manual action. They defer during dictation.
 - **DeepSeek:** account balance snapshots are reference information, not itemized spend, and never overwrite dictation costs.
-- **Doubao:** instance-scoped Volcengine bills require the billing `InstanceNo` and personal read-only credentials, `UTTERLEAF_VOLC_ACCESS_KEY_ID` / `UTTERLEAF_VOLC_SECRET_ACCESS_KEY`, configured locally. Aggregate bills are not automatically allocated to individual calls. Other applications' spending must not be attributed to UtterLeaf.
+- **Doubao:** instance-scoped Volcengine bills require the billing `InstanceNo` values (up to 10, comma-separated) and personal read-only credentials, `UTTERLEAF_VOLC_ACCESS_KEY_ID` / `UTTERLEAF_VOLC_SECRET_ACCESS_KEY`, configured locally. Aggregate bills are not automatically allocated to individual calls. Other applications' spending must not be attributed to UtterLeaf.
 
 ### Roadmap
 
@@ -119,7 +119,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-最新本地自动测试 **97 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+最新本地自动测试 **99 项通过**，已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 

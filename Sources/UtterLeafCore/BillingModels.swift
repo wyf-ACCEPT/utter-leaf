@@ -6,7 +6,18 @@ public struct BillingConfiguration: Codable, Equatable {
     public var product = ""
     public var exclusiveInstance = false
     public init() {}
-    public var hasScope: Bool { !instanceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    // Keep the persisted string compatible with existing single-instance settings.
+    public var instanceIDs: [String] {
+        Array(Set(instanceID.components(separatedBy: CharacterSet(charactersIn: ",，\n"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })).sorted()
+    }
+    public var scopeKey: String { instanceIDs.joined(separator: ",") }
+    public var validScope: Bool {
+        instanceIDs.count <= 10 && instanceIDs.allSatisfy { id in
+            id.count <= 256 && id.range(of: #"^[A-Za-z0-9_.:-]+$"#, options: .regularExpression) != nil
+        }
+    }
+    public var hasScope: Bool { validScope && !instanceIDs.isEmpty }
 }
 public struct BillingSyncStatus: Codable {
     public var attempted: Date?
@@ -88,7 +99,7 @@ public enum BillingPayload {
         guard let result = json["Result"] as? [String: Any], let rows = result["List"] as? [[String: Any]],
               let total = result["Total"] as? Int, total >= 0, (result["Warning"] as? String ?? "").isEmpty else { throw BillingPayloadError.invalid }
         let parsed = try rows.map { row -> RemoteBill in
-            guard let instance = row["InstanceNo"] as? String, instance == scope.instanceID,
+            guard let instance = row["InstanceNo"] as? String, scope.instanceIDs.contains(instance),
                   let product = row["Product"] as? String, scope.product.isEmpty || product == scope.product else { throw BillingPayloadError.scopeMismatch }
             guard let id = row["BillDetailId"] as? String, !id.isEmpty,
                   let period = row["BillPeriod"] as? String, let start = date(row["ExpenseBeginTime"]), let end = date(row["ExpenseEndTime"]), start < end,
@@ -106,7 +117,7 @@ public struct BillComparison {
     public var difference: Double { NSDecimalNumber(decimal: official).doubleValue - localEstimate }
     public init(bills: [RemoteBill], calls: [UsageCall]) {
         // Multiple charge items can share an interval; count each local request only once.
-        let unique = Dictionary(bills.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new }).values
+        let unique = Dictionary(bills.map { ($0.instanceID + ":" + $0.id, $0) }, uniquingKeysWith: { _, new in new }).values
         official = unique.reduce(Decimal.zero) { $0 + $1.payable }
         let matching = calls.filter { call in
             call.provider == "Doubao" && call.price.currency == "CNY" && call.status != .pending &&
