@@ -157,3 +157,6 @@ Keyboard touch refinement (2026-10-27): delete uses a 64x52pt hit region with a 
 
 
 Explicit keyboard action key follows the host returnKeyType (Search, Send, Go, Next, Done or newline). Only a user tap inserts the return character; dictation completion still never submits. Host text/selection changes refresh the label, and the host owns actual submission or newline semantics.
+
+
+Recording waves use measured RMS-derived level on both Flutter home and the native keyboard. The shared state contains a bounded scalar only, updated with the existing recorder tick. Near silence is nearly flat, with 220ms amplitude smoothing; Reduce Motion stops travelling phase without hiding measured level. Processing replaces the wave. Capsule dimensions stay unchanged.

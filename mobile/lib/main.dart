@@ -572,13 +572,17 @@ class _SoundWaveState extends State<SoundWave>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: controller,
-    builder: (_, _) => CustomPaint(
+    builder: (_, _) => TweenAnimationBuilder<double>(
+      tween: Tween<double>(end: widget.level.clamp(0, 1)),
+      duration: const Duration(milliseconds: 220),
+      builder: (_, level, _) => CustomPaint(
       painter: _WavePainter(
-        widget.level,
+        level,
         MediaQuery.disableAnimationsOf(context)
             ? 0
             : controller.value * 2 * math.pi,
       ),
+    ),
     ),
   );
 }
@@ -595,7 +599,7 @@ class _WavePainter extends CustomPainter {
             size.height / 2 +
             math.sin(x / size.width * math.pi * (4 + line) + phase + line) *
                 math.pow(math.sin(math.pi * x / size.width), 2) *
-                (2 + level * 34) *
+                (0.5 + level * 38) *
                 (1 - line * 0.2);
         if (x == 0) {
           path.moveTo(x, y);

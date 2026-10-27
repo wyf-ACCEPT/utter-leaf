@@ -120,6 +120,7 @@ final class KeyboardViewController: UIInputViewController {
             model.phase = "inserted"; model.status = "已放入输入框"; return
         }
         model.phase = phase
+        model.level = min(1, max(0, state["level"] as? Double ?? 0))
         let seconds = state["seconds"] as? Int ?? 0
         switch phase {
         case "recording": model.status = String(format: "正在录音 · %02d:%02d", seconds / 60, seconds % 60)
@@ -148,6 +149,7 @@ final class KeyboardViewController: UIInputViewController {
 }
 
 private final class KeyboardModel: ObservableObject {
+    @Published var level = 0.0
     @Published var returnTitle = "换行"
     @Published var phase = "idle"
     @Published var status = "让想法，自然落成文字。"
@@ -177,7 +179,12 @@ private struct KeyboardSurface: View {
                 .accessibilityAddTraits(.updatesFrequently)
             Group {
                 if model.phase == "recording" {
-                    Button { controller.command("stop") } label: { Label("结束并整理", systemImage: "stop.fill") }
+                    Button { controller.command("stop") } label: {
+                        VStack(spacing: 5) {
+                            KeyboardWave(level: model.level).frame(width: 150, height: 26)
+                            Text("结束并整理").font(.caption.weight(.semibold))
+                        }
+                    }.accessibilityLabel("结束并整理")
                 } else if model.phase == "ready" {
                     Label("等待原输入框", systemImage: "text.badge.checkmark")
                 } else if ["starting", "processing"].contains(model.phase) {
@@ -210,5 +217,33 @@ private struct KeyboardSurface: View {
                 }.buttonStyle(.plain).accessibilityLabel("删除")
             }.font(.title3).frame(height: 52)
         }.padding(18).foregroundStyle(.primary)
+    }
+}
+
+private struct KeyboardWave: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var level: Double
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
+            WaveTrace(level: level, phase: reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * 2)
+                .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .animation(.easeOut(duration: 0.22), value: level)
+        }.accessibilityHidden(true).allowsHitTesting(false)
+    }
+}
+private struct WaveTrace: Shape {
+    var level: Double
+    var phase: Double
+    var animatableData: Double { get { level } set { level = newValue } }
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let amplitude = 0.5 + min(1, max(0, level)) * rect.height * 0.46
+        for x in stride(from: 0.0, through: rect.width, by: 1) {
+            let unit = x / max(1, rect.width)
+            let y = rect.midY + sin(unit * .pi * 6 + phase) * pow(sin(unit * .pi), 2) * amplitude
+            if x == 0 { path.move(to: CGPoint(x: x, y: y)) }
+            else { path.addLine(to: CGPoint(x: x, y: y)) }
+        }
+        return path
     }
 }
