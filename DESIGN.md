@@ -154,3 +154,6 @@ Keyboard delivery refinement (2026-10-27): the primary Start/Stop capsule is cen
 
 
 Keyboard touch refinement (2026-10-27): delete uses a 64x52pt hit region with a 28pt symbol and subtle rounded backing. Routine idle/inserted status is visually and accessibly hidden while its reserved slot keeps the capsule stable. Recording, processing, waiting-result and actionable error/permission feedback remain visible in secondary caption styling.
+
+
+Explicit keyboard action key follows the host returnKeyType (Search, Send, Go, Next, Done or newline). Only a user tap inserts the return character; dictation completion still never submits. Host text/selection changes refresh the label, and the host owns actual submission or newline semantics.
