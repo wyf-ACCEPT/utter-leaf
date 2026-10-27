@@ -146,10 +146,16 @@ private struct KeyboardSurface: View {
     private let leaf = Color(UIColor { $0.userInterfaceStyle == .dark
         ? UIColor(red: 159/255, green: 214/255, blue: 181/255, alpha: 1)
         : UIColor(red: 45/255, green: 94/255, blue: 70/255, alpha: 1) })
+    private var showsStatus: Bool {
+        !model.fullAccess || ["starting", "recording", "processing", "ready", "error"].contains(model.phase)
+    }
     var body: some View {
         VStack(spacing: 12) {
             HStack { Label("言叶", systemImage: "leaf").font(.headline); Spacer(); if ["starting", "recording", "processing"].contains(model.phase) { Button("取消") { controller.command("cancel") }.font(.caption) } else { Text("个人语音输入").font(.caption).opacity(0.65) } }
-            Text(model.status).font(.subheadline).multilineTextAlignment(.center).lineLimit(2).frame(minHeight: 36).accessibilityAddTraits(.updatesFrequently)
+            Text(model.status).font(.caption).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).lineLimit(2).frame(height: 36)
+                .opacity(showsStatus ? 1 : 0).accessibilityHidden(!showsStatus)
+                .accessibilityAddTraits(.updatesFrequently)
             Group {
                 if model.phase == "recording" {
                     Button { controller.command("stop") } label: { Label("结束并整理", systemImage: "stop.fill") }
@@ -171,8 +177,13 @@ private struct KeyboardSurface: View {
                     Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
                 }
                 Spacer(minLength: 0)
-                Button { controller.textDocumentProxy.deleteBackward() } label: { Image(systemName: "delete.left").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("删除")
-            }.font(.title3).frame(height: 44)
+                Button { controller.textDocumentProxy.deleteBackward() } label: {
+                    Image(systemName: "delete.left").font(.system(size: 28, weight: .medium))
+                        .frame(width: 64, height: 52)
+                        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+                        .contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityLabel("删除")
+            }.font(.title3).frame(height: 52)
         }.padding(18).foregroundStyle(.primary)
     }
 }

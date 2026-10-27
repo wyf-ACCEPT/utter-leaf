@@ -151,3 +151,6 @@ Return navigation feedback correction (2026-10-27): the same native requestRetur
 
 
 Keyboard delivery refinement (2026-10-27): the primary Start/Stop capsule is centered200×80pt inside the existing260pt keyboard surface;12pt vertical spacing preserves the header/status/footer. The space action is removed; delete and optional next-keyboard controls retain44pt targets. System backdrop remains continuous. Stop explicitly binds the current input proxy and surrounding context for this request, allowing automatic delivery after the app handoff has recreated the original proxy. The Insert action is removed; a changed target retains the result and shows waiting/recovery status.
+
+
+Keyboard touch refinement (2026-10-27): delete uses a 64x52pt hit region with a 28pt symbol and subtle rounded backing. Routine idle/inserted status is visually and accessibly hidden while its reserved slot keeps the capsule stable. Recording, processing, waiting-result and actionable error/permission feedback remain visible in secondary caption styling.
