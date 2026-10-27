@@ -1,0 +1,25 @@
+DESIGN.md
+  s_299dc04098b816::t_5a1a852b3963b5 172-174
+mobile/README.md
+  s_299dc04098b816::t_499e9f6ecee0e9 70,72
+mobile/ios/Runner/Info.plist
+  s_299dc04098b816::t_7f9328ab1f6412 10
+mobile/ios/UtterLeafKeyboard/Info.plist
+  s_299dc04098b816::t_aa15d5934f5f74 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "70a6a126054a3551f136d203e164792d0d41eef5",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
