@@ -1,4 +1,5 @@
 import AVFoundation
+import CloudKit
 import Flutter
 import UIKit
 
@@ -23,6 +24,9 @@ import UIKit
     private var text = "", raw = "", error = ""
     private var level = 0.0
     private var elapsed = 0
+    private var cloudStatus = "checking"
+    private var cloudMessage = "正在检查 iCloud 账户…"
+    private var checkingCloud = false
     private var prompt: String {
         guard let url = Bundle.main.url(forResource: "cleanup", withExtension: "txt") else { return "" }
         return (try? String(contentsOf: url, encoding: .utf8)) ?? ""
@@ -34,6 +38,7 @@ import UIKit
         error = "当前为跳转测试版：不录音、不调用 API。请从原 App 的言叶键盘点击开始。"
         #endif
         PersonalKeys.importPersonalBundle()
+        Task { await refreshCloudStatus() }
         // A terminated recorder never leaves a live command that can restart the microphone.
         let old = DictationExchange.read("state")
         if ["starting", "recording", "processing"].contains(old["phase"] as? String ?? "") {
@@ -47,6 +52,7 @@ import UIKit
             guard let self else { return }
             switch call.method {
             case "snapshot": result(self.snapshot)
+            case "refreshCloud": Task { await self.refreshCloudStatus(); result(nil) }
             case "start": self.start(); result(nil)
             case "stop": self.stop(); result(nil)
             case "cancel": self.cancel(); result(nil)
@@ -67,15 +73,46 @@ import UIKit
     }
     var snapshot: [String: Any] {
         ["phase": phase, "text": text, "raw": raw, "error": error, "level": level, "seconds": elapsed,
+         "cloudStatus": cloudStatus, "cloudMessage": cloudMessage,
          "fromKeyboard": fromKeyboard, "returnStatus": returnStatus, "returnMessage": returnMessage, "doubaoConfigured": PersonalKeys.get("DOUBAO_API_KEY")?.isEmpty == false,
          "deepseekConfigured": PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false]
+    }
+    private func refreshCloudStatus() async {
+        guard !checkingCloud else { return }
+        checkingCloud = true
+        defer { checkingCloud = false }
+        guard let name = Bundle.main.object(forInfoDictionaryKey: "UtterLeafCloudContainer") as? String else {
+            cloudStatus = "unconfigured"; cloudMessage = "此版本未配置 iCloud 容器。"; return
+        }
+        do {
+            switch try await CKContainer(identifier: name).accountStatus() {
+            case .available: cloudStatus = "available"; cloudMessage = "iCloud 账户可用，手机云权限已配置。"
+            case .noAccount: cloudStatus = "noAccount"; cloudMessage = "请在 iPhone 系统设置中登录 iCloud。"
+            case .restricted: cloudStatus = "restricted"; cloudMessage = "此设备的 iCloud 访问受限，请检查系统限制。"
+            case .temporarilyUnavailable, .couldNotDetermine:
+                cloudStatus = "unavailable"; cloudMessage = "iCloud 暂时不可用，请稍后重试。"
+            @unknown default: cloudStatus = "unavailable"; cloudMessage = "暂时无法确认 iCloud 状态。"
+            }
+        } catch { cloudStatus = "unavailable"; cloudMessage = "无法连接 iCloud，请检查网络后重试。" }
+        // Export readiness booleans only; never include account identifiers, text, keys or audio.
+        if let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let folder = cache.appendingPathComponent("CloudSetup", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let value: [String: Any] = ["status": cloudStatus, "appGroupAvailable": DictationExchange.directory != nil,
+                "doubaoConfigured": PersonalKeys.get("DOUBAO_API_KEY")?.isEmpty == false,
+                "deepseekConfigured": PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false,
+                "updated": Date().timeIntervalSince1970]
+            if let data = try? JSONSerialization.data(withJSONObject: value) {
+                try? data.write(to: folder.appendingPathComponent("status.json"), options: .atomic)
+            }
+        }
     }
     private func publish() {
         try? DictationExchange.write(["requestID": requestID, "phase": phase, "text": text, "error": error,
             "seconds": elapsed, "level": level, "updated": Date().timeIntervalSince1970], to: "state")
     }
     func open(_ url: URL) {
-        guard url.scheme == "utterleaf", url.host == "dictate", let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
+        guard url.scheme == DictationExchange.urlScheme, url.host == "dictate", let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let id = parts.queryItems?.first(where: { $0.name == "request" })?.value, UUID(uuidString: id) != nil else { return }
         guard !["starting", "recording", "processing"].contains(phase) else { return }
         let ticket = DictationExchange.read("handoff")

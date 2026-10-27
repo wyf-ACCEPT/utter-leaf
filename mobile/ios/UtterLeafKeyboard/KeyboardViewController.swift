@@ -66,7 +66,7 @@ final class KeyboardViewController: UIInputViewController {
         #endif
         trace["os"] = UIDevice.current.systemVersion; trace["updated"] = Date().timeIntervalSince1970
         try? DictationExchange.write(trace, to: "keyboard-navigation")
-        var parts = URLComponents(); parts.scheme = "utterleaf"; parts.host = "dictate"
+        var parts = URLComponents(); parts.scheme = DictationExchange.urlScheme; parts.host = "dictate"
         parts.queryItems = [URLQueryItem(name: "request", value: model.nextID)]
         return parts.url
     }
@@ -137,7 +137,7 @@ final class KeyboardViewController: UIInputViewController {
         do {
             let result = try await pluginHostApplicationResolver(controller: self, pollingInterval: 0.05, timeout: 1.0)
             guard viewIfLoaded?.window != nil, !Task.isCancelled, let result,
-                  !result.hasPrefix("network.utterleaf.personal.mobile"),
+                  !result.hasPrefix("network.utterleaf.personal.mobile"), !result.hasPrefix("network.utterleaf.mobile"),
                   result.range(of: "^[A-Za-z0-9]+[A-Za-z0-9.-]+$", options: .regularExpression) != nil else { return nil }
             return result
         } catch {

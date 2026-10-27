@@ -166,3 +166,6 @@ The iOS app has persistent Home, Usage and Settings destinations. A native platf
 
 
 The keyboard return action is centered independently of the optional globe and trailing delete key, sharing the primary recording capsule center axis at every width.
+
+
+Paid-team migration uses a separately installed “言叶 · iCloud” app/keyboard, with distinct bundle, group and deep-link scheme to preserve the old installation. Usage reads real CloudKit account readiness and distinguishes it from the still-unimplemented cross-device usage sync. Never infer successful synchronization from account availability. The user must enable the new keyboard/Full Access; no old app removal is authorized by migration alone.

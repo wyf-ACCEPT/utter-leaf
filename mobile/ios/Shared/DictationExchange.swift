@@ -2,7 +2,8 @@ import Foundation
 
 // Dictation text, controls and a bounded audio level cross the App Group boundary. Keys stay in the app.
 enum DictationExchange {
-    static let group = "group.network.utterleaf.personal.mobile"
+    static let group = Bundle.main.object(forInfoDictionaryKey: "UtterLeafAppGroup") as? String ?? "group.network.utterleaf.mobile"
+    static let urlScheme = Bundle.main.object(forInfoDictionaryKey: "UtterLeafURLScheme") as? String ?? "utterleaf-mobile"
     static var directory: URL? { FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) }
     static func read(_ name: String) -> [String: Any] {
         guard let url = directory?.appendingPathComponent(name + ".json"),

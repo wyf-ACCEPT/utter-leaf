@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>言叶</string>
+	<string>言叶 · iCloud</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,7 +27,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>utterleaf</string>
+				<string>utterleaf-mobile</string>
 			</array>
 		</dict>
 	</array>
@@ -83,5 +83,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UtterLeafAppGroup</key>
+	<string>group.network.utterleaf.mobile</string>
+	<key>UtterLeafURLScheme</key>
+	<string>utterleaf-mobile</string>
+	<key>UtterLeafCloudContainer</key>
+	<string>iCloud.network.utterleaf.personal</string>
 </dict>
 </plist>
