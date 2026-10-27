@@ -16,6 +16,7 @@ Requirements: Flutter, Xcode with iOS SDK, an Apple ID signed into **Xcode → S
 ```sh
 cd mobile
 flutter pub get
+python3 scripts/prepare_host_plugin.py
 flutter analyze
 flutter test
 flutter build ios --simulator --debug
@@ -30,7 +31,13 @@ On iPhone: Settings → General → Keyboard → Keyboards → Add New Keyboard 
 
 ## Actual handoff behavior
 
-The central keyboard action resolves the current host, writes the single-use ticket, then invokes SwiftUI openURL. Opening is ordered after preparation rather than racing a Link simultaneous gesture. Opening the app on a specific iOS release requires device acceptance. The compatibility adapter now attempts to resume a freshly captured source bundle, with guarded system Back and the WeChat URL scheme as fallback. A small MIT Objective-C arbiter adapter from KeyboardHostBundleID targets the iOS26.4+ host lookup change. Failed or missing callbacks never use a cached previous app. Simulator navigation tests currently show no host callbacks, and the fixed-target private resume control is also rejected; automatic return is still under investigation and is not validated. Unknown hosts and unsupported selectors fall back to the visible manual return prompt; no cached host or arbitrary bundle launch is used. This adapter must be removed or reassessed before public distribution and retested after iOS changes. Automatic return is not guaranteed by Apple. The user can always return manually using the system back affordance or app switcher. Once back, stop on the keyboard; processing continues under a bounded iOS background task. Completion inserts automatically only when the captured document/caret context still matches, otherwise an explicit Insert button is shown. Results expire for insertion after 15 minutes. A claim recorded before insertion prevents duplicate automatic writes; an uncertain terminated insertion is recoverable by copying in the app. Return/Send is never generated.
+The central keyboard action resolves the source with the official standalone KeyboardKitHostPlugin11.0.0, writes the single-use ticket, then invokes SwiftUI openURL. Only its public free-to-start bundle-ID resolver is used; no KeyboardKit core, LicenseKit, Pro metadata, or speech engine is linked. The published SHA256 is checked by `scripts/prepare_host_plugin.py`; its offline artifact is ignored by Git. The selected iPhone static library is about75KB before linking. Vendor license is bundled in the extension.
+
+The old MIT arbiter hook received no callbacks on both iOS26.4.1 Simulator and the user's iOS26.6.2 phone and has been removed. The new resolver identifies the actual synthetic fixture correctly. A guarded private captured-bundle resume is attempted, followed by an explicitly supported public resume scheme (currently WeChat). Unknown sources never use a guessed or previously cached app. The simulator uses a separate fixture-only return scheme. Native return success requires observing background state, not merely URL request acceptance or an inactive launch transition. First use of an app link may require a system Open confirmation.
+
+Current verified boundary: simulator keyboard → UtterLeaf → original fixture field round trip passed with real source discovery (`fixtureMatched=true`, `fixedFixture=false`) and preserved text. Phone WeChat acceptance is pending. This is not proof of compatibility with every app or conversation. Unsupported sources retain an explicit manual-return path. The Return button exposes pending and concrete failure states.
+
+Once back, stop on the keyboard; processing continues under a bounded iOS background task. Completion inserts automatically only when the captured document/caret context still matches, otherwise an explicit Insert button is shown. Results expire for insertion after15minutes. A claim recorded before insertion prevents duplicate writes; copying in the app recovers an uncertain terminated insertion. Every Start gets a new request UUID, including after cancellation/failure. Return/Send is never generated.
 
 Five-minute cap, warning at 4:30, cancellation, microphone interruption, slow-network bounds, API timeout and cleanup retry are explicit. Raw text is retained in the running app if cleanup fails; audio is not written to disk. Only the latest result is kept in the App Group; this version has no permanent dictation history. Force-quitting iOS can discard an in-flight recording or raw-only recovery. A terminated active session is marked interrupted on the next app launch.
 

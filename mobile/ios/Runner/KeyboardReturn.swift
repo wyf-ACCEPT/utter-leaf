@@ -34,7 +34,10 @@ import UIKit
             }
         }
         // Some apps expose an ordinary resume scheme. Exclude schemes known to create a new page/conversation.
-        let schemes = ["com.tencent.xin": "weixin://"]
+        var schemes = ["com.tencent.xin": "weixin://"]
+        #if targetEnvironment(simulator)
+        schemes["network.utterleaf.navigation.fixture"] = "utterleaf-nav-fixture://"
+        #endif
         if !accepted, let host, let value = schemes[host], let url = URL(string: value) {
             accepted = await application.open(url); route = accepted ? "resume-scheme" : "resume-scheme-rejected"
         }
@@ -46,6 +49,7 @@ import UIKit
         let leftApp = application.applicationState == .background
         try? DictationExchange.write(["hostResolved": host != nil, "route": route, "accepted": accepted, "leftApp": leftApp,
             "os": UIDevice.current.systemVersion, "updated": Date().timeIntervalSince1970], to: "app-navigation")
+        DictationExchange.exportNavigationDiagnostics()
         return accepted && leftApp
     }
 }

@@ -1,15 +1,14 @@
 import SwiftUI
 import UIKit
+import KeyboardKitHostPlugin
 
 final class KeyboardViewController: UIInputViewController {
     private let model = KeyboardModel()
     private var timer: Timer?
-    private var resolverTrace: [String: Any] = [:]
+    private var resolverFailure: [String: Any] = [:]
     override func viewDidLoad() {
         super.viewDidLoad()
         hasDictationKey = true
-        // Create the optional client before the input destination becomes active.
-        KBHostArbiterHook.activeArbiterCheck()
         // The keyboard-style UIInputView paints the same system background as the bottom dock.
         // Do not cover it with the main app's botanical surface.
         view.backgroundColor = .clear
@@ -22,17 +21,17 @@ final class KeyboardViewController: UIInputViewController {
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated); refresh()
-        KBHostArbiterHook.activeArbiterCheck()
         timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in self?.refresh() }
     }
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated); timer?.invalidate(); timer = nil
-        KBHostArbiterHook.invalidateCache(); model.host = nil
+        model.host = nil
     }
     fileprivate func prepare() async -> URL? {
         guard hasFullAccess, !model.launching else { return nil }
         model.launching = true
         defer { model.launching = false }
+        model.nextID = UUID().uuidString
         let originalDocument = textDocumentProxy.documentIdentifier
         let record: [String: Any] = ["requestID": model.nextID, "document": textDocumentProxy.documentIdentifier.uuidString,
             "before": String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)),
@@ -45,9 +44,13 @@ final class KeyboardViewController: UIInputViewController {
         if let host = model.host { ticket["host"] = host }
         do { try DictationExchange.write(ticket, to: "handoff") }
         catch { model.status = "无法共享录音请求，请重新允许完全访问。"; return nil }
-        var trace = resolverTrace
+        var trace: [String: Any] = ["resolver": "KeyboardKitHostPlugin-11.0.0"]
+        trace.merge(resolverFailure) { _, new in new }
         trace["hostResolved"] = model.host != nil
         trace["hostKind"] = model.host == "com.tencent.xin" ? "wechat" : model.host == nil ? "missing" : "other"
+        #if targetEnvironment(simulator)
+        trace["fixtureMatched"] = model.host == "network.utterleaf.navigation.fixture"
+        #endif
         trace["os"] = UIDevice.current.systemVersion; trace["updated"] = Date().timeIntervalSince1970
         try? DictationExchange.write(trace, to: "keyboard-navigation")
         var parts = URLComponents(); parts.scheme = "utterleaf"; parts.host = "dictate"
@@ -103,33 +106,20 @@ final class KeyboardViewController: UIInputViewController {
         default: model.status = "让想法，自然落成文字。"
         }
     }
-    private func freshHost() -> String? {
-        // Optional selectors disappear on some iOS versions. Never reuse a cached source app.
-        for object: NSObject in [self, parent, extensionContext].compactMap({ $0 }) {
-            for name in ["_hostApplicationBundleIdentifier", "_hostBundleID"] {
-                let selector = NSSelectorFromString(name)
-                if object.responds(to: selector), let id = object.perform(selector)?.takeUnretainedValue() as? String,
-                   id != "network.utterleaf.personal.mobile", id.range(of: "^[A-Za-z0-9.-]+$", options: .regularExpression) != nil { return id }
-            }
-        }
-        return nil
-    }
     private func resolveHostForCurrentTap() async -> String? {
+        resolverFailure = [:]
         guard viewIfLoaded?.window != nil else { return nil }
-        if #available(iOS 26.4, *) {
-            let generation = KBHostArbiterHook.captureGeneration()
-            resolverTrace = ["before": generation, "arbiter": NSClassFromString("_UIKeyboardArbiterClient") != nil,
-                "destination": NSClassFromString("_UIKeyboardArbiterClientInputDestination") != nil]
-            resolverTrace["hook"] = KBHostArbiterHook.diagnostics()
-            KBHostArbiterHook.activeArbiterCheck()
-            for _ in 0..<20 {
-                guard viewIfLoaded?.window != nil, !Task.isCancelled else { return nil }
-                if let host = KBHostArbiterHook.hostBundleId(capturedAfter: generation) { resolverTrace["after"] = KBHostArbiterHook.captureGeneration(); return host }
-                try? await Task.sleep(nanoseconds: 20_000_000)
-            }
-            resolverTrace["after"] = KBHostArbiterHook.captureGeneration(); return nil
+        do {
+            let result = try await pluginHostApplicationResolver(controller: self, pollingInterval: 0.05, timeout: 1.0)
+            guard viewIfLoaded?.window != nil, !Task.isCancelled, let result,
+                  !result.hasPrefix("network.utterleaf.personal.mobile"),
+                  result.range(of: "^[A-Za-z0-9]+[A-Za-z0-9.-]+$", options: .regularExpression) != nil else { return nil }
+            return result
+        } catch {
+            let failure = error as NSError
+            resolverFailure = ["errorDomain": failure.domain, "errorCode": failure.code]
+            return nil
         }
-        return freshHost()
     }
 }
 

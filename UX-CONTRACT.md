@@ -154,3 +154,6 @@ The iOS dictation app is independent of active macOS meetings. Personal installa
 
 
 The iOS keyboard backdrop is system-owned through UIInputViewStyle.keyboard. Neither the controller nor the SwiftUI content draws an opaque root fill. Keyboard appearance follows the host field; the system switcher dock and extension canvas therefore share the native material. Simulator light and dark fixture checks verify the joined surface.
+
+
+`DictationCoordinator.requestReturn` owns return pending/result/error feedback; Flutter exposes live inline recovery text. The keyboard gets a fresh Start UUID each tap, awaits the standalone host resolver and atomic ticket, and then opens the main app. Simulator return verification requires actual fixture source detection and foreground/caret preservation; no fixed-target override may be reported as source discovery. The official standalone SDK replaces the nonworking MIT hook; no full keyboard engine is linked.

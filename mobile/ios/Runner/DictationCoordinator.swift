@@ -16,6 +16,7 @@ import UIKit
     private var fromKeyboard = false
     private var host: String?
     private var returnStatus = ""
+    private var returnMessage = ""
     private var lastCommand = ""
     private var background: UIBackgroundTaskIdentifier = .invalid
     private(set) var phase = "idle"
@@ -28,6 +29,7 @@ import UIKit
     }
     override init() {
         super.init()
+        DictationExchange.exportNavigationDiagnostics()
         #if UTTERLEAF_NAVIGATION_TEST
         error = "当前为跳转测试版：不录音、不调用 API。请从原 App 的言叶键盘点击开始。"
         #endif
@@ -50,7 +52,7 @@ import UIKit
             case "cancel": self.cancel(); result(nil)
             case "retry": self.retry(); result(nil)
             case "return":
-                Task { let sent = await KeyboardReturn.attempt(host: self.host); self.returnStatus = sent ? "requested" : "manual"; result(sent) }
+                Task { result(await self.requestReturn()) }
             case "saveKeys":
                 guard !["starting", "recording", "processing"].contains(self.phase) else { result(FlutterError(code: "busy", message: "请先结束录音。", details: nil)); return }
                 do {
@@ -65,7 +67,7 @@ import UIKit
     }
     var snapshot: [String: Any] {
         ["phase": phase, "text": text, "raw": raw, "error": error, "level": level, "seconds": elapsed,
-         "fromKeyboard": fromKeyboard, "returnStatus": returnStatus, "doubaoConfigured": PersonalKeys.get("DOUBAO_API_KEY")?.isEmpty == false,
+         "fromKeyboard": fromKeyboard, "returnStatus": returnStatus, "returnMessage": returnMessage, "doubaoConfigured": PersonalKeys.get("DOUBAO_API_KEY")?.isEmpty == false,
          "deepseekConfigured": PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false]
     }
     private func publish() {
@@ -115,7 +117,7 @@ import UIKit
         #endif
         guard !["starting", "recording", "processing"].contains(phase) else { return }
         requestID = id; fromKeyboard = keyboard; generation = UUID()
-        returnStatus = ""; if !keyboard { host = nil }
+        returnStatus = ""; returnMessage = ""; if !keyboard { host = nil }
         lastCommand = DictationExchange.read("command")["id"] as? String ?? ""
         let token = generation
         phase = "starting"; text = ""; raw = ""; error = ""; elapsed = 0; buffer.removeAll(); publish()
@@ -149,12 +151,24 @@ import UIKit
                     try await Task.sleep(nanoseconds: 220_000_000)
                     try Task.checkCancellation()
                     if generation == token, phase == "recording" {
-                        let sent = await KeyboardReturn.attempt(host: host)
-                        returnStatus = sent ? "requested" : "manual"
+                        _ = await requestReturn()
                     }
                 }
             } catch { if generation == token, !Task.isCancelled { fail(error) } }
         }
+    }
+    private func requestReturn() async -> Bool {
+        guard returnStatus != "returning" else { return false }
+        let token = generation
+        returnStatus = "returning"; returnMessage = ""
+        let sent = await KeyboardReturn.attempt(host: host)
+        guard generation == token else { return false }
+        returnStatus = sent ? "requested" : "manual"
+        if !sent {
+            returnMessage = host == nil ? "未能识别原 App。请点屏幕左上角的系统返回入口，录音会继续。"
+                : "系统未接受返回请求。请点屏幕左上角的返回入口，录音会继续。"
+        }
+        return sent
     }
     private func beginAudio(token: UUID) throws {
         let audio = AVAudioSession.sharedInstance()
