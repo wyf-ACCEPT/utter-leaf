@@ -198,24 +198,26 @@ private struct KeyboardSurface: View {
                 }
             }.font(.title3.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75).frame(width: 200, height: 80)
                 .background(leaf.opacity(0.16), in: Capsule()).foregroundStyle(leaf)
-            HStack(spacing: 28) {
-                if model.showSwitcher {
-                    Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
-                }
-                Spacer(minLength: 0)
+            ZStack {
                 Button { controller.performReturn() } label: {
                     Text(model.returnTitle).font(.system(size: 18, weight: .medium))
                         .frame(width: 112, height: 52)
                         .background(leaf.opacity(0.16), in: Capsule()).contentShape(Capsule())
                 }.buttonStyle(.plain).accessibilityLabel(model.returnTitle)
-                Spacer(minLength: 0)
-                Button { controller.textDocumentProxy.deleteBackward() } label: {
-                    Image(systemName: "delete.left").font(.system(size: 28, weight: .medium))
-                        .frame(width: 64, height: 52)
-                        .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
-                        .contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityLabel("删除")
+                HStack {
+                    if model.showSwitcher {
+                        Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
+                    }
+                    Spacer(minLength: 0)
+                    Button { controller.textDocumentProxy.deleteBackward() } label: {
+                        Image(systemName: "delete.left").font(.system(size: 28, weight: .medium))
+                            .frame(width: 64, height: 52)
+                            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+                            .contentShape(Rectangle())
+                    }.buttonStyle(.plain).accessibilityLabel("删除")
+                }
             }.font(.title3).frame(height: 52)
+
         }.padding(18).foregroundStyle(.primary)
     }
 }

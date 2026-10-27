@@ -163,3 +163,6 @@ Recording waves use measured RMS-derived level on both Flutter home and the nati
 
 
 The iOS app has persistent Home, Usage and Settings destinations. A native platform view uses UIGlassEffect on iOS 26 and system blur on earlier iOS, with opaque fallback for Reduce Transparency. Active recording belongs to the coordinator and survives tab changes; a fresh keyboard recording returns the main app to Home. Settings owns key editing, disabled during capture/processing. Usage explicitly stops at iCloud setup: current seven-day LocalProvision profile has no iCloud entitlement, so no cloud reads/writes or fabricated budget values appear. Enable paid developer membership and a shared private container before implementing cross-device record merge; no audio, transcript or credential synchronization is planned.
+
+
+The keyboard return action is centered independently of the optional globe and trailing delete key, sharing the primary recording capsule center axis at every width.
