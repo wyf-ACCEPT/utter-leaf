@@ -148,3 +148,6 @@ Keyboard backdrop correction (2026-10-27): native keyboard-style UIInputView own
 
 
 Return navigation feedback correction (2026-10-27): the same native requestReturn owner serves automatic and explicit return. The button displays a pending spinner/label, suppresses duplicates, and uses a persistent live status distinguishing missing source from a rejected request. Inactive activation is not a completed return. Normal builds keep recording enabled; test-only navigation flags remain explicit.
+
+
+Keyboard delivery refinement (2026-10-27): the primary Start/Stop capsule is centered200×80pt inside the existing260pt keyboard surface;12pt vertical spacing preserves the header/status/footer. The space action is removed; delete and optional next-keyboard controls retain44pt targets. System backdrop remains continuous. Stop explicitly binds the current input proxy and surrounding context for this request, allowing automatic delivery after the app handoff has recreated the original proxy. The Insert action is removed; a changed target retains the result and shows waiting/recovery status.

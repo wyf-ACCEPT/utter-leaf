@@ -33,11 +33,7 @@ final class KeyboardViewController: UIInputViewController {
         defer { model.launching = false }
         model.nextID = UUID().uuidString
         let originalDocument = textDocumentProxy.documentIdentifier
-        let record: [String: Any] = ["requestID": model.nextID, "document": textDocumentProxy.documentIdentifier.uuidString,
-            "before": String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)),
-            "after": String((textDocumentProxy.documentContextAfterInput ?? "").prefix(80)), "created": Date().timeIntervalSince1970]
-        // Target context is local to this extension and never sent to an API or the main app.
-        UserDefaults.standard.set(record, forKey: "pendingTarget")
+        captureTarget(requestID: model.nextID)
         model.host = await resolveHostForCurrentTap()
         guard viewIfLoaded?.window != nil, textDocumentProxy.documentIdentifier == originalDocument else { return nil }
         var ticket: [String: Any] = ["requestID": model.nextID, "created": Date().timeIntervalSince1970]
@@ -59,21 +55,31 @@ final class KeyboardViewController: UIInputViewController {
     }
     fileprivate func command(_ action: String) {
         let state = DictationExchange.read("state")
+        if action == "stop", state["phase"] as? String == "recording", let id = state["requestID"] as? String {
+            // Returning from the containing app can recreate the document proxy. The user's Stop
+            // gesture selects this current input field as the delivery destination for this request.
+            captureTarget(requestID: id)
+        }
         try? DictationExchange.write(["id": UUID().uuidString, "requestID": state["requestID"] ?? "", "action": action], to: "command")
     }
-    fileprivate func insert(manual: Bool) {
+    private func captureTarget(requestID: String) {
+        // Context stays in extension-local preferences, never in the App Group or provider requests.
+        UserDefaults.standard.set(["requestID": requestID, "document": textDocumentProxy.documentIdentifier.uuidString,
+            "before": String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)),
+            "after": String((textDocumentProxy.documentContextAfterInput ?? "").prefix(80)),
+            "created": Date().timeIntervalSince1970], forKey: "pendingTarget")
+    }
+    private func insert() {
         let state = DictationExchange.read("state")
         guard state["phase"] as? String == "ready", let id = state["requestID"] as? String,
               let text = state["text"] as? String, !text.isEmpty,
               let updated = state["updated"] as? Double,
               KeyboardDelivery.hasFreshResult(request: id, consumed: UserDefaults.standard.string(forKey: "consumedRequest"), text: text, updated: updated, now: Date().timeIntervalSince1970) else { return }
-        if !manual {
-            guard let target = UserDefaults.standard.dictionary(forKey: "pendingTarget"),
+        guard let target = UserDefaults.standard.dictionary(forKey: "pendingTarget"),
                   KeyboardDelivery.matchesTarget(request: id, expectedRequest: target["requestID"] as? String,
                     document: textDocumentProxy.documentIdentifier.uuidString, expectedDocument: target["document"] as? String,
                     before: String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)), expectedBefore: target["before"] as? String,
                     after: String((textDocumentProxy.documentContextAfterInput ?? "").prefix(80)), expectedAfter: target["after"] as? String) else { return }
-        }
         // Claim before insertion so a recreated extension cannot paste the same result twice.
         UserDefaults.standard.set(id, forKey: "consumedRequest")
         textDocumentProxy.insertText(text)
@@ -101,7 +107,7 @@ final class KeyboardViewController: UIInputViewController {
         case "recording": model.status = String(format: "正在录音 · %02d:%02d", seconds / 60, seconds % 60)
         case "starting": model.status = "正在准备麦克风…"
         case "processing": model.status = "正在转写与整理…"
-        case "ready": model.status = "文字已就绪，点按插入"; insert(manual: false)
+        case "ready": model.status = "文字已保留，回到原输入框后自动放入"; insert()
         case "error": model.status = state["error"] as? String ?? "请返回言叶重试"
         default: model.status = "让想法，自然落成文字。"
         }
@@ -141,14 +147,14 @@ private struct KeyboardSurface: View {
         ? UIColor(red: 159/255, green: 214/255, blue: 181/255, alpha: 1)
         : UIColor(red: 45/255, green: 94/255, blue: 70/255, alpha: 1) })
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 12) {
             HStack { Label("言叶", systemImage: "leaf").font(.headline); Spacer(); if ["starting", "recording", "processing"].contains(model.phase) { Button("取消") { controller.command("cancel") }.font(.caption) } else { Text("个人语音输入").font(.caption).opacity(0.65) } }
             Text(model.status).font(.subheadline).multilineTextAlignment(.center).lineLimit(2).frame(minHeight: 36).accessibilityAddTraits(.updatesFrequently)
             Group {
                 if model.phase == "recording" {
                     Button { controller.command("stop") } label: { Label("结束并整理", systemImage: "stop.fill") }
                 } else if model.phase == "ready" {
-                    Button { controller.insert(manual: true) } label: { Label("插入文字", systemImage: "text.badge.plus") }
+                    Label("等待原输入框", systemImage: "text.badge.checkmark")
                 } else if ["starting", "processing"].contains(model.phase) {
                     ProgressView().tint(leaf).frame(height: 48)
                 } else {
@@ -158,15 +164,15 @@ private struct KeyboardSurface: View {
                         Label("开始说话", systemImage: "mic.fill")
                     }.disabled(!model.fullAccess || model.launching)
                 }
-            }.font(.title3.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 52)
+            }.font(.title3.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75).frame(width: 200, height: 80)
                 .background(leaf.opacity(0.16), in: Capsule()).foregroundStyle(leaf)
             HStack(spacing: 28) {
                 if model.showSwitcher {
-                    Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe") }.accessibilityLabel("切换输入法")
+                    Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
                 }
-                Button("空格") { controller.textDocumentProxy.insertText(" ") }.frame(maxWidth: .infinity)
-                Button { controller.textDocumentProxy.deleteBackward() } label: { Image(systemName: "delete.left") }.accessibilityLabel("删除")
-            }.font(.title3).frame(height: 40)
+                Spacer(minLength: 0)
+                Button { controller.textDocumentProxy.deleteBackward() } label: { Image(systemName: "delete.left").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("删除")
+            }.font(.title3).frame(height: 44)
         }.padding(18).foregroundStyle(.primary)
     }
 }
