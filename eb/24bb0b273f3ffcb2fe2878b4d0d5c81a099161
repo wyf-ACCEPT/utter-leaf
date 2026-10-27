@@ -1,0 +1,25 @@
+DESIGN.md
+  s_299dc04098b816::t_947e39e946658d 175-177
+UX-CONTRACT.md
+  s_299dc04098b816::t_cb1055109cd06b 178-180
+mobile/README.md
+  s_299dc04098b816::t_fb04f861a16e8e 75-77
+mobile/ios/Runner/AppDelegate.swift
+  s_299dc04098b816::t_a9e66b38c6f87d 30-40,42,44-53,58-67,77,80-88,90-111,114-118,120-126,128-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eb24bb0b273f3ffcb2fe2878b4d0d5c81a099161",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
