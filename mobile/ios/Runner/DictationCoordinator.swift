@@ -72,7 +72,7 @@ import UIKit
     }
     private func publish() {
         try? DictationExchange.write(["requestID": requestID, "phase": phase, "text": text, "error": error,
-            "seconds": elapsed, "updated": Date().timeIntervalSince1970], to: "state")
+            "seconds": elapsed, "level": level, "updated": Date().timeIntervalSince1970], to: "state")
     }
     func open(_ url: URL) {
         guard url.scheme == "utterleaf", url.host == "dictate", let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
