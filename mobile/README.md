@@ -56,3 +56,10 @@ Navigation-only test builds use UTTERLEAF_NAVIGATION_TEST and explicitly disable
 Simulator delivery verification passed: the real keyboard Stop received a synthetic ready result and automatically appended it exactly once to the original fixture field, without an Insert tap. This verifies keyboard delivery, not real-device ASR completion.
 
 Keyboard refinement (2026-10-27): primary action is a centered200×80pt capsule; the space button is removed, with a44pt delete target and native input-mode switching retained. `--delivery-smoke` is simulator-only: no audio/provider runs. A synthetic provider fixture can publish processing/ready after the real keyboard Stop to verify actual textDocumentProxy insertion independently of ASR/background audio.
+
+
+Keyboard return actions follow the host field's returnKeyType. Search/Send/Go/Next/Done labels are refreshed on input changes; only an explicit tap inserts the return character. Actual behavior is controlled by the host. Synthetic native Search and Send callback verification passed; dictation completion never submits.
+
+The recording capsule includes a measured-level wave. Simulator maximum/zero scalar controls verify visible amplitude range; real microphone gain still requires user trial. The main Flutter wave uses the same RMS-derived source.
+
+Home / Usage / Settings use a native Liquid Glass navigation surface on iOS26 (system blur fallback on older OS, opaque material with Reduce Transparency). Tab changes preserve capture. Cloud usage synchronization is deliberately **not implemented or enabled**: the verified current personal profile has LocalProvision=true, a seven-day lifetime and no iCloud entitlements. Per the user's decision, Usage stops at configuration instructions rather than presenting local-only or fake Mac statistics. Apple Developer Program membership and a shared private iCloud container for Mac/iOS are prerequisites; then implement metadata-only record synchronization with stable call IDs, device provenance, conflict handling and rolling-budget parity. Never sync local database files wholesale: they contain private text.

@@ -148,4 +148,40 @@ void main() {
     expect(find.text('返回原 App'), findsOneWidget);
     await close(tester);
   });
+  testWidgets(
+    'navigation preserves recording and pending cloud usage is not zero spend',
+    (tester) async {
+      snapshot = {
+        ...snapshot,
+        'phase': 'recording',
+        'seconds': 12,
+        'level': 0.6,
+      };
+      await open(tester);
+      await tester.tap(find.text('用量'));
+      await tester.pump();
+      expect(find.text('等待 iCloud 配置'), findsOneWidget);
+      expect(find.text('尚未连接电脑用量'), findsOneWidget);
+      expect(find.textContaining('¥0'), findsNothing);
+      await tester.tap(find.text('设置'));
+      await tester.pump();
+      expect(find.text('个人 API'), findsOneWidget);
+      expect(
+        tester
+            .widget<ListTile>(
+              find.ancestor(
+                of: find.text('个人 API'),
+                matching: find.byType(ListTile),
+              ),
+            )
+            .onTap,
+        isNull,
+      );
+      await tester.tap(find.text('主页'));
+      await tester.pump();
+      expect(find.text('结束并整理'), findsOneWidget);
+      expect(commands, isEmpty);
+      await close(tester);
+    },
+  );
 }

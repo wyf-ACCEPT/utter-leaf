@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -57,6 +58,7 @@ class _DictationPageState extends State<DictationPage>
   Map<String, dynamic> state = {'phase': 'idle'};
   String? bridgeError;
   bool refreshing = false, sending = false;
+  int selectedTab = 0;
   String get phase => state['phase'] as String? ?? 'idle';
   bool get busy => ['starting', 'recording', 'processing'].contains(phase);
   bool get configured =>
@@ -95,7 +97,9 @@ class _DictationPageState extends State<DictationPage>
       final next = await bridge.invokeMapMethod<String, dynamic>('snapshot');
       if (mounted && next != null) {
         setState(() {
+          final wasBusy = busy;
           state = next;
+          if (!wasBusy && busy && next['fromKeyboard'] == true) selectedTab = 0;
           bridgeError = null;
         });
       }
@@ -160,238 +164,278 @@ class _DictationPageState extends State<DictationPage>
         ),
         actions: [
           IconButton(
-            onPressed: busy ? null : settings,
+            onPressed: () => setState(() => selectedTab = 2),
             icon: const Icon(CupertinoIcons.slider_horizontal_3),
             tooltip: '设置',
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                '说出来，\n自然落成文字。',
-                style: TextStyle(
-                  fontSize: 34,
-                  height: 1.3,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.8,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                state['fromKeyboard'] == true
-                    ? '录音期间可以返回原 App，在言叶键盘上结束。'
-                    : '个人语音输入 · 豆包转写 + DeepSeek 整理',
-                style: const TextStyle(color: Leaf.muted, fontSize: 14),
-              ),
-              if (state['fromKeyboard'] == true && phase == 'recording')
-                TextButton.icon(
-                  onPressed: state['returnStatus'] == 'returning'
-                      ? null
-                      : () => action('return'),
-                  icon: state['returnStatus'] == 'returning'
-                      ? const CupertinoActivityIndicator()
-                      : const Icon(CupertinoIcons.arrow_turn_up_left),
-                  label: Text(
-                    state['returnStatus'] == 'returning' ? '正在返回…' : '返回原 App',
-                  ),
-                ),
-              if (state['returnStatus'] == 'manual')
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    state['returnMessage'] as String? ??
-                        '系统未能自动返回。请轻点屏幕左上角的返回入口，或从底部切回原 App。',
-                    style: const TextStyle(color: Leaf.muted, fontSize: 13),
-                  ),
-                ),
-              const SizedBox(height: 30),
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Leaf.surface,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Leaf.border),
-                ),
-                child: Column(
-                  children: [
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        status,
-                        style: const TextStyle(color: Leaf.green, fontSize: 16),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: 86,
-                      width: double.infinity,
-                      child: phase == 'recording'
-                          ? SoundWave(
-                              level: (state['level'] as num?)?.toDouble() ?? 0,
-                            )
-                          : Center(
-                              child: ['starting', 'processing'].contains(phase)
-                                  ? const CupertinoActivityIndicator(
-                                      radius: 15,
-                                      color: Leaf.green,
-                                    )
-                                  : Text(
-                                      '${(seconds ~/ 60).toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}',
-                                      style: const TextStyle(
-                                        fontSize: 52,
-                                        fontWeight: FontWeight.w300,
-                                        fontFeatures: [
-                                          FontFeature.tabularFigures(),
-                                        ],
-                                      ),
-                                    ),
-                            ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 58,
-                      child: FilledButton.icon(
-                        onPressed:
-                            sending ||
-                                ['starting', 'processing'].contains(phase)
-                            ? null
-                            : () => phase == 'recording'
-                                  ? action('stop')
-                                  : configured
-                                  ? action('start')
-                                  : settings(),
-                        icon: Icon(
-                          phase == 'recording'
-                              ? CupertinoIcons.stop_fill
-                              : CupertinoIcons.mic_fill,
-                        ),
-                        label: Text(
-                          phase == 'recording'
-                              ? '结束并整理'
-                              : configured
-                              ? '开始说话'
-                              : '配置个人 Key',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (busy)
-                      TextButton(
-                        onPressed: () => action('cancel'),
-                        child: const Text('取消这次录音'),
-                      )
-                    else
-                      const Text(
-                        '单次最长 5 分钟',
-                        style: TextStyle(fontSize: 13, color: Leaf.muted),
-                      ),
-                    if (phase == 'recording' && seconds >= 270)
-                      const Text(
-                        '即将到 5 分钟，将自动结束并整理',
-                        style: TextStyle(color: Colors.orange),
-                      ),
-                  ],
-                ),
-              ),
-              if (error.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(
-                        liveRegion: true,
-                        child: Text(
-                          error,
-                          style: const TextStyle(color: Color(0xFFFFB4A9)),
-                        ),
-                      ),
-                      if (raw.isNotEmpty)
-                        TextButton(
-                          onPressed: busy ? null : () => action('retry'),
-                          child: const Text('重新整理原始文字'),
-                        ),
-                      if (error.contains('权限'))
-                        TextButton(
-                          onPressed: () => action('settings'),
-                          child: const Text('打开系统设置'),
-                        ),
-                    ],
-                  ),
-                ),
-              if (text.isNotEmpty || raw.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        text.isEmpty ? '原始文字 · 整理未完成' : '整理好的文字',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(
-                          ClipboardData(text: text.isEmpty ? raw : text),
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(const SnackBar(content: Text('已复制')));
-                        }
-                      },
-                      icon: const Icon(CupertinoIcons.doc_on_doc, size: 18),
-                      label: const Text('复制'),
-                    ),
-                  ],
-                ),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 260),
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Leaf.surface,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: SingleChildScrollView(
-                    child: SelectableText(text.isEmpty ? raw : text),
-                  ),
-                ),
-                if (state['fromKeyboard'] == true)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: Text(
-                      '返回原输入框，言叶键盘会尝试自动插入。若输入位置有变化，请点“插入文字”。',
-                      style: TextStyle(color: Leaf.green, fontSize: 14),
-                    ),
-                  ),
-              ],
-              const SizedBox(height: 28),
-              if (!busy)
-                OutlinedButton.icon(
-                  onPressed: setup,
-                  icon: const Icon(CupertinoIcons.keyboard),
-                  label: const Text('添加言叶输入法'),
-                ),
-              const SizedBox(height: 16),
-              const Text(
-                '音频和口述文字仅发送到你配置的个人 API。\n个人 Key 保存在手机内，键盘不上传其他输入内容。',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Leaf.muted, fontSize: 12, height: 1.6),
-              ),
-            ],
+      extendBody: true,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+        child: SizedBox(
+          height: 70,
+          child: GlassNavigation(
+            selected: selectedTab,
+            onSelected: (index) => setState(() => selectedTab = index),
           ),
         ),
       ),
+      body: selectedTab == 1
+          ? const UsageSetupPage()
+          : selectedTab == 2
+          ? settingsPage()
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      '说出来，\n自然落成文字。',
+                      style: TextStyle(
+                        fontSize: 34,
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      state['fromKeyboard'] == true
+                          ? '录音期间可以返回原 App，在言叶键盘上结束。'
+                          : '个人语音输入 · 豆包转写 + DeepSeek 整理',
+                      style: const TextStyle(color: Leaf.muted, fontSize: 14),
+                    ),
+                    if (state['fromKeyboard'] == true && phase == 'recording')
+                      TextButton.icon(
+                        onPressed: state['returnStatus'] == 'returning'
+                            ? null
+                            : () => action('return'),
+                        icon: state['returnStatus'] == 'returning'
+                            ? const CupertinoActivityIndicator()
+                            : const Icon(CupertinoIcons.arrow_turn_up_left),
+                        label: Text(
+                          state['returnStatus'] == 'returning'
+                              ? '正在返回…'
+                              : '返回原 App',
+                        ),
+                      ),
+                    if (state['returnStatus'] == 'manual')
+                      Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          state['returnMessage'] as String? ??
+                              '系统未能自动返回。请轻点屏幕左上角的返回入口，或从底部切回原 App。',
+                          style: const TextStyle(
+                            color: Leaf.muted,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 30),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Leaf.surface,
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: Leaf.border),
+                      ),
+                      child: Column(
+                        children: [
+                          Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              status,
+                              style: const TextStyle(
+                                color: Leaf.green,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 86,
+                            width: double.infinity,
+                            child: phase == 'recording'
+                                ? SoundWave(
+                                    level:
+                                        (state['level'] as num?)?.toDouble() ??
+                                        0,
+                                  )
+                                : Center(
+                                    child:
+                                        [
+                                          'starting',
+                                          'processing',
+                                        ].contains(phase)
+                                        ? const CupertinoActivityIndicator(
+                                            radius: 15,
+                                            color: Leaf.green,
+                                          )
+                                        : Text(
+                                            '${(seconds ~/ 60).toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}',
+                                            style: const TextStyle(
+                                              fontSize: 52,
+                                              fontWeight: FontWeight.w300,
+                                              fontFeatures: [
+                                                FontFeature.tabularFigures(),
+                                              ],
+                                            ),
+                                          ),
+                                  ),
+                          ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 58,
+                            child: FilledButton.icon(
+                              onPressed:
+                                  sending ||
+                                      ['starting', 'processing'].contains(phase)
+                                  ? null
+                                  : () => phase == 'recording'
+                                        ? action('stop')
+                                        : configured
+                                        ? action('start')
+                                        : settings(),
+                              icon: Icon(
+                                phase == 'recording'
+                                    ? CupertinoIcons.stop_fill
+                                    : CupertinoIcons.mic_fill,
+                              ),
+                              label: Text(
+                                phase == 'recording'
+                                    ? '结束并整理'
+                                    : configured
+                                    ? '开始说话'
+                                    : '配置个人 Key',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (busy)
+                            TextButton(
+                              onPressed: () => action('cancel'),
+                              child: const Text('取消这次录音'),
+                            )
+                          else
+                            const Text(
+                              '单次最长 5 分钟',
+                              style: TextStyle(fontSize: 13, color: Leaf.muted),
+                            ),
+                          if (phase == 'recording' && seconds >= 270)
+                            const Text(
+                              '即将到 5 分钟，将自动结束并整理',
+                              style: TextStyle(color: Colors.orange),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (error.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Semantics(
+                              liveRegion: true,
+                              child: Text(
+                                error,
+                                style: const TextStyle(
+                                  color: Color(0xFFFFB4A9),
+                                ),
+                              ),
+                            ),
+                            if (raw.isNotEmpty)
+                              TextButton(
+                                onPressed: busy ? null : () => action('retry'),
+                                child: const Text('重新整理原始文字'),
+                              ),
+                            if (error.contains('权限'))
+                              TextButton(
+                                onPressed: () => action('settings'),
+                                child: const Text('打开系统设置'),
+                              ),
+                          ],
+                        ),
+                      ),
+                    if (text.isNotEmpty || raw.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              text.isEmpty ? '原始文字 · 整理未完成' : '整理好的文字',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: text.isEmpty ? raw : text),
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('已复制')),
+                                );
+                              }
+                            },
+                            icon: const Icon(
+                              CupertinoIcons.doc_on_doc,
+                              size: 18,
+                            ),
+                            label: const Text('复制'),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 260),
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Leaf.surface,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: SingleChildScrollView(
+                          child: SelectableText(text.isEmpty ? raw : text),
+                        ),
+                      ),
+                      if (state['fromKeyboard'] == true)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            '返回原输入框，言叶键盘会尝试自动插入。若输入位置有变化，请点“插入文字”。',
+                            style: TextStyle(color: Leaf.green, fontSize: 14),
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: 28),
+                    if (!busy)
+                      OutlinedButton.icon(
+                        onPressed: setup,
+                        icon: const Icon(CupertinoIcons.keyboard),
+                        label: const Text('添加言叶输入法'),
+                      ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '音频和口述文字仅发送到你配置的个人 API。\n个人 Key 保存在手机内，键盘不上传其他输入内容。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Leaf.muted,
+                        fontSize: 12,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
@@ -426,6 +470,48 @@ class _DictationPageState extends State<DictationPage>
           ],
         ),
       ),
+    ),
+  );
+  Widget settingsPage() => SafeArea(
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
+      children: [
+        const Text(
+          '设置',
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 24),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('个人 API'),
+          subtitle: Text(
+            configured ? '豆包与 DeepSeek 已配置 · 保存在本机钥匙串' : '需要配置豆包与 DeepSeek',
+          ),
+          trailing: const Icon(CupertinoIcons.chevron_forward),
+          onTap: busy ? null : settings,
+        ),
+        const Divider(),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('键盘与麦克风'),
+          subtitle: const Text('在 iOS 设置中管理键盘、完全访问与麦克风权限'),
+          trailing: const Icon(CupertinoIcons.arrow_up_right),
+          onTap: () => action('settings'),
+        ),
+        const Divider(),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('iCloud 用量同步'),
+          subtitle: const Text('等待开发者账户与共用容器配置'),
+          trailing: const Icon(CupertinoIcons.chevron_forward),
+          onTap: () => setState(() => selectedTab = 1),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          '个人版 · 录音最长 5 分钟。API 凭证保存在本机；会议功能暂不包含在 iOS 版本中。',
+          style: TextStyle(color: Leaf.muted),
+        ),
+      ],
     ),
   );
   Future<void> settings() async {
@@ -576,13 +662,13 @@ class _SoundWaveState extends State<SoundWave>
       tween: Tween<double>(end: widget.level.clamp(0, 1)),
       duration: const Duration(milliseconds: 220),
       builder: (_, level, _) => CustomPaint(
-      painter: _WavePainter(
-        level,
-        MediaQuery.disableAnimationsOf(context)
-            ? 0
-            : controller.value * 2 * math.pi,
+        painter: _WavePainter(
+          level,
+          MediaQuery.disableAnimationsOf(context)
+              ? 0
+              : controller.value * 2 * math.pi,
+        ),
       ),
-    ),
     ),
   );
 }
@@ -620,4 +706,132 @@ class _WavePainter extends CustomPainter {
   @override
   bool shouldRepaint(_WavePainter oldDelegate) =>
       level != oldDelegate.level || phase != oldDelegate.phase;
+}
+
+class GlassNavigation extends StatefulWidget {
+  const GlassNavigation({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
+  final int selected;
+  final ValueChanged<int> onSelected;
+  @override
+  State<GlassNavigation> createState() => _GlassNavigationState();
+}
+
+class _GlassNavigationState extends State<GlassNavigation> {
+  MethodChannel? channel;
+  @override
+  void didUpdateWidget(covariant GlassNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      channel?.invokeMethod<void>('select', widget.selected);
+    }
+  }
+
+  @override
+  void dispose() {
+    channel?.setMethodCallHandler(null);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return UiKitView(
+        viewType: 'network.utterleaf/glass-navigation',
+        creationParams: {'selected': widget.selected},
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: (id) {
+          channel = MethodChannel('network.utterleaf/navigation/$id');
+          channel!.setMethodCallHandler((call) async {
+            if (call.method == 'select' && mounted && call.arguments is int) {
+              widget.onSelected(call.arguments as int);
+            }
+          });
+        },
+      );
+    }
+    return CupertinoTabBar(
+      currentIndex: widget.selected,
+      onTap: widget.onSelected,
+      backgroundColor: Leaf.surface.withValues(alpha: 0.92),
+      activeColor: Leaf.green,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.waveform),
+          label: '主页',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.chart_bar),
+          label: '用量',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.slider_horizontal_3),
+          label: '设置',
+        ),
+      ],
+    );
+  }
+}
+
+class UsageSetupPage extends StatelessWidget {
+  const UsageSetupPage({super.key});
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: ListView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
+      children: [
+        const Text(
+          '用量与费用',
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+        const Text('让电脑与手机的表达，记在同一本账里。', style: TextStyle(color: Leaf.muted)),
+        const SizedBox(height: 28),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Leaf.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Leaf.border),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(CupertinoIcons.cloud, size: 36, color: Leaf.green),
+              SizedBox(height: 20),
+              Text(
+                '等待 iCloud 配置',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 12),
+              Text('尚未连接电脑用量', style: TextStyle(color: Leaf.green)),
+              SizedBox(height: 8),
+              Text(
+                '当前为免费个人开发签名，不具备 iCloud 同步权限。电脑上的用量仍保存在 Mac 本机，此处暂不显示预算或费用。',
+                style: TextStyle(color: Leaf.muted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 28),
+        const Text(
+          '启用前需要',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          '1. 加入 Apple Developer Program。\n2. 为 Mac 与 iPhone 配置同一个私有 iCloud 容器。\n3. 使用同一 Apple 账户，验证同步后再显示汇总用量。',
+          style: TextStyle(color: Leaf.muted),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          '计划仅同步用量记录与预算，不同步录音、转录正文或 API Key。当前版本尚未上传任何用量数据。',
+          style: TextStyle(color: Leaf.muted, fontSize: 13),
+        ),
+      ],
+    ),
+  );
 }
