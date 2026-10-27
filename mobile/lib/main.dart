@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -745,6 +746,9 @@ class _GlassNavigationState extends State<GlassNavigation> {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
       return UiKitView(
         viewType: 'network.utterleaf/glass-navigation',
+        gestureRecognizers: {
+          Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+        },
         creationParams: {'selected': widget.selected},
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: (id) {
