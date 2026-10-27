@@ -182,7 +182,11 @@ class _DictationPageState extends State<DictationPage>
         ),
       ),
       body: selectedTab == 1
-          ? const UsageSetupPage()
+          ? UsageSetupPage(
+              status: state['cloudStatus'] as String? ?? 'unconfigured',
+              message: state['cloudMessage'] as String? ?? '',
+              onRefresh: () => action('refreshCloud'),
+            )
           : selectedTab == 2
           ? settingsPage()
           : SafeArea(
@@ -502,7 +506,7 @@ class _DictationPageState extends State<DictationPage>
         ListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('iCloud 用量同步'),
-          subtitle: const Text('等待开发者账户与共用容器配置'),
+          subtitle: Text(state['cloudMessage'] as String? ?? '等待 iCloud 配置'),
           trailing: const Icon(CupertinoIcons.chevron_forward),
           onTap: () => setState(() => selectedTab = 1),
         ),
@@ -777,7 +781,14 @@ class _GlassNavigationState extends State<GlassNavigation> {
 }
 
 class UsageSetupPage extends StatelessWidget {
-  const UsageSetupPage({super.key});
+  const UsageSetupPage({
+    super.key,
+    this.status = 'unconfigured',
+    this.message = '',
+    this.onRefresh,
+  });
+  final String status, message;
+  final VoidCallback? onRefresh;
   @override
   Widget build(BuildContext context) => SafeArea(
     child: ListView(
@@ -797,20 +808,24 @@ class UsageSetupPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Leaf.border),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(CupertinoIcons.cloud, size: 36, color: Leaf.green),
               SizedBox(height: 20),
               Text(
-                '等待 iCloud 配置',
+                status == 'available'
+                    ? 'iCloud 云权限已就绪'
+                    : status == 'checking'
+                    ? '正在检查 iCloud'
+                    : '等待 iCloud 配置',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 12),
               Text('尚未连接电脑用量', style: TextStyle(color: Leaf.green)),
               SizedBox(height: 8),
               Text(
-                '当前为免费个人开发签名，不具备 iCloud 同步权限。电脑上的用量仍保存在 Mac 本机，此处暂不显示预算或费用。',
+                message.isEmpty ? '尚未配置 iCloud 连接。电脑上的用量仍保存在 Mac 本机。' : message,
                 style: TextStyle(color: Leaf.muted),
               ),
             ],
@@ -818,13 +833,18 @@ class UsageSetupPage extends StatelessWidget {
         ),
         const SizedBox(height: 28),
         const Text(
-          '启用前需要',
+          '用量同步下一步',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         const Text(
-          '1. 加入 Apple Developer Program。\n2. 为 Mac 与 iPhone 配置同一个私有 iCloud 容器。\n3. 使用同一 Apple 账户，验证同步后再显示汇总用量。',
+          '手机已切换到个人付费开发者团队，并配置私有 iCloud 容器。Mac 与手机的用量同步代码尚未接入，目前暂不展示费用与预算。',
           style: TextStyle(color: Leaf.muted),
+        ),
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: status == 'checking' ? null : onRefresh,
+          child: const Text('重新检查 iCloud'),
         ),
         const SizedBox(height: 24),
         const Text(

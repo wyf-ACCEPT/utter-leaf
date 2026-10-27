@@ -184,4 +184,24 @@ void main() {
       await close(tester);
     },
   );
+  testWidgets('cloud readiness never claims usage is synchronized', (
+    tester,
+  ) async {
+    snapshot = {
+      ...snapshot,
+      'cloudStatus': 'available',
+      'cloudMessage': 'iCloud 账户可用，手机云权限已配置。',
+    };
+    await open(tester);
+    await tester.tap(find.text('用量'));
+    await tester.pump();
+    expect(find.text('iCloud 云权限已就绪'), findsOneWidget);
+    expect(find.text('尚未连接电脑用量'), findsOneWidget);
+    expect(find.textContaining('同步代码尚未接入'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('重新检查 iCloud'), 200);
+    await tester.tap(find.text('重新检查 iCloud'));
+    await tester.pump();
+    expect(commands, ['refreshCloud']);
+    await close(tester);
+  });
 }
