@@ -160,3 +160,6 @@ The iOS keyboard backdrop is system-owned through UIInputViewStyle.keyboard. Nei
 
 
 Keyboard Stop captures the delivery target at the explicit user gesture, replacing pre-launch proxy identity while retaining request, expiry, document and context checks. Ready text automatically inserts once; no user Insert action is required. Main-app Copy remains recovery for a changed/unsupported target. Start/Stop geometry is a shared200×80pt capsule; there is no keyboard space action.
+
+
+Keyboard touch refinement (2026-10-27): delete uses a 64x52pt hit region with a 28pt symbol and subtle rounded backing. Routine idle/inserted status is visually and accessibly hidden while its reserved slot keeps the capsule stable. Recording, processing, waiting-result and actionable error/permission feedback remain visible in secondary caption styling.
