@@ -157,3 +157,6 @@ The iOS keyboard backdrop is system-owned through UIInputViewStyle.keyboard. Nei
 
 
 `DictationCoordinator.requestReturn` owns return pending/result/error feedback; Flutter exposes live inline recovery text. The keyboard gets a fresh Start UUID each tap, awaits the standalone host resolver and atomic ticket, and then opens the main app. Simulator return verification requires actual fixture source detection and foreground/caret preservation; no fixed-target override may be reported as source discovery. The official standalone SDK replaces the nonworking MIT hook; no full keyboard engine is linked.
+
+
+Keyboard Stop captures the delivery target at the explicit user gesture, replacing pre-launch proxy identity while retaining request, expiry, document and context checks. Ready text automatically inserts once; no user Insert action is required. Main-app Copy remains recovery for a changed/unsupported target. Start/Stop geometry is a shared200×80pt capsule; there is no keyboard space action.

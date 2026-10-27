@@ -86,6 +86,22 @@ import UIKit
         }
         UserDefaults.standard.set(id, forKey: "claimedHandoff")
         host = ticket["host"] as? String
+        #if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--delivery-smoke") {
+            // Real keyboard delivery with synthetic text; no audio engine or provider is started.
+            generation = UUID(); requestID = id; fromKeyboard = true; phase = "recording"
+            started = Date(); text = ""; raw = ""; error = ""; elapsed = 0
+            lastCommand = DictationExchange.read("command")["id"] as? String ?? ""
+            // The external synthetic provider fixture supplies processing/ready states. It does not
+            // depend on a background audio lease, because this test deliberately captures no audio.
+            publish()
+            work = Task {
+                let returned = await requestReturn()
+                try? DictationExchange.write(["simulation": true, "returned": returned, "deliveryEnabled": true], to: "navigation-smoke")
+            }
+            return
+        }
+        #endif
         #if targetEnvironment(simulator) || UTTERLEAF_NAVIGATION_TEST
         // Exercise real extension/host navigation in the simulator without recording or API calls.
         #if UTTERLEAF_NAVIGATION_TEST
@@ -215,6 +231,17 @@ import UIKit
     }
     func stop() {
         guard phase == "recording" else { return }
+        #if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--delivery-smoke") {
+            phase = "processing"; publish(); let token = generation
+            work = Task {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard generation == token, !Task.isCancelled else { return }
+                text = " Automatic insertion fixture."; phase = "ready"; publish(); endBackground()
+            }
+            return
+        }
+        #endif
         phase = "processing"; stopAudio(); publish()
         let pendingSender = sender, token = generation
         beginBackground()
