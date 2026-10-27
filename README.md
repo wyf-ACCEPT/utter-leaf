@@ -205,3 +205,10 @@ Phase 3 暂不考虑邀请码、账户、统一服务端和多人额度；跨设
 ### Import external recordings
 
 Use **导入录音文件** to select an Apple Watch/recorder M4A, WAV, MP3 or another audio format supported by macOS. UtterLeaf retains a private local copy, converts in bounded memory to16kHz mono PCM WAV, then submits the existing whole-file ASR workflow. It does not start microphone/system capture or live ASR. Current limits are3hours and512MB per source file. Import can be cancelled; interrupted imports can recover from the retained copy. Deleting local meeting audio also removes that copy; the external original is never moved or modified. Playback prefers the retained original, and an already-valid M4A is copied during export without a second lossy encoding. Imported meeting dates currently use import time. Voiceprint enrollment is deferred for this iteration.
+
+
+### macOS installation location
+
+Build with `bash scripts/build-app.sh`, quit UtterLeaf, then install with `bash scripts/install-macos-app.sh`. The installed app is `/Applications/UtterLeaf.app`; launch that copy from Applications or Spotlight. The installer verifies the signature and avoids replacing a running app. Generated copies remain under `.local/` and are unregistered from Launch Services to avoid duplicate launch targets. Existing history/settings remain in `~/Library/Application Support/UtterLeaf`.
+
+After a development signing-team change, macOS may retain an enabled Accessibility entry for the old signature. If UtterLeaf reports Accessibility unauthorized or Fn monitoring unavailable, remove the stale entry in System Settings → Privacy & Security → Accessibility, then add and authorize `/Applications/UtterLeaf.app` and relaunch. Do not reset all system privacy permissions.
