@@ -1,0 +1,37 @@
+DESIGN.md
+  s_3e875cd533eb64::t_80625934fff97e 163-165
+UX-CONTRACT.md
+  s_3e875cd533eb64::t_39a86d9db1db7c 172-174
+mobile/README.md
+  s_3e875cd533eb64::t_38e34e324ab989 59-65
+mobile/ios/Runner/AppDelegate.swift
+  s_299dc04098b816::t_a698c56e16ef8b 15-17,20-78
+mobile/lib/main.dart
+  s_3e875cd533eb64::t_3d32377846d0a8 4,61,100,102,167,173-190,192,194-200,203-208,210-212,214-217,219-229,231-232,236-242,244-336,338-364,367-406,408-415,418-432,438,475-516,665-670,710-837
+mobile/test/dictation_test.dart
+  s_3e875cd533eb64::t_60d4727d00915b 151-186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "15a7a5b120d4057ee52c6ad4c6884b0d5dbd355a",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    },
+    "s_3e875cd533eb64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677c-b29e-7602-81bb-544d99041296",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
