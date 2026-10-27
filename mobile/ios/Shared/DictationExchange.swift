@@ -18,4 +18,15 @@ enum DictationExchange {
         try data.write(to: url, options: .atomic)
         try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: url.path)
     }
+    static func exportNavigationDiagnostics() {
+        // Whitelist navigation-only state; never export dictation, target context, tickets or credentials.
+        guard let source = directory,
+              let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let destination = cache.appendingPathComponent("NavigationDiagnostics", isDirectory: true)
+        try? FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        for name in ["keyboard-navigation", "app-navigation", "navigation-smoke"] {
+            guard let data = try? Data(contentsOf: source.appendingPathComponent(name + ".json")), data.count < 16384 else { continue }
+            try? data.write(to: destination.appendingPathComponent(name + ".json"), options: .atomic)
+        }
+    }
 }

@@ -190,14 +190,24 @@ class _DictationPageState extends State<DictationPage>
               ),
               if (state['fromKeyboard'] == true && phase == 'recording')
                 TextButton.icon(
-                  onPressed: () => action('return'),
-                  icon: const Icon(CupertinoIcons.arrow_turn_up_left),
-                  label: const Text('返回原 App'),
+                  onPressed: state['returnStatus'] == 'returning'
+                      ? null
+                      : () => action('return'),
+                  icon: state['returnStatus'] == 'returning'
+                      ? const CupertinoActivityIndicator()
+                      : const Icon(CupertinoIcons.arrow_turn_up_left),
+                  label: Text(
+                    state['returnStatus'] == 'returning' ? '正在返回…' : '返回原 App',
+                  ),
                 ),
               if (state['returnStatus'] == 'manual')
-                const Text(
-                  '系统未能自动返回。请轻点屏幕左上角的返回入口，或从底部切回原 App。',
-                  style: TextStyle(color: Leaf.muted, fontSize: 13),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    state['returnMessage'] as String? ??
+                        '系统未能自动返回。请轻点屏幕左上角的返回入口，或从底部切回原 App。',
+                    style: const TextStyle(color: Leaf.muted, fontSize: 13),
+                  ),
                 ),
               const SizedBox(height: 30),
               Container(

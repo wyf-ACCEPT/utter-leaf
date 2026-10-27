@@ -145,3 +145,6 @@ The original macOS theme remains canonical for shared brand colors; iOS adopts p
 
 
 Keyboard backdrop correction (2026-10-27): native keyboard-style UIInputView owns the extension backdrop and bottom dock as a single system surface. UIKit and SwiftUI hosting layers remain transparent; text follows keyboard appearance, with botanical accents adapted for light/dark. Main app colors remain unchanged. Simulator light Safari and a dark native synthetic input fixture were visually inspected with no surface color seam.
+
+
+Return navigation feedback correction (2026-10-27): the same native requestReturn owner serves automatic and explicit return. The button displays a pending spinner/label, suppresses duplicates, and uses a persistent live status distinguishing missing source from a rejected request. Inactive activation is not a completed return. Normal builds keep recording enabled; test-only navigation flags remain explicit.

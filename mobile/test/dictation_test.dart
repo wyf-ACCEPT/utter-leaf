@@ -124,4 +124,28 @@ void main() {
       await close(tester);
     },
   );
+  testWidgets('return action exposes pending feedback and failure reason', (
+    tester,
+  ) async {
+    snapshot = {
+      ...snapshot,
+      'phase': 'recording',
+      'fromKeyboard': true,
+      'returnStatus': 'returning',
+    };
+    await open(tester);
+    expect(find.text('正在返回…'), findsOneWidget);
+    final returning = find.widgetWithText(TextButton, '正在返回…');
+    expect(tester.widget<TextButton>(returning).onPressed, isNull);
+    snapshot = {
+      ...snapshot,
+      'returnStatus': 'manual',
+      'returnMessage': '未能识别原 App。',
+    };
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('未能识别原 App。'), findsOneWidget);
+    expect(find.text('返回原 App'), findsOneWidget);
+    await close(tester);
+  });
 }

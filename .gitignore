@@ -6,6 +6,8 @@
 *.p12
 *.mobileprovision
 # Packages
+mobile/ios/HostSupport/Artifacts/
+mobile/ios/HostSupport/.swiftpm/
 .venv/
 node_modules/
 .build/

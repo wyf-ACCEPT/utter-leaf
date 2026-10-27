@@ -21,7 +21,7 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 **Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The latest local suite passes **121 tests**, including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **123 tests** (latest run: 120 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -123,7 +123,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-最新本地自动测试 **121 项通过**，包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+共享 Swift 测试共 **123 项**（最近一次：120 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
