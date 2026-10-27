@@ -27,6 +27,23 @@ final class KeyboardViewController: UIInputViewController {
         super.viewWillDisappear(animated); timer?.invalidate(); timer = nil
         model.host = nil
     }
+    override func textDidChange(_ textInput: UITextInput?) { super.textDidChange(textInput); refresh() }
+    override func selectionDidChange(_ textInput: UITextInput?) { super.selectionDidChange(textInput); refresh() }
+    fileprivate func performReturn() { textDocumentProxy.insertText("\n") }
+    private var returnTitle: String {
+        switch textDocumentProxy.returnKeyType ?? .default {
+        case .search, .google, .yahoo: return "搜索"
+        case .send: return "发送"
+        case .go: return "前往"
+        case .next: return "下一项"
+        case .done: return "完成"
+        case .join: return "加入"
+        case .route: return "路线"
+        case .emergencyCall: return "呼叫"
+        case .continue: return "继续"
+        default: return "换行"
+        }
+    }
     fileprivate func prepare() async -> URL? {
         guard hasFullAccess, !model.launching else { return nil }
         model.launching = true
@@ -86,6 +103,7 @@ final class KeyboardViewController: UIInputViewController {
         model.status = "已放入输入框"; model.phase = "inserted"; model.nextID = UUID().uuidString
     }
     private func refresh() {
+        model.returnTitle = returnTitle
         model.fullAccess = hasFullAccess
         switch textDocumentProxy.keyboardAppearance {
         case .dark: overrideUserInterfaceStyle = .dark
@@ -130,6 +148,7 @@ final class KeyboardViewController: UIInputViewController {
 }
 
 private final class KeyboardModel: ObservableObject {
+    @Published var returnTitle = "换行"
     @Published var phase = "idle"
     @Published var status = "让想法，自然落成文字。"
     @Published var nextID = UUID().uuidString
@@ -176,6 +195,12 @@ private struct KeyboardSurface: View {
                 if model.showSwitcher {
                     Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
                 }
+                Spacer(minLength: 0)
+                Button { controller.performReturn() } label: {
+                    Text(model.returnTitle).font(.system(size: 18, weight: .medium))
+                        .frame(width: 112, height: 52)
+                        .background(leaf.opacity(0.16), in: Capsule()).contentShape(Capsule())
+                }.buttonStyle(.plain).accessibilityLabel(model.returnTitle)
                 Spacer(minLength: 0)
                 Button { controller.textDocumentProxy.deleteBackward() } label: {
                     Image(systemName: "delete.left").font(.system(size: 28, weight: .medium))
