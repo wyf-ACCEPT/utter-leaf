@@ -443,7 +443,7 @@ func callAmount(_ call: UsageCall) -> String {
     if let amount = call.estimatedAmount { return money(amount, call.price.currency) + " 估算" }
     return "金额未知"
 }
-func money(_ amount: Double, _ currency: String) -> String { (currency == "CNY" ? "¥" : "$") + String(format: "%.4f", amount) }
+func money(_ amount: Double, _ currency: String) -> String { (currency == "CNY" ? "¥" : "$") + String(format: currency == "CNY" ? "%.2f" : "%.4f", amount) }
 func statusText(_ status: CallStatus) -> String {
     switch status { case .pending: return "进行中"; case .succeeded: return "成功"; case .failed: return "失败"; case .cancelled: return "已取消"; case .interrupted: return "已中断" }
 }

@@ -20,7 +20,7 @@ class _UsagePageState extends State<UsagePage> {
   static Map<String, dynamic> map(dynamic value) =>
       value is Map ? Map<String, dynamic>.from(value) : {};
   static double number(dynamic value) => value is num ? value.toDouble() : 0;
-  static String money(dynamic value) => '¥${number(value).toStringAsFixed(4)}';
+  static String money(dynamic value) => '¥${number(value).toStringAsFixed(2)}';
   String time(dynamic value) {
     final date = DateTime.fromMillisecondsSinceEpoch(
       (number(value) * 1000).round(),

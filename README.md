@@ -79,7 +79,7 @@ Credentials, private recordings, history, build products and personal handoffs a
 
 ### Usage and billing
 
-- Estimates use the price snapshot attached to each call; CNY amounts display four decimal places. Configurable reference prices are not a promise of your account's actual tariff.
+- Estimates use the price snapshot attached to each call; CNY amounts display two decimal places (full precision is retained for calculation and sync). Configurable reference prices are not a promise of your account's actual tariff.
 - End-to-end totals include **Doubao + DeepSeek**, with task-level audio duration deduplicated. Missing usage stays unknown rather than being treated as free.
 - Optional official checks run every **20 minutes while the app is running**, with startup/wake catch-up and a manual action. They defer during dictation.
 - **DeepSeek:** account balance snapshots are reference information, not itemized spend, and never overwrite dictation costs.
@@ -173,7 +173,7 @@ open .local/UtterLeaf.app
 
 ### 用量与官方核对
 
-- 按每次调用的价格快照估算，CNY 显示四位小数；参考价格可修改，不等于账户实际套餐。
+- 按每次调用的价格快照估算，CNY 显示两位小数，计算与同步保留完整精度；参考价格可修改，不等于账户实际套餐。
 - 端到端费用包含 **豆包 + DeepSeek**，同一任务音频时长去重。缺少用量的调用保留未知，不按免费处理。
 - App 运行期间每 **20 分钟**检查官方数据，启动/唤醒后补查，听写时延后；也可手动核对。
 - **DeepSeek** 返回账户余额参考，不是逐笔账单，不会据此覆盖听写费用。

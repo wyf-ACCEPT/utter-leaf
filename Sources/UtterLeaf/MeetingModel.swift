@@ -473,7 +473,7 @@ import UtterLeafCore
         let calls = ledger.database.calls.filter { $0.jobID == value.id }
         let cost = calls.compactMap(\.estimatedAmount).reduce(0, +)
         let unknown = calls.filter { $0.estimatedAmount == nil }.count
-        return String(format: "本场已知估算 ¥%.4f · %d 次 API 调用", cost, calls.count) + (unknown > 0 ? " · \(unknown) 次金额待定" : "")
+        return String(format: "本场已知估算 ¥%.2f · %d 次 API 调用", cost, calls.count) + (unknown > 0 ? " · \(unknown) 次金额待定" : "")
     }
     func deleteMeeting() {
         guard let value = current, !blocksDictation else { return }

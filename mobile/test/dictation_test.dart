@@ -217,7 +217,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
       expect(find.text('离线记录已保留'), findsOneWidget);
-      expect(find.textContaining('已用 ¥0.2000'), findsWidgets);
+      expect(find.textContaining('已用 ¥0.20'), findsWidgets);
       await tester.tap(find.byTooltip('立即同步'));
       await tester.pump();
       expect(commands, ['syncUsage']);
