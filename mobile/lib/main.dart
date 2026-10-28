@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'usage_page.dart';
+import 'history_page.dart';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -41,6 +42,16 @@ class UtterLeafApp extends StatelessWidget {
         fillColor: Leaf.background,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: Leaf.surface,
+        selectedColor: Leaf.green.withValues(alpha: .18),
+        secondarySelectedColor: Leaf.green.withValues(alpha: .18),
+        checkmarkColor: Leaf.green,
+        labelStyle: const TextStyle(color: Leaf.ink),
+        secondaryLabelStyle: const TextStyle(color: Leaf.green),
+        side: const BorderSide(color: Leaf.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       useMaterial3: true,
     ),
     home: const DictationPage(),
@@ -61,12 +72,13 @@ class _DictationPageState extends State<DictationPage>
   String? bridgeError;
   bool refreshing = false, sending = false;
   int selectedTab = 0;
-  Map<String, dynamic> usage = {};
-  int? usageVersion;
+  Map<String, dynamic> usage = {}, history = {};
+  int? usageVersion, historyVersion;
   String get phase => state['phase'] as String? ?? 'idle';
   bool get busy => ['starting', 'recording', 'processing'].contains(phase);
   bool get configured =>
-      state['doubaoConfigured'] == true && state['deepseekConfigured'] == true;
+      state['doubaoConfigured'] == true &&
+      (state['cleanup'] == false || state['deepseekConfigured'] == true);
   @override
   void initState() {
     super.initState();
@@ -101,9 +113,15 @@ class _DictationPageState extends State<DictationPage>
       final next = await bridge.invokeMapMethod<String, dynamic>('snapshot');
       Map<String, dynamic>? nextUsage;
       if (next != null &&
-          selectedTab == 1 &&
+          selectedTab == 2 &&
           (usage.isEmpty || usageVersion != next['usageVersion'])) {
         nextUsage = await bridge.invokeMapMethod<String, dynamic>('usage');
+      }
+      Map<String, dynamic>? nextHistory;
+      if (next != null &&
+          selectedTab == 1 &&
+          (history.isEmpty || historyVersion != next['historyVersion'])) {
+        nextHistory = await bridge.invokeMapMethod<String, dynamic>('history');
       }
       if (mounted && next != null) {
         setState(() {
@@ -112,6 +130,10 @@ class _DictationPageState extends State<DictationPage>
           if (nextUsage != null) {
             usage = nextUsage;
             usageVersion = next['usageVersion'] as int?;
+          }
+          if (nextHistory != null) {
+            history = nextHistory;
+            historyVersion = next['historyVersion'] as int?;
           }
           if (!wasBusy && busy && next['fromKeyboard'] == true) selectedTab = 0;
           bridgeError = null;
@@ -148,7 +170,7 @@ class _DictationPageState extends State<DictationPage>
     final status = switch (phase) {
       'starting' => '准备麦克风',
       'recording' => '正在倾听',
-      'processing' => '正在转写与整理',
+      'processing' => state['cleanup'] == false ? '正在转写' : '正在转写与整理',
       'ready' => '文字已就绪',
       'cancelled' => '已取消录音',
       'error' => '需要再试一次',
@@ -178,7 +200,7 @@ class _DictationPageState extends State<DictationPage>
         ),
         actions: [
           IconButton(
-            onPressed: () => setState(() => selectedTab = 2),
+            onPressed: () => setState(() => selectedTab = 3),
             icon: const Icon(CupertinoIcons.slider_horizontal_3),
             tooltip: '设置',
           ),
@@ -196,6 +218,16 @@ class _DictationPageState extends State<DictationPage>
         ),
       ),
       body: selectedTab == 1
+          ? HistoryPage(
+              data: history,
+              onSync: () => action('syncHistory'),
+              onErase: (id) async {
+                await bridge.invokeMethod<void>('eraseHistory', id);
+                historyVersion = null;
+                await refresh();
+              },
+            )
+          : selectedTab == 2
           ? UsagePage(
               data: usage,
               onSync: () => action('syncUsage'),
@@ -208,7 +240,7 @@ class _DictationPageState extends State<DictationPage>
                 await refresh();
               },
             )
-          : selectedTab == 2
+          : selectedTab == 3
           ? settingsPage()
           : SafeArea(
               child: SingleChildScrollView(
@@ -331,7 +363,9 @@ class _DictationPageState extends State<DictationPage>
                               ),
                               label: Text(
                                 phase == 'recording'
-                                    ? '结束并整理'
+                                    ? (state['cleanup'] == false
+                                          ? '结束并转录'
+                                          : '结束并整理')
                                     : configured
                                     ? '开始说话'
                                     : '配置个人 Key',
@@ -449,7 +483,7 @@ class _DictationPageState extends State<DictationPage>
                       ),
                     const SizedBox(height: 16),
                     const Text(
-                      '音频和口述文字仅发送到你配置的个人 API。\n个人 Key 保存在手机内，键盘不上传其他输入内容。',
+                      '音频用于个人 API 转录；听写历史可同步到私有 iCloud。\n录音与 Key 留在本机，键盘不上传其他输入内容。',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Leaf.muted,
@@ -529,7 +563,7 @@ class _DictationPageState extends State<DictationPage>
           title: const Text('iCloud 用量同步'),
           subtitle: Text(state['cloudMessage'] as String? ?? '等待 iCloud 配置'),
           trailing: const Icon(CupertinoIcons.chevron_forward),
-          onTap: () => setState(() => selectedTab = 1),
+          onTap: () => setState(() => selectedTab = 2),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -791,6 +825,7 @@ class _GlassNavigationState extends State<GlassNavigation> {
           icon: Icon(CupertinoIcons.waveform),
           label: '主页',
         ),
+        BottomNavigationBarItem(icon: Icon(CupertinoIcons.clock), label: '历史'),
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.chart_bar),
           label: '用量',

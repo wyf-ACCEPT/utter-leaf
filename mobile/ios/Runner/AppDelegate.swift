@@ -65,7 +65,7 @@ private final class GlassNavigationView: NSObject, FlutterPlatformView {
       stack.trailingAnchor.constraint(equalTo: surface.trailingAnchor, constant: -8),
       stack.topAnchor.constraint(equalTo: surface.topAnchor, constant: 6),
       stack.bottomAnchor.constraint(equalTo: surface.bottomAnchor, constant: -6)])
-    for (index,item) in [("主页","waveform"),("用量","chart.bar.xaxis"),("设置","slider.horizontal.3")].enumerated() {
+    for (index,item) in [("主页","waveform"),("历史","clock.arrow.circlepath"),("用量","chart.bar.xaxis"),("设置","slider.horizontal.3")].enumerated() {
       let button = UIButton(type: .system)
       var config = UIButton.Configuration.plain(); config.title = item.0; config.image = UIImage(systemName: item.1)
       config.imagePlacement = .top; config.imagePadding = 3; config.cornerStyle = .capsule
@@ -83,7 +83,7 @@ private final class GlassNavigationView: NSObject, FlutterPlatformView {
       guard let self, !dragging else { return }
       position(Double(selected))
     }
-    selected = min(2, max(0, (arguments as? [String: Any])?["selected"] as? Int ?? 0))
+    selected = min(buttons.count - 1, max(0, (arguments as? [String: Any])?["selected"] as? Int ?? 0))
     paint(selected)
     surface.layoutIfNeeded(); position(Double(selected))
     channel.setMethodCallHandler { [weak self] call, result in
@@ -94,8 +94,8 @@ private final class GlassNavigationView: NSObject, FlutterPlatformView {
     }
   }
   func view() -> UIView { surface }
-  private var step: CGFloat { max(1, (surface.bounds.width - 16) / 3) }
-  private func fraction(at x: CGFloat) -> Double { min(2, max(0, Double((x - 8 - step / 2) / step))) }
+  private var step: CGFloat { max(1, (surface.bounds.width - 16) / CGFloat(buttons.count)) }
+  private func fraction(at x: CGFloat) -> Double { min(Double(buttons.count - 1), max(0, Double((x - 8 - step / 2) / step))) }
   private func position(_ fraction: Double, stretch: CGFloat = 1) {
     lens.transform = .identity
     lens.bounds = CGRect(x: 0, y: 0, width: max(1, step - 4), height: max(1, surface.bounds.height - 12))

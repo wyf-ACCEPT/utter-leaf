@@ -294,7 +294,7 @@ import UtterLeafCore
             draft = ""; raw = ""; self.target = nil; job = nil
             if method != .pasteDispatched { sounds.play(.complete, preferences: activeSound) }
             pillOutcome = method == .pasteDispatched ? .pasteRequested : .inserted
-            message = method == .pasteDispatched ? "已向 \(target.displayName) 发出粘贴；如未显示，可从本地历史复制。" : "已输入到 \(target.displayName)。"
+            message = method == .pasteDispatched ? "已向 \(target.displayName) 发出粘贴；如未显示，可从听写历史复制。" : "已输入到 \(target.displayName)。"
             changePhase(.idle)
         } catch {
             let failure = safeFailure(error)

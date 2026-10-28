@@ -125,7 +125,7 @@ struct PageHeading: View {
 struct RootView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var store: LocalStore
-    let pages = [("听写", "waveform"), ("会议", "person.2"), ("本地历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
+    let pages = [("听写", "waveform"), ("会议", "person.2"), ("听写历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
     var body: some View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 30) {
@@ -155,7 +155,7 @@ struct RootView: View {
                     if let error = store.storageError { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
                     switch model.route {
                     case "会议": MeetingsView(model: model.meetings, meetings: model.meetings.store)
-                    case "本地历史": HistoryView(store: store)
+                    case "听写历史": HistoryView(store: store)
                     case "词汇表": VocabularyView(store: store)
                     case "用量与费用": UsageView(store: store)
                     case "模型与设置": SettingsView(model: model, store: store)
@@ -270,7 +270,7 @@ struct DictationView: View {
         }
         Text("音频与文字会发送至你选择的 API。录音仅存内存；本地正文可在设置中清除。")
             .font(.system(size: LeafType.scaled(11))).foregroundStyle(LeafTheme.muted)
-        .confirmationDialog("放弃当前预览？已保存的本地历史仍会保留。", isPresented: $confirmDiscard) {
+        .confirmationDialog("放弃当前预览？已保存的听写历史仍会保留。", isPresented: $confirmDiscard) {
             Button("放弃预览", role: .destructive, action: model.discard)
             Button("保留预览", role: .cancel) {}
         }
@@ -301,11 +301,17 @@ struct HistoryView: View {
     @State private var query = ""
     @State private var limit = 30
     @State private var expanded: UUID?
-    var rows: [HistoryJob] { store.database.jobs.filter { $0.kind != "meeting" && (query.isEmpty || ($0.finalText ?? "").localizedCaseInsensitiveContains(query) || ($0.rawText ?? "").localizedCaseInsensitiveContains(query)) } }
+    var rows: [HistoryJob] { store.historyJobs.filter { query.isEmpty || ($0.finalText ?? "").localizedCaseInsensitiveContains(query) || ($0.rawText ?? "").localizedCaseInsensitiveContains(query) } }
     var body: some View {
-        PageHeading(title: "说过的话，都有迹可循。", subtitle: "仅保存在这台 Mac · 原始转写与最终稿分开保留")
+        PageHeading(title: "说过的话，都有迹可循。", subtitle: "Mac 与 iPhone 听写历史 · 原始转写与最终稿分开保留")
         HStack {
-            TextField("搜索本地文字", text: $query).leafInput()
+            Toggle("同步听写历史", isOn: Binding(get: { store.historyCloud.cache.enabled }, set: { store.historyCloud.setEnabled($0) }))
+            Spacer()
+            Text(store.historyCloud.status).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Button("立即同步") { Task { await store.historyCloud.sync() } }.disabled(store.historyCloud.syncing)
+        }
+        HStack {
+            TextField("搜索听写历史", text: $query).leafInput()
             if !query.isEmpty { Button { query = ""; limit = 30 } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel("清除搜索") }
             Text("\(rows.count) 条").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.onChange(of: query) { _, _ in limit = 30 }
@@ -314,6 +320,7 @@ struct HistoryView: View {
             Surface {
                 HStack {
                     Text(job.created.formatted(date: .abbreviated, time: .shortened)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                    Text(store.historyCloud.cache.rows[job.id.uuidString.lowercased()]?.device ?? "Mac").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     Spacer()
                     Text(job.inserted ? "已输入" : job.status == "paste_dispatched" ? "已请求粘贴" : job.status).font(LeafType.caption).foregroundStyle(LeafTheme.leaf)
                     Button { expanded = expanded == job.id ? nil : job.id } label: { Image(systemName: expanded == job.id ? "chevron.up" : "chevron.down") }.accessibilityLabel("展开或收起记录")

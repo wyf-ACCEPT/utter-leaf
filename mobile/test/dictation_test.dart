@@ -43,6 +43,33 @@ void main() {
         .setMockMethodCallHandler(bridge, (call) async {
           if (call.method == 'snapshot') return snapshot;
           if (call.method == 'usage') return usage;
+          if (call.method == 'history') {
+            return {
+              'status': '已同步',
+              'rows': [
+                {
+                  'id': 'fixture-one',
+                  'device': 'Mac',
+                  'created': 1790000000,
+                  'raw': 'Synthetic source text',
+                  'final': 'Synthetic final text',
+                },
+                {
+                  'id': 'fixture-two',
+                  'device': 'iPhone',
+                  'created': 1790000100,
+                  'raw': 'Another recording',
+                  'final': 'Phone final text',
+                },
+              ],
+            };
+          }
+          if (call.method == 'savePreferences') {
+            snapshot = {
+              ...snapshot,
+              ...Map<String, dynamic>.from(call.arguments as Map),
+            };
+          }
           commands.add(call.method);
           if (call.method == 'start') {
             snapshot = {...snapshot, 'phase': 'starting'};
@@ -235,6 +262,26 @@ void main() {
     expect(find.text('等待首次同步。尚未收到用量记录，暂不显示费用或剩余额度。'), findsOneWidget);
     expect(find.textContaining('剩余 100'), findsNothing);
     expect(find.textContaining('已用 ¥0'), findsNothing);
+    await close(tester);
+  });
+  testWidgets('history searches text and opens bounded raw and final detail', (
+    tester,
+  ) async {
+    await open(tester);
+    await tester.tap(find.text('历史'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('Synthetic final text'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, '搜索听写文字'),
+      'Synthetic',
+    );
+    await tester.pump();
+    expect(find.text('Phone final text'), findsNothing);
+    await tester.tap(find.text('Synthetic final text'));
+    await tester.pumpAndSettle();
+    expect(find.text('Synthetic source text'), findsOneWidget);
+    expect(find.text('复制'), findsOneWidget);
     await close(tester);
   });
 }
