@@ -2,6 +2,10 @@ import Flutter
 import UIKit
 
 class SceneDelegate: FlutterSceneDelegate {
+  override func sceneWillEnterForeground(_ scene: UIScene) {
+    super.sceneWillEnterForeground(scene)
+    MobileUsage.store.requestSync()
+  }
   override func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
     if let url = connectionOptions.urlContexts.first?.url { DictationCoordinator.shared.open(url) }

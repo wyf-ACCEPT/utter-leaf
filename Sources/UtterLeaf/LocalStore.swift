@@ -36,6 +36,21 @@ struct LocalDatabase: Codable {
     @Published var storageError: String?
     @Published var billingSyncing = false
     lazy var billingSync = BillingSync(store: self)
+    lazy var usageCloud: CloudUsageSync = {
+        let control = ProcessInfo.processInfo.arguments.contains("--cloud-container-control")
+        // Keep the previous container's account-bound cache intact in its original file.
+        let cloud = CloudUsageSync(file: root.appendingPathComponent(control ? "usage-cloud-control.json" : "usage-cloud-v1.json"), device: "Mac")
+        cloud.onChange = { [weak self] in self?.objectWillChange.send() }
+        cloud.onRemoteBudget = { [weak self] week, month in
+            guard let self else { return }
+            database.preferences.weeklyBudget = week; database.preferences.monthlyBudget = month; save()
+        }
+        if cloud.cache.rows["budget.v1"] != nil {
+            database.preferences.weeklyBudget = cloud.cache.week
+            database.preferences.monthlyBudget = cloud.cache.month
+        }
+        return cloud
+    }()
     let root: URL
     private var writable = true
     init(root: URL? = nil) {
@@ -72,6 +87,48 @@ struct LocalDatabase: Codable {
             var resource = URLResourceValues(); resource.isExcludedFromBackup = true
             var folder = root; try folder.setResourceValues(resource)
         } catch { storageError = "本地记录保存失败。当前文字仍在预览中，请先复制。" }
+        captureCloudUsage()
+    }
+    func captureCloudUsage() {
+        for call in database.calls {
+            var row = usageCloud.row(id: "call." + call.id.uuidString.lowercased(), kind: "call")
+            row.job = call.jobID.uuidString.lowercased(); row.started = call.started.timeIntervalSince1970
+            row.purpose = UsagePurpose.isMeeting(call, jobs: database.jobs) ? "meeting" : "dictation"
+            row.provider = call.provider; row.model = call.model; row.status = call.status.rawValue
+            row.currency = call.price.currency; row.amount = call.estimatedAmount; row.actual = call.billedAmount
+            row.seconds = max(0, call.seconds); row.input = call.inputTokens; row.cached = call.cachedTokens; row.output = call.outputTokens
+            usageCloud.ingest(row)
+        }
+        for job in database.jobs {
+            var row = usageCloud.row(id: "job." + job.id.uuidString.lowercased(), kind: "job")
+            row.started = job.created.timeIntervalSince1970; row.purpose = job.kind == "meeting" ? "meeting" : "dictation"
+            row.seconds = max(0, job.seconds); row.characters = max(0, job.finalCharacters)
+            usageCloud.ingest(row)
+        }
+        usageCloud.setBudget(week: database.preferences.weeklyBudget ?? 5, month: database.preferences.monthlyBudget ?? 20,
+            initial: usageCloud.cache.rows["budget.v1"] == nil)
+    }
+    var combinedCalls: [UsageCall] {
+        var rows = Dictionary(database.calls.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for value in usageCloud.cache.rows.values where value.kind == "call" {
+            guard let id = UUID(uuidString: String(value.id.dropFirst(5))), rows[id] == nil, let job = UUID(uuidString: value.job ?? "") else { continue }
+            var call = UsageCall(jobID: job, provider: value.provider ?? "", model: value.model ?? "", requestID: "Not synchronized", price: .init(version: "icloud-metadata-v1", currency: value.currency ?? "CNY", note: "跨设备用量估算"))
+            call.id = id; call.started = Date(timeIntervalSince1970: value.started ?? 0); call.status = CallStatus(rawValue: value.status ?? "") ?? .interrupted
+            call.seconds = value.seconds ?? 0; call.estimatedAmount = value.amount; call.billedAmount = value.actual
+            call.inputTokens = value.input; call.cachedTokens = value.cached; call.outputTokens = value.output
+            rows[id] = call
+        }
+        return Array(rows.values)
+    }
+    var combinedJobs: [HistoryJob] {
+        var rows = Dictionary(database.jobs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for value in usageCloud.cache.rows.values where value.kind == "job" {
+            guard let id = UUID(uuidString: String(value.id.dropFirst(4))), rows[id] == nil else { continue }
+            var job = HistoryJob(id: id, pipeline: .final); job.created = Date(timeIntervalSince1970: value.started ?? 0)
+            job.kind = value.purpose == "meeting" ? "meeting" : nil; job.seconds = value.seconds ?? 0; job.finalCharacters = value.characters ?? 0
+            rows[id] = job
+        }
+        return Array(rows.values)
     }
     func update(_ job: HistoryJob) {
         var value = job

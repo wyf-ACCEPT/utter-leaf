@@ -22,11 +22,21 @@ SIGNING_IDENTITY="${UTTERLEAF_SIGNING_IDENTITY:--}"
 if [ "$SIGNING_IDENTITY" = "-" ] && [ -f .local/signing-identity ]; then
     IFS= read -r SIGNING_IDENTITY < .local/signing-identity
 fi
+ENTITLEMENTS_FILE="App/UtterLeaf.entitlements"
+CLOUD_PROFILE="$PWD/.local/mac-cloud-profile-build/Build/Products/Release/CloudSigningHost.app/Contents/embedded.provisionprofile"
+if [ -f "$CLOUD_PROFILE" ]; then
+    ENTITLEMENTS_FILE="$PWD/.local/macos-cloud-entitlements.plist"
+    test -f "$ENTITLEMENTS_FILE"
+    if [ -z "${UTTERLEAF_SIGNING_IDENTITY:-}" ]; then
+        IFS= read -r SIGNING_IDENTITY < .local/cloud-signing-identity
+    fi
+    cp "$CLOUD_PROFILE" "$APP/Contents/embedded.provisionprofile"
+fi
 if [ "$SIGNING_IDENTITY" = "-" ]; then
     codesign --force --sign - --identifier network.utterleaf.personal "$APP"
     printf 'Signing: ad-hoc; permission grants may need renewal after rebuild.\n'
 else
-    codesign --force --sign "$SIGNING_IDENTITY" --identifier network.utterleaf.personal --timestamp=none --options runtime --entitlements App/UtterLeaf.entitlements "$APP"
+    codesign --force --sign "$SIGNING_IDENTITY" --identifier network.utterleaf.personal --timestamp=none --options runtime --entitlements "$ENTITLEMENTS_FILE" "$APP"
     printf 'Signing: configured local development identity.\n'
 fi
 codesign --verify --deep --strict "$APP"

@@ -16,6 +16,28 @@ import UtterLeafCore
     var panel: NSPanel!
     var item: NSStatusItem!
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if ProcessInfo.processInfo.arguments.contains("--usage-sync-check") {
+            NSApp.setActivationPolicy(.prohibited)
+            let path = model.store.root.appendingPathComponent("ledger.json")
+            if let data = try? Data(contentsOf: path), let original = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let calls = original["calls"] as? [[String: Any]] ?? []
+                let jobs = original["jobs"] as? [[String: Any]] ?? []
+                if calls.contains(where: { $0["status"] as? String == "pending" }) || jobs.contains(where: { ["recording", "processing", "inserting", "paused"].contains($0["status"] as? String ?? "") }) {
+                    print("Cloud sync check skipped: an active recording or request is present.")
+                    NSApp.terminate(nil); return
+                }
+            }
+            model.store.captureCloudUsage()
+            model.store.usageCloud.onRemoteBudget = nil
+            Task {
+                await model.store.usageCloud.sync()
+                var report = model.store.usageCloud.snapshot
+                report.removeValue(forKey: "calls")
+                if let data = try? JSONSerialization.data(withJSONObject: report, options: [.sortedKeys]), let text = String(data: data, encoding: .utf8) { print(text) }
+                NSApp.terminate(nil)
+            }
+            return
+        }
         NSApp.setActivationPolicy(.regular)
         LeafTheme.apply(model.store.database.preferences.appearance)
         let root = RootView(model: model, store: model.store)
@@ -71,7 +93,11 @@ import UtterLeafCore
             Task { await SmokeRunner.run(model: model); NSApp.terminate(nil) }
         } else {
             model.store.billingSync.isDictating = { [weak self] in (self?.model.busy ?? false) || (self?.model.meetings.blocksDictation ?? false) }
-            model.store.billingSync.start(); showMain()
+            model.store.billingSync.start()
+            model.store.captureCloudUsage()
+            model.store.usageCloud.canSync = { [weak self] in !(self?.model.busy ?? true) && !(self?.model.meetings.blocksDictation ?? true) }
+            model.store.usageCloud.start()
+            showMain()
         }
     }
     func showMain() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
@@ -80,7 +106,7 @@ import UtterLeafCore
     @objc func toggleRecording() { model.toggle() }
     @objc func quit() { model.abort(); NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        pill.closeImmediately(); meetingCaptions.close(); model.meetings.shutdown(); model.store.billingSync.stop(); hotkey.unregister(); model.abort(); return .terminateNow
+        pill.closeImmediately(); meetingCaptions.close(); model.meetings.shutdown(); model.store.billingSync.stop(); model.store.usageCloud.stop(); hotkey.unregister(); model.abort(); return .terminateNow
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showMain(); return true }
     func updatePanel() {

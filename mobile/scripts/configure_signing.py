@@ -6,13 +6,13 @@ import plistlib
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--app-group', default='group.network.utterleaf.mobile')
-parser.add_argument('--cloud-container', default='iCloud.network.utterleaf.personal')
+parser.add_argument('--cloud-container', default='iCloud.network.utterleaf.usage')
 args = parser.parse_args()
 root = pathlib.Path(__file__).resolve().parents[1] / 'ios'
 shared = {'com.apple.security.application-groups': [args.app_group]}
 app = dict(shared)
 app.update({'com.apple.developer.icloud-services': ['CloudKit'],
-            'com.apple.developer.icloud-container-identifiers': [args.cloud_container],
+            'com.apple.developer.icloud-container-identifiers': list(dict.fromkeys(['iCloud.network.utterleaf.personal', args.cloud_container])),
             'com.apple.developer.icloud-container-environment': 'Development'})
 for name, entitlements in [('Runner/Runner.entitlements', app), ('UtterLeafKeyboard/Keyboard.entitlements', shared)]:
     with (root / name).open('wb') as output:

@@ -88,6 +88,6 @@
 	<key>UtterLeafURLScheme</key>
 	<string>utterleaf-mobile</string>
 	<key>UtterLeafCloudContainer</key>
-	<string>iCloud.network.utterleaf.personal</string>
+	<string>iCloud.network.utterleaf.usage</string>
 </dict>
 </plist>

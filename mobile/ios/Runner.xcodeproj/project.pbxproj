@@ -30,6 +30,8 @@
 		C4B10B7F83264CBFB73D560B /* DictationExchange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E2BA6E3721A0A4411CC859 /* DictationExchange.swift */; };
 		CC0CFF413E4FC3728D7E1114 /* KeyboardKitHostPlugin in Frameworks */ = {isa = PBXBuildFile; productRef = 6033BBDF2151187FBBF05CF2 /* KeyboardKitHostPlugin */; };
 		FA642423BCB0186F47F808F8 /* UtterLeafKeyboard.appex in Embed Keyboard Extension */ = {isa = PBXBuildFile; fileRef = BAACF76A478EAC76F779B724 /* UtterLeafKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A012CDFA0000000000000005 /* CloudUsageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012CDFA0000000000000001; };
+		A012CDFA0000000000000006 /* CloudUsageSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012CDFA0000000000000002; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +105,8 @@
 		BAACF76A478EAC76F779B724 /* UtterLeafKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UtterLeafKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB2F3F3793973746856FE814 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		E34AE81B5888CA21E1258246 /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; name = LICENSE; path = ThirdParty/KeyboardKitHostPlugin/LICENSE; sourceTree = "<group>"; };
+		A012CDFA0000000000000001 /* CloudUsageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Sources/UtterLeafCore/CloudUsageModel.swift"; sourceTree = SOURCE_ROOT; };
+		A012CDFA0000000000000002 /* CloudUsageSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Sources/UtterLeafCore/CloudUsageSync.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -433,6 +437,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				A012CDFA0000000000000006 /* CloudUsageSync.swift in Sources */,
+				A012CDFA0000000000000005 /* CloudUsageModel.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				2A78F8E79B30DDA7542438E0 /* PersonalKeys.swift in Sources */,
