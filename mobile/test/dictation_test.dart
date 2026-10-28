@@ -217,16 +217,11 @@ void main() {
       expect(find.text('首次同步尚未完成 · 当前仅显示本机缓存'), findsOneWidget);
       await tester.tap(find.text('设置'));
       await tester.pump();
-      expect(find.text('个人 API'), findsOneWidget);
+      expect(find.text('整理文字'), findsOneWidget);
       expect(
         tester
-            .widget<ListTile>(
-              find.ancestor(
-                of: find.text('个人 API'),
-                matching: find.byType(ListTile),
-              ),
-            )
-            .onTap,
+            .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '整理文字'))
+            .onChanged,
         isNull,
       );
       await tester.tap(find.text('主页'));
@@ -284,4 +279,19 @@ void main() {
     expect(find.text('复制'), findsOneWidget);
     await close(tester);
   });
+  testWidgets(
+    'settings removes diagnostic cards and saves dictation preferences',
+    (tester) async {
+      await open(tester);
+      await tester.tap(find.text('设置'));
+      await tester.pump();
+      expect(find.text('个人 API'), findsNothing);
+      expect(find.text('iCloud 用量同步'), findsNothing);
+      await tester.tap(find.widgetWithText(SwitchListTile, '整理文字'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(commands, contains('savePreferences'));
+      expect(snapshot['cleanup'], false);
+      await close(tester);
+    },
+  );
 }

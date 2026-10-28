@@ -531,45 +531,123 @@ class _DictationPageState extends State<DictationPage>
       ),
     ),
   );
+  Future<void> savePreference(String key, dynamic value) async {
+    if (sending) return;
+    setState(() => sending = true);
+    try {
+      await bridge.invokeMethod<void>('savePreferences', {key: value});
+      await refresh();
+    } on PlatformException {
+      if (mounted) setState(() => bridgeError = '设置未保存，请重试。');
+    } finally {
+      if (mounted) setState(() => sending = false);
+    }
+  }
+
   Widget settingsPage() => SafeArea(
     child: ListView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
       children: [
         const Text(
-          '设置',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+          '按你的习惯，\n慢慢调好。',
+          style: TextStyle(
+            fontSize: 32,
+            height: 1.3,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 24),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('个人 API'),
-          subtitle: Text(
-            configured ? '豆包与 DeepSeek 已配置 · 保存在本机钥匙串' : '需要配置豆包与 DeepSeek',
+        if (bridgeError != null)
+          Text(bridgeError!, style: const TextStyle(color: Colors.orange)),
+        settingsCard('听写', [
+          SwitchListTile.adaptive(
+            activeTrackColor: Leaf.green,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('整理文字'),
+            subtitle: const Text('去掉口吃和重复，保留原意。关闭后直接使用原始转录。'),
+            value: state['cleanup'] != false,
+            onChanged: (busy || sending)
+                ? null
+                : (value) => savePreference('cleanup', value),
           ),
-          trailing: const Icon(CupertinoIcons.chevron_forward),
-          onTap: busy ? null : settings,
-        ),
-        const Divider(),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('键盘与麦克风'),
-          subtitle: const Text('在 iOS 设置中管理键盘、完全访问与麦克风权限'),
-          trailing: const Icon(CupertinoIcons.arrow_up_right),
-          onTap: () => action('settings'),
-        ),
-        const Divider(),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('iCloud 用量同步'),
-          subtitle: Text(state['cloudMessage'] as String? ?? '等待 iCloud 配置'),
-          trailing: const Icon(CupertinoIcons.chevron_forward),
-          onTap: () => setState(() => selectedTab = 2),
-        ),
+        ]),
+        const SizedBox(height: 16),
+        settingsCard('历史记录', [
+          SwitchListTile.adaptive(
+            activeTrackColor: Leaf.green,
+            contentPadding: EdgeInsets.zero,
+            title: const Text('同步听写历史'),
+            subtitle: const Text('在此设备同步 Mac 与 iPhone 的听写正文。关闭后仍保留本机记录。'),
+            value: state['historySync'] != false,
+            onChanged: (busy || sending)
+                ? null
+                : (value) => savePreference('historySync', value),
+          ),
+          const SizedBox(height: 16),
+          const Text('新录音保留', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: const {'both': '原始与整理后', 'final': '仅整理后', 'none': '仅用量'}
+                .entries
+                .map(
+                  (entry) => ChoiceChip(
+                    label: Text(entry.value),
+                    selected: (state['retention'] ?? 'both') == entry.key,
+                    onSelected: (busy || sending)
+                        ? null
+                        : (_) => savePreference('retention', entry.key),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '只影响之后的录音。已有正文可在历史详情中清除，清除会同步到其他设备。',
+            style: TextStyle(fontSize: 13, color: Leaf.muted),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        settingsCard('键盘与录音', [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('管理系统权限'),
+            subtitle: const Text('键盘、完全访问与麦克风'),
+            trailing: const Icon(CupertinoIcons.arrow_up_right),
+            onTap: () => action('settings'),
+          ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text('单次录音最长 5 分钟，最后 30 秒会提醒。'),
+          ),
+        ]),
         const SizedBox(height: 24),
         const Text(
-          '个人版 · 录音最长 5 分钟。API 凭证保存在本机；会议功能暂不包含在 iOS 版本中。',
-          style: TextStyle(color: Leaf.muted),
+          '言叶 · 个人版\n给表达一点空间。',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Leaf.muted),
         ),
+      ],
+    ),
+  );
+  Widget settingsCard(String title, List<Widget> children) => Container(
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      color: Leaf.surface,
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: Leaf.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 12),
+        ...children,
       ],
     ),
   );
