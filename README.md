@@ -19,9 +19,9 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 ## Status
 
-**Working personal development build — October 26, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release, an installer, or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
+**Working personal development build — October 28, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **123 tests** (latest run: 120 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **128 tests** (latest run: 125 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -65,7 +65,7 @@ Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. 
 
 ### Privacy and local data
 
-**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend or automatic cross-device sync.
+**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend. Private iCloud sync shares usage metadata and budgets between your Mac and iPhone; recordings, transcripts and provider keys stay on their original device.
 
 Short-dictation audio stays in memory; meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
 
@@ -94,7 +94,7 @@ Credentials, private recordings, history, build products and personal handoffs a
 | 3 · Personal iOS | Bring both everyday dictation and meeting transcription/notes to iOS. Mobile audio capture, input integration, personal credentials and platform constraints need separate validation. |
 | Later · Slack | Configurable delivery of meeting transcripts and briefs, with explicit destinations and delivery status. |
 
-Phase 3 currently excludes invitation codes, accounts, a shared backend and multi-user quotas. Cross-device sync is undecided.
+Phase 3 currently excludes invitation codes, accounts, a shared backend and multi-user quotas. Private iCloud usage/budget sync is implemented; meeting-content sync remains deferred.
 
 ### Project guide
 
@@ -123,7 +123,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-共享 Swift 测试共 **123 项**（最近一次：120 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+共享 Swift 测试共 **128 项**（最近一次：125 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -165,7 +165,7 @@ open .local/UtterLeaf.app
 
 ### 隐私与本地数据
 
-**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端，也不自动跨设备同步。
+**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端。Mac 与 iPhone 通过私有 iCloud 同步用量统计与预算；录音、转录正文和 API Key 留在原设备。
 
 短听写录音仅存内存；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
 
@@ -188,7 +188,7 @@ open .local/UtterLeaf.app
 | Phase 3 · 自用 iOS | 同时包含日常听写和会议转录/笔记；单独验证移动端采音、输入入口、个人凭证与系统限制。 |
 | 后续 · Slack | 按配置分发会议转录与 brief，明确目标和发送状态。 |
 
-Phase 3 暂不考虑邀请码、账户、统一服务端和多人额度；跨设备同步方式待定。
+Phase 3 暂不考虑邀请码、账户、统一服务端和多人额度；已实现私有 iCloud 用量与预算同步，会议内容同步仍留待后续。
 
 ### 开发资料
 
@@ -212,3 +212,20 @@ Use **导入录音文件** to select an Apple Watch/recorder M4A, WAV, MP3 or an
 Build with `bash scripts/build-app.sh`, quit UtterLeaf, then install with `bash scripts/install-macos-app.sh`. The installed app is `/Applications/UtterLeaf.app`; launch that copy from Applications or Spotlight. The installer verifies the signature and avoids replacing a running app. Generated copies remain under `.local/` and are unregistered from Launch Services to avoid duplicate launch targets. Existing history/settings remain in `~/Library/Application Support/UtterLeaf`.
 
 After a development signing-team change, macOS may retain an enabled Accessibility entry for the old signature. If UtterLeaf reports Accessibility unauthorized or Fn monitoring unavailable, remove the stale entry in System Settings → Privacy & Security → Accessibility, then add and authorize `/Applications/UtterLeaf.app` and relaunch. Do not reset all system privacy permissions.
+
+
+### Private iCloud usage sync · October 28
+
+Mac and iPhone share typed call/job metadata and rolling 7/30-day budgets through `iCloud.network.utterleaf.usage` (personal team, Development). The original container remains intact. Each installation keeps its own durable metadata cache, original-call ownership and stable UUIDs; conflict merges are deterministic, and conditional CloudKit writes retry concurrent updates. Account changes pause synchronization rather than transferring another account's cached rows. Automatic checks run every minute while the app is active and defer during capture/processing. A successful account check alone never displays a successful sync.
+
+The dashboard combines device/purpose costs, written characters and known/unknown amounts. Complete provider receipts stay on the originating device. iPhone collection starts with this version; earlier phone spend is unavailable. Local/offline writes persist first, and empty unsynchronized caches do not display invented zero spend or full allowance. No recording, transcript, target-app context or credential is included in the cloud projection.
+
+Verified on the physical iPhone and Mac: marker read/write in both directions, plus the real Mac metadata appearing in the normal iPhone app (268 calls at the check). Both initially failed; after allowing the new phone test app's network access and successfully writing from iOS, Mac access recovered. The sequence is observed, not a proven repair procedure. Production CloudKit schema deployment and public distribution have not been performed.
+
+For a personal Mac build, run `python3 scripts/prepare-macos-cloud-signing.py --extra-container iCloud.network.utterleaf.usage`, build its generated SigningHost project with Xcode automatic provisioning, and extract the verified signed entitlements to ignored `.local/macos-cloud-entitlements.plist`. The build script embeds the generated profile and reads the configured personal signing identity; do not copy profiles or credentials into Git. The iOS signing helper keeps the original container entitlement while selecting the usage container.
+
+### 私有 iCloud 用量同步
+
+Mac 与 iPhone 现已同步调用统计、听写字数、听写/会议成本和最近 7/30 天预算。只同步严格筛选的统计字段；录音、正文、目标 App 信息与密钥留在本机。失败与无回执金额保持未知，不视为免费；完整回执只在原设备查看。手机用量从本版开始记录，之前的手机消费无法回补。
+
+两端正常版已做真实设备用量同步核验。离线时先保存，App 活跃期间每分钟检查，并避开录音与处理；账户切换会暂停同步。当前使用个人开发团队的 Development 环境，未发布生产环境或公开分发。

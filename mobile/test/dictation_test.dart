@@ -8,16 +8,41 @@ void main() {
   const bridge = MethodChannel('network.utterleaf/dictation');
   late Map<String, dynamic> snapshot;
   late List<String> commands;
+  late Map<String, dynamic> usage;
   setUp(() {
     snapshot = {
       'phase': 'idle',
       'doubaoConfigured': true,
       'deepseekConfigured': true,
     };
+    usage = {
+      'status': '离线记录已保留',
+      'lastSync': 0,
+      'syncing': false,
+      'macCalls': 0,
+      'phoneCalls': 1,
+      'week': {
+        'spent': 0.2,
+        'budget': 5,
+        'remainingFraction': 0.96,
+        'dictationFraction': 0.04,
+        'meetingFraction': 0,
+        'written': 12,
+      },
+      'month': {
+        'spent': 0.2,
+        'budget': 20,
+        'remainingFraction': 0.99,
+        'dictationFraction': 0.01,
+        'meetingFraction': 0,
+      },
+      'calls': [],
+    };
     commands = [];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(bridge, (call) async {
           if (call.method == 'snapshot') return snapshot;
+          if (call.method == 'usage') return usage;
           commands.add(call.method);
           if (call.method == 'start') {
             snapshot = {...snapshot, 'phase': 'starting'};
@@ -159,10 +184,10 @@ void main() {
       };
       await open(tester);
       await tester.tap(find.text('用量'));
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pump();
-      expect(find.text('等待 iCloud 配置'), findsOneWidget);
-      expect(find.text('尚未连接电脑用量'), findsOneWidget);
-      expect(find.textContaining('¥0'), findsNothing);
+      expect(find.text('离线记录已保留'), findsOneWidget);
+      expect(find.text('首次同步尚未完成 · 当前仅显示本机缓存'), findsOneWidget);
       await tester.tap(find.text('设置'));
       await tester.pump();
       expect(find.text('个人 API'), findsOneWidget);
@@ -184,24 +209,32 @@ void main() {
       await close(tester);
     },
   );
-  testWidgets('cloud readiness never claims usage is synchronized', (
+  testWidgets(
+    'offline dashboard shows cached totals and requests synchronization',
+    (tester) async {
+      await open(tester);
+      await tester.tap(find.text('用量'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      expect(find.text('离线记录已保留'), findsOneWidget);
+      expect(find.textContaining('已用 ¥0.2000'), findsWidgets);
+      await tester.tap(find.byTooltip('立即同步'));
+      await tester.pump();
+      expect(commands, ['syncUsage']);
+      await close(tester);
+    },
+  );
+  testWidgets('empty unsynchronized cache never shows unused allowance', (
     tester,
   ) async {
-    snapshot = {
-      ...snapshot,
-      'cloudStatus': 'available',
-      'cloudMessage': 'iCloud 账户可用，手机云权限已配置。',
-    };
+    usage = {...usage, 'macCalls': 0, 'phoneCalls': 0};
     await open(tester);
     await tester.tap(find.text('用量'));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
-    expect(find.text('iCloud 云权限已就绪'), findsOneWidget);
-    expect(find.text('尚未连接电脑用量'), findsOneWidget);
-    expect(find.textContaining('同步代码尚未接入'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('重新检查 iCloud'), 200);
-    await tester.tap(find.text('重新检查 iCloud'));
-    await tester.pump();
-    expect(commands, ['refreshCloud']);
+    expect(find.text('等待首次同步。尚未收到用量记录，暂不显示费用或剩余额度。'), findsOneWidget);
+    expect(find.textContaining('剩余 100'), findsNothing);
+    expect(find.textContaining('已用 ¥0'), findsNothing);
     await close(tester);
   });
 }

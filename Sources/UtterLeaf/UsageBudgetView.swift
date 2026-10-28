@@ -10,7 +10,7 @@ struct UsageBudgetView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("表达额度").font(LeafType.headline)
-                    Text("本地滚动预算 · CNY").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                    Text(store.usageCloud.cache.lastSync == nil ? "本机缓存预算 · CNY" : "跨设备滚动预算 · CNY").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
                 Button("调整预算") { editing = true }.buttonStyle(.bordered).handCursor()
@@ -24,7 +24,7 @@ struct UsageBudgetView: View {
         }.sheet(isPresented: $editing) { BudgetEditor(store: store) }
     }
     @ViewBuilder private func budgetRow(days: Int, limit: Double) -> some View {
-        let budget = UsageBudget(calls: store.database.calls, jobs: store.database.jobs, days: days, limit: limit)
+        let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: days, limit: limit)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text("最近 \(days) 天").font(.system(size: LeafType.scaled(16), weight: .medium))
@@ -71,7 +71,7 @@ struct UsageBudgetView: View {
         }.padding(.vertical, 6)
     }
     @ViewBuilder private var sharedSummary: some View {
-        let budget = UsageBudget(calls: store.database.calls, jobs: store.database.jobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20)
+        let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20)
         Text("近 30 天支出 · 听写 \(money(budget.dictationEstimated, "CNY")) · 会议 \(money(budget.meetingEstimated, "CNY"))")
             .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         if budget.unknown >= 5 {
@@ -95,7 +95,7 @@ private struct BudgetEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("调整表达额度").font(.system(size: 25, weight: .medium))
-            Text("本机提醒预算，不会修改 API 账户或停止录音。按最近 7 天 / 30 天滚动统计。")
+            Text("共享提醒预算，不会修改 API 账户或停止录音。按最近 7 天 / 30 天滚动统计。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             LabeledContent("7 天预算 · CNY") { TextField("5", text: $week).leafInput().accessibilityLabel("7 天预算 CNY") }
             LabeledContent("30 天预算 · CNY") { TextField("20", text: $month).leafInput().accessibilityLabel("30 天预算 CNY") }

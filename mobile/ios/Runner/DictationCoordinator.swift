@@ -39,6 +39,9 @@ import UIKit
         #endif
         PersonalKeys.importPersonalBundle()
         Task { await refreshCloudStatus() }
+        MobileUsage.store.canSync = { [weak self] in !["starting", "recording", "processing"].contains(self?.phase ?? "") }
+        MobileUsage.store.onChange = { MobileUsage.exportStatus() }
+        MobileUsage.store.start()
         // A terminated recorder never leaves a live command that can restart the microphone.
         let old = DictationExchange.read("state")
         if ["starting", "recording", "processing"].contains(old["phase"] as? String ?? "") {
@@ -52,6 +55,14 @@ import UIKit
             guard let self else { return }
             switch call.method {
             case "snapshot": result(self.snapshot)
+            case "usage": result(MobileUsage.store.snapshot)
+            case "syncUsage": Task { await MobileUsage.store.sync() }; result(nil)
+            case "saveBudget":
+                guard let args = call.arguments as? [String: Double], let week = args["week"], let month = args["month"],
+                      week.isFinite, month.isFinite, week > 0, month > 0, week <= 1_000_000, month <= 1_000_000 else {
+                    result(FlutterError(code: "budget", message: "请输入有效预算。", details: nil)); return
+                }
+                MobileUsage.store.setBudget(week: week, month: month); result(nil)
             case "refreshCloud": Task { await self.refreshCloudStatus(); result(nil) }
             case "start": self.start(); result(nil)
             case "stop": self.stop(); result(nil)
@@ -73,7 +84,7 @@ import UIKit
     }
     var snapshot: [String: Any] {
         ["phase": phase, "text": text, "raw": raw, "error": error, "level": level, "seconds": elapsed,
-         "cloudStatus": cloudStatus, "cloudMessage": cloudMessage,
+         "cloudStatus": cloudStatus, "cloudMessage": cloudMessage, "usageVersion": MobileUsage.store.version,
          "fromKeyboard": fromKeyboard, "returnStatus": returnStatus, "returnMessage": returnMessage, "doubaoConfigured": PersonalKeys.get("DOUBAO_API_KEY")?.isEmpty == false,
          "deepseekConfigured": PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false]
     }
@@ -182,7 +193,7 @@ import UIKit
                 }
                 guard generation == token else { return }
                 guard granted else { throw MobileFailure.message("需要麦克风权限，请在系统设置中开启。") }
-                try await provider.start()
+                try await provider.start(jobID: id)
                 try Task.checkCancellation(); guard generation == token else { return }
                 try beginAudio(token: token)
                 started = Date(); phase = "recording"; publish()
@@ -310,7 +321,7 @@ import UIKit
         phase = "cancelled"; text = ""; raw = ""; error = ""; publish(); endBackground()
     }
     private func fail(_ failure: Error) {
-        sender?.cancel(); provider.cancel(); stopAudio(); buffer.removeAll(); phase = "error"
+        sender?.cancel(); provider.cancel(failed: true); stopAudio(); buffer.removeAll(); phase = "error"
         error = (failure as? MobileFailure)?.localizedDescription ?? "连接或录音中断，请检查网络和个人 API Key 后重试。"
         publish(); endBackground()
     }
@@ -332,5 +343,17 @@ import UIKit
     }
     @objc private func interrupted(_ note: Notification) {
         if ["starting", "recording", "processing"].contains(phase) { work?.cancel(); fail(MobileFailure.message("录音被来电或音频设备打断，请重新开始。")) }
+    }
+}
+
+@MainActor enum MobileUsage {
+    static let store = CloudUsageSync(file: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("UtterLeaf/usage-cloud-v1.json"), device: "iPhone")
+    static func exportStatus() {
+        guard let cache = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
+        let folder = cache.appendingPathComponent("UsageSync", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var value = store.snapshot; value.removeValue(forKey: "calls")
+        if let data = try? JSONSerialization.data(withJSONObject: value) { try? data.write(to: folder.appendingPathComponent("status.json"), options: .atomic) }
     }
 }

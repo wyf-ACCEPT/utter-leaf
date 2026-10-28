@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'usage_page.dart';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -60,6 +61,8 @@ class _DictationPageState extends State<DictationPage>
   String? bridgeError;
   bool refreshing = false, sending = false;
   int selectedTab = 0;
+  Map<String, dynamic> usage = {};
+  int? usageVersion;
   String get phase => state['phase'] as String? ?? 'idle';
   bool get busy => ['starting', 'recording', 'processing'].contains(phase);
   bool get configured =>
@@ -96,10 +99,20 @@ class _DictationPageState extends State<DictationPage>
     refreshing = true;
     try {
       final next = await bridge.invokeMapMethod<String, dynamic>('snapshot');
+      Map<String, dynamic>? nextUsage;
+      if (next != null &&
+          selectedTab == 1 &&
+          (usage.isEmpty || usageVersion != next['usageVersion'])) {
+        nextUsage = await bridge.invokeMapMethod<String, dynamic>('usage');
+      }
       if (mounted && next != null) {
         setState(() {
           final wasBusy = busy;
           state = next;
+          if (nextUsage != null) {
+            usage = nextUsage;
+            usageVersion = next['usageVersion'] as int?;
+          }
           if (!wasBusy && busy && next['fromKeyboard'] == true) selectedTab = 0;
           bridgeError = null;
         });
@@ -183,10 +196,17 @@ class _DictationPageState extends State<DictationPage>
         ),
       ),
       body: selectedTab == 1
-          ? UsageSetupPage(
-              status: state['cloudStatus'] as String? ?? 'unconfigured',
-              message: state['cloudMessage'] as String? ?? '',
-              onRefresh: () => action('refreshCloud'),
+          ? UsagePage(
+              data: usage,
+              onSync: () => action('syncUsage'),
+              onBudget: (week, month) async {
+                await bridge.invokeMethod<void>('saveBudget', {
+                  'week': week,
+                  'month': month,
+                });
+                usageVersion = null;
+                await refresh();
+              },
             )
           : selectedTab == 2
           ? settingsPage()
@@ -782,80 +802,4 @@ class _GlassNavigationState extends State<GlassNavigation> {
       ],
     );
   }
-}
-
-class UsageSetupPage extends StatelessWidget {
-  const UsageSetupPage({
-    super.key,
-    this.status = 'unconfigured',
-    this.message = '',
-    this.onRefresh,
-  });
-  final String status, message;
-  final VoidCallback? onRefresh;
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    child: ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
-      children: [
-        const Text(
-          '用量与费用',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 10),
-        const Text('让电脑与手机的表达，记在同一本账里。', style: TextStyle(color: Leaf.muted)),
-        const SizedBox(height: 28),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Leaf.surface,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Leaf.border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(CupertinoIcons.cloud, size: 36, color: Leaf.green),
-              SizedBox(height: 20),
-              Text(
-                status == 'available'
-                    ? 'iCloud 云权限已就绪'
-                    : status == 'checking'
-                    ? '正在检查 iCloud'
-                    : '等待 iCloud 配置',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 12),
-              Text('尚未连接电脑用量', style: TextStyle(color: Leaf.green)),
-              SizedBox(height: 8),
-              Text(
-                message.isEmpty ? '尚未配置 iCloud 连接。电脑上的用量仍保存在 Mac 本机。' : message,
-                style: TextStyle(color: Leaf.muted),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-        const Text(
-          '用量同步下一步',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          '手机已切换到个人付费开发者团队，并配置私有 iCloud 容器。Mac 与手机的用量同步代码尚未接入，目前暂不展示费用与预算。',
-          style: TextStyle(color: Leaf.muted),
-        ),
-        const SizedBox(height: 16),
-        TextButton(
-          onPressed: status == 'checking' ? null : onRefresh,
-          child: const Text('重新检查 iCloud'),
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          '计划仅同步用量记录与预算，不同步录音、转录正文或 API Key。当前版本尚未上传任何用量数据。',
-          style: TextStyle(color: Leaf.muted, fontSize: 13),
-        ),
-      ],
-    ),
-  );
 }
