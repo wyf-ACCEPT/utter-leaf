@@ -79,28 +79,45 @@ final class KeyboardViewController: UIInputViewController {
         }
         try? DictationExchange.write(["id": UUID().uuidString, "requestID": state["requestID"] ?? "", "action": action], to: "command")
     }
-    private func captureTarget(requestID: String) {
+    private func captureTarget(requestID: String, proxy supplied: UITextDocumentProxy? = nil) {
         // Context stays in extension-local preferences, never in the App Group or provider requests.
-        UserDefaults.standard.set(["requestID": requestID, "document": textDocumentProxy.documentIdentifier.uuidString,
-            "before": String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)),
-            "after": String((textDocumentProxy.documentContextAfterInput ?? "").prefix(80)),
+        let proxy = supplied ?? textDocumentProxy
+        UserDefaults.standard.set(["requestID": requestID, "document": proxy.documentIdentifier.uuidString,
+            "before": String((proxy.documentContextBeforeInput ?? "").suffix(80)),
+            "after": String((proxy.documentContextAfterInput ?? "").prefix(80)),
             "created": Date().timeIntervalSince1970], forKey: "pendingTarget")
     }
-    private func insert() {
+    fileprivate func insertIntoCurrentField() { insert(explicit: true) }
+    private func insert(explicit: Bool = false) {
+        guard hasFullAccess, viewIfLoaded?.window != nil else { return }
         let state = DictationExchange.read("state")
         guard state["phase"] as? String == "ready", let id = state["requestID"] as? String,
               let text = state["text"] as? String, !text.isEmpty,
               let updated = state["updated"] as? Double,
               KeyboardDelivery.hasFreshResult(request: id, consumed: UserDefaults.standard.string(forKey: "consumedRequest"), text: text, updated: updated, now: Date().timeIntervalSince1970) else { return }
-        guard let target = UserDefaults.standard.dictionary(forKey: "pendingTarget"),
-                  KeyboardDelivery.matchesTarget(request: id, expectedRequest: target["requestID"] as? String,
-                    document: textDocumentProxy.documentIdentifier.uuidString, expectedDocument: target["document"] as? String,
-                    before: String((textDocumentProxy.documentContextBeforeInput ?? "").suffix(80)), expectedBefore: target["before"] as? String,
-                    after: String((textDocumentProxy.documentContextAfterInput ?? "").prefix(80)), expectedAfter: target["after"] as? String) else { return }
+        // A deliberate tap chooses the currently focused field. Automatic delivery never rebinds.
+        let proxy = textDocumentProxy
+        if explicit { captureTarget(requestID: id, proxy: proxy) }
+        let target = UserDefaults.standard.dictionary(forKey: "pendingTarget") ?? [:]
+        if let reason = KeyboardDelivery.mismatch(request: id, expectedRequest: target["requestID"] as? String,
+                    document: proxy.documentIdentifier.uuidString, expectedDocument: target["document"] as? String,
+                    before: String((proxy.documentContextBeforeInput ?? "").suffix(80)), expectedBefore: target["before"] as? String,
+                    after: String((proxy.documentContextAfterInput ?? "").prefix(80)), expectedAfter: target["after"] as? String) {
+            model.status = "输入位置有变化，点按放入当前输入框"
+            traceDelivery(reason: reason, explicit: explicit)
+            return
+        }
         // Claim before insertion so a recreated extension cannot paste the same result twice.
         UserDefaults.standard.set(id, forKey: "consumedRequest")
-        textDocumentProxy.insertText(text)
+        proxy.insertText(text)
+        traceDelivery(reason: "insert_requested", explicit: explicit)
         model.status = "已放入输入框"; model.phase = "inserted"; model.nextID = UUID().uuidString
+    }
+    private var lastDeliveryTrace = ""
+    private func traceDelivery(reason: String, explicit: Bool) {
+        let key = reason + (explicit ? ".explicit" : ".automatic")
+        guard key != lastDeliveryTrace else { return }; lastDeliveryTrace = key
+        try? DictationExchange.write(["reason": reason, "explicit": explicit, "updated": Date().timeIntervalSince1970], to: "keyboard-delivery")
     }
     private func refresh() {
         model.returnTitle = returnTitle
@@ -126,7 +143,7 @@ final class KeyboardViewController: UIInputViewController {
         case "recording": model.status = String(format: "正在录音 · %02d:%02d", seconds / 60, seconds % 60)
         case "starting": model.status = "正在准备麦克风…"
         case "processing": model.status = "正在处理文字…"
-        case "ready": model.status = "文字已保留，回到原输入框后自动放入"; insert()
+        case "ready": model.status = "文字已保留，点按可放入当前输入框"; insert()
         case "error": model.status = state["error"] as? String ?? "请返回言叶重试"
         default: model.status = "让想法，自然落成文字。"
         }
@@ -172,7 +189,12 @@ private struct KeyboardSurface: View {
     }
     var body: some View {
         VStack(spacing: 12) {
-            HStack { Label("言叶", systemImage: "leaf").font(.headline); Spacer(); if ["starting", "recording", "processing"].contains(model.phase) { Button("取消") { controller.command("cancel") }.font(.caption) } else { Text("个人语音输入").font(.caption).opacity(0.65) } }
+            HStack {
+                Label("言叶", systemImage: "leaf").font(.headline); Spacer()
+                if ["starting", "recording", "processing"].contains(model.phase) { Button("取消") { controller.command("cancel") }.font(.caption) }
+                else if model.phase == "ready" { Button("重新录音") { Task { if let url = await controller.prepare() { openURL(url) } } }.font(.caption).disabled(!model.fullAccess || model.launching) }
+                else { Text("个人语音输入").font(.caption).opacity(0.65) }
+            }
             Text(model.status).font(.caption).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center).lineLimit(2).frame(height: 36)
                 .opacity(showsStatus ? 1 : 0).accessibilityHidden(!showsStatus)
@@ -186,7 +208,8 @@ private struct KeyboardSurface: View {
                         }
                     }.accessibilityLabel("结束录音")
                 } else if model.phase == "ready" {
-                    Label("等待原输入框", systemImage: "text.badge.checkmark")
+                    Button { controller.insertIntoCurrentField() } label: { Label("放入当前输入框", systemImage: "text.badge.plus") }
+                        .disabled(!model.fullAccess || model.launching)
                 } else if ["starting", "processing"].contains(model.phase) {
                     ProgressView().tint(leaf).frame(height: 48)
                 } else {
@@ -203,7 +226,9 @@ private struct KeyboardSurface: View {
                     Text(model.returnTitle).font(.system(size: 18, weight: .medium))
                         .frame(width: 112, height: 52)
                         .background(leaf.opacity(0.16), in: Capsule()).contentShape(Capsule())
-                }.buttonStyle(.plain).accessibilityLabel(model.returnTitle)
+                }.buttonStyle(.plain).accessibilityLabel(model.returnTitle).disabled(model.phase == "ready" || !model.fullAccess)
+                    .opacity(model.phase == "ready" ? 0.35 : 1)
+                    .accessibilityHint(model.phase == "ready" ? "先放入文字后再执行此操作" : "")
                 HStack {
                     if model.showSwitcher {
                         Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")

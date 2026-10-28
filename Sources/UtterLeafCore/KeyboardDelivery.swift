@@ -7,7 +7,15 @@ public enum KeyboardDelivery {
     }
     public static func matchesTarget(request: String, expectedRequest: String?, document: String, expectedDocument: String?,
                                      before: String, expectedBefore: String?, after: String, expectedAfter: String?) -> Bool {
-        request == expectedRequest && document == expectedDocument
-            && before == expectedBefore && after == expectedAfter
+        mismatch(request: request, expectedRequest: expectedRequest, document: document, expectedDocument: expectedDocument,
+            before: before, expectedBefore: expectedBefore, after: after, expectedAfter: expectedAfter) == nil
+    }
+    /// Diagnostic categories only; callers must never log the document or surrounding text.
+    public static func mismatch(request: String, expectedRequest: String?, document: String, expectedDocument: String?,
+                                before: String, expectedBefore: String?, after: String, expectedAfter: String?) -> String? {
+        if request != expectedRequest { return "request_changed" }
+        if document != expectedDocument { return "document_changed" }
+        if before != expectedBefore || after != expectedAfter { return "context_changed" }
+        return nil
     }
 }

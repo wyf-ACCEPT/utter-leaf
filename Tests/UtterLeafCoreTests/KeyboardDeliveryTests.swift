@@ -18,5 +18,7 @@ final class KeyboardDeliveryTests: XCTestCase {
         XCTAssertFalse(KeyboardDelivery.matchesTarget(request: id, expectedRequest: id, document: "doc2", expectedDocument: "doc1", before: "prefix", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"))
         XCTAssertFalse(KeyboardDelivery.matchesTarget(request: id, expectedRequest: id, document: "doc1", expectedDocument: "doc1", before: "changed", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"))
         XCTAssertFalse(KeyboardDelivery.matchesTarget(request: id, expectedRequest: UUID().uuidString, document: "doc1", expectedDocument: "doc1", before: "prefix", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"))
+        XCTAssertEqual(KeyboardDelivery.mismatch(request: id, expectedRequest: id, document: "doc2", expectedDocument: "doc1", before: "prefix", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"), "document_changed")
+        XCTAssertEqual(KeyboardDelivery.mismatch(request: id, expectedRequest: id, document: "doc1", expectedDocument: "doc1", before: "changed", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"), "context_changed")
     }
 }
