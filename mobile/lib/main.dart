@@ -822,7 +822,7 @@ class _WavePainter extends CustomPainter {
             size.height / 2 +
             math.sin(x / size.width * math.pi * (4 + line) + phase + line) *
                 math.pow(math.sin(math.pi * x / size.width), 2) *
-                (0.5 + level * 38) *
+                (0.5 + (level * 1.5).clamp(0, 1) * 38) *
                 (1 - line * 0.2);
         if (x == 0) {
           path.moveTo(x, y);

@@ -203,7 +203,7 @@ private struct KeyboardSurface: View {
                 if model.phase == "recording" {
                     Button { controller.command("stop") } label: {
                         VStack(spacing: 5) {
-                            KeyboardWave(level: model.level).frame(width: 150, height: 26)
+                            KeyboardWave(level: model.level).frame(width: 150, height: 34)
                             Text("结束录音").font(.caption.weight(.semibold))
                         }
                     }.accessibilityLabel("结束录音")
@@ -264,7 +264,7 @@ private struct WaveTrace: Shape {
     var animatableData: Double { get { level } set { level = newValue } }
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let amplitude = 0.5 + min(1, max(0, level)) * rect.height * 0.46
+        let amplitude = 0.5 + min(1, max(0, level) * 1.5) * rect.height * 0.46
         for x in stride(from: 0.0, through: rect.width, by: 1) {
             let unit = x / max(1, rect.width)
             let y = rect.midY + sin(unit * .pi * 6 + phase) * pow(sin(unit * .pi), 2) * amplitude
