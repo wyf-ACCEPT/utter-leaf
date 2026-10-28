@@ -21,7 +21,7 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 **Working personal development build — October 28, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **128 tests** (latest run: 125 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **131 tests** (latest run: 128 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -31,7 +31,7 @@ The shared Swift suite contains **128 tests** (latest run: 125 passed, 3 desktop
 - **Optional DeepSeek Flash cleanup:** removes disfluencies, preserves meaning, converts spoken symbols, and favors digits in numbered English expressions such as `session one → session 1`. Transcript data is JSON-wrapped and treated as data, not executable instructions.
 - **Contextual vocabulary** for names, preferred spellings and commonly confused terms, rather than unconditional replacement.
 - **Guarded automatic insertion**, with an optional preview mode. If the target app, field or caret changes, the text is retained for recovery. Clipboard paste is used where appropriate; insertion is verified where the target exposes enough information.
-- **Local history** with configurable text retention, plus usage counts, CNY cost estimates, and rolling 7/30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
+- **Cross-device dictation history** with configurable text retention, plus usage counts, CNY cost estimates, and rolling 7/30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
 - **Dark mode by default**, light/system themes, a lightweight audio-reactive capsule, reduced-motion support and three bundled sound sets.
 
 ### Build and run
@@ -65,7 +65,7 @@ Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. 
 
 ### Privacy and local data
 
-**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend. Private iCloud sync shares usage metadata and budgets between your Mac and iPhone; recordings, transcripts and provider keys stay on their original device.
+**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend. Private iCloud shares usage/budgets and, in a separate history snapshot, dictation text between your Mac and iPhone. Audio, meeting content and provider keys stay on their original device.
 
 Short-dictation audio stays in memory; meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
 
@@ -123,7 +123,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-共享 Swift 测试共 **128 项**（最近一次：125 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+共享 Swift 测试共 **131 项**（最近一次：128 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -165,7 +165,7 @@ open .local/UtterLeaf.app
 
 ### 隐私与本地数据
 
-**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端。Mac 与 iPhone 通过私有 iCloud 同步用量统计与预算；录音、转录正文和 API Key 留在原设备。
+**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端。Mac 与 iPhone 通过私有 iCloud 同步用量、预算与听写正文；录音、会议正文和 API Key 留在原设备。
 
 短听写录音仅存内存；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
 
@@ -218,7 +218,7 @@ After a development signing-team change, macOS may retain an enabled Accessibili
 
 Mac and iPhone share typed call/job metadata and rolling 7/30-day budgets through `iCloud.network.utterleaf.usage` (personal team, Development). The original container remains intact. Each installation keeps its own durable metadata cache, original-call ownership and stable UUIDs; conflict merges are deterministic, and conditional CloudKit writes retry concurrent updates. Account changes pause synchronization rather than transferring another account's cached rows. Automatic checks run every minute while the app is active and defer during capture/processing. A successful account check alone never displays a successful sync.
 
-The dashboard combines device/purpose costs, written characters and known/unknown amounts. Complete provider receipts stay on the originating device. iPhone collection starts with this version; earlier phone spend is unavailable. Local/offline writes persist first, and empty unsynchronized caches do not display invented zero spend or full allowance. No recording, transcript, target-app context or credential is included in the cloud projection.
+The dashboard combines device/purpose costs, written characters and known/unknown amounts. Complete provider receipts stay on the originating device. iPhone collection starts with this version; earlier phone spend is unavailable. Local/offline writes persist first, and empty unsynchronized caches do not display invented zero spend or full allowance. The usage projection excludes recordings, transcripts, target-app context and credentials. Dictation history uses a separate text snapshot.
 
 Verified on the physical iPhone and Mac: marker read/write in both directions, plus the real Mac metadata appearing in the normal iPhone app (268 calls at the check). Both initially failed; after allowing the new phone test app's network access and successfully writing from iOS, Mac access recovered. The sequence is observed, not a proven repair procedure. Production CloudKit schema deployment and public distribution have not been performed.
 
@@ -226,6 +226,20 @@ For a personal Mac build, run `python3 scripts/prepare-macos-cloud-signing.py --
 
 ### 私有 iCloud 用量同步
 
-Mac 与 iPhone 现已同步调用统计、听写字数、听写/会议成本和最近 7/30 天预算。只同步严格筛选的统计字段；录音、正文、目标 App 信息与密钥留在本机。失败与无回执金额保持未知，不视为免费；完整回执只在原设备查看。手机用量从本版开始记录，之前的手机消费无法回补。
+Mac 与 iPhone 现已同步调用统计、听写字数、听写/会议成本和最近 7/30 天预算。用量快照只含筛选的统计字段，听写正文通过独立历史快照同步；录音、会议正文、目标 App 信息与密钥留在本机。失败与无回执金额保持未知，不视为免费；完整回执只在原设备查看。手机用量从本版开始记录，之前的手机消费无法回补。
 
 两端正常版已做真实设备用量同步核验。离线时先保存，App 活跃期间每分钟检查，并避开录音与处理；账户切换会暂停同步。当前使用个人开发团队的 Development 环境，未发布生产环境或公开分发。
+
+### Dictation history and iOS settings · October 28
+
+The iPhone now has four sliding glass destinations: Home / History / Usage / Settings. History supports local search, Mac/iPhone filters, and a bounded original/final-text detail with Copy. Retained Mac dictations backfill into the same private container; meeting text and audio are excluded. Earlier iPhone versions did not save a complete history, so phone collection starts with this version.
+
+Text history uses a separate checksum-validated snapshot, deterministic merging and per-device opt-out. Clearing an entry creates a permanent redaction marker that overrides stale offline copies while preserving usage counts. The Mac clear-text confirmation states its cross-device scope and excludes meetings. Active recovery previews and text already inserted in another app are unaffected. Retention preferences affect new recordings only.
+
+Settings matches Home's palette/cards and exposes optional cleanup, new-recording retention and this-device history sync. API/cloud setup cards have been removed from Settings; the masked credential recovery sheet remains available only from missing-key setup. Disabling cleanup uses ASR text directly and skips DeepSeek. CNY values display two decimals, retaining full calculation/sync precision.
+
+### 听写历史与手机设置
+
+手机底栏现有“主页、历史、用量、设置”。历史支持搜索、设备筛选、查看原始转录与整理稿并复制。Mac 已保留的听写正文会补同步；旧手机版未完整保存的记录无法回补。会议正文、音频与密钥不参与历史同步。
+
+设置页沿用主页样式，可关闭文字整理、选择新录音正文保留方式，以及关闭此设备的历史同步。清除某条正文会同步到其他设备，防止旧缓存把文字重新传回；用量统计保留。关闭同步不会删除已有本机记录。

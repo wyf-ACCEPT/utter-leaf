@@ -62,7 +62,7 @@ Keyboard return actions follow the host field's returnKeyType. Search/Send/Go/Ne
 
 The recording capsule includes a measured-level wave. Simulator maximum/zero scalar controls verify visible amplitude range; real microphone gain still requires user trial. The main Flutter wave uses the same RMS-derived source.
 
-Home / Usage / Settings use a native Liquid Glass navigation surface on iOS26 (system blur fallback on older OS, opaque material with Reduce Transparency). Tab changes preserve capture. Private CloudKit usage synchronization now shares metadata and budgets with the Mac. Source-device filters, known/unknown costs and bounded call details avoid crowding the two rolling allowance bars. Phone usage collection begins with this version; historical phone spend cannot be reconstructed. Never sync local database files wholesale: they contain private text.
+Home / History / Usage / Settings use a native Liquid Glass navigation surface on iOS26 (system blur fallback on older OS, opaque material with Reduce Transparency). Tab changes preserve capture. Private CloudKit usage synchronization now shares metadata and budgets with the Mac. Source-device filters, known/unknown costs and bounded call details avoid crowding the two rolling allowance bars. Phone usage collection begins with this version; historical phone spend cannot be reconstructed. Never sync local database files wholesale: they contain private text.
 
 
 ### Paid personal team migration · 2026-10-27
@@ -75,3 +75,9 @@ The Usage screen reads real shared metadata through `CloudUsageSync`, using the 
 
 
 Navigation motion refinement: one shared native glass selector slides continuously behind the three buttons. Taps spring to the destination; horizontal dragging previews the nearest destination and commits once on release. Cancellation restores the original tab without a Flutter callback. Programmatic selection updates do not echo callbacks. Reduce Motion disables spring/stretch while preserving direct manipulation. Existing recording ownership and native button accessibility remain unchanged. Evaluated [native_glass_navbar](https://github.com/TechSupportz/native_glass_navbar) and [Liquid-Glass-Bar](https://github.com/teiseong/Liquid-Glass-Bar); full UITabBarController embedding was tested but discarded after touch integration failed. The shipped implementation retains the working UIGlassEffect bridge without an added package or copied source.
+
+### History and settings
+
+The four-item glass bar adds a History page with clearable search, device filters and bounded original/final-text details. `CloudHistorySync` uses the same Swift implementation as the Mac. Stable IDs and permanent redaction markers prevent duplication and stale-text resurrection. `Library/Caches/HistorySync/status.json` exports status/counts only, never text. Earlier mobile versions did not persist a complete history; new captures now obey the selected retention policy.
+
+Settings matches Home's surfaces and green controls. Optional cleanup skips DeepSeek when off; retention (both/final/usage-only) affects future recordings; history sync is per-device. API/cloud-debug cards are removed. Canonical app, keyboard, group, scheme and signing identities stay unchanged.
