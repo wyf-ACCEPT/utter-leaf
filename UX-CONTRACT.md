@@ -1,6 +1,6 @@
 # UtterLeaf UX contract
 
-Visual ownership: [DESIGN.md](DESIGN.md). Platform: native macOS 14+, verified build host macOS 26.6.2 arm64. UI locale zh-Hans; dates use the Mac's locale/timezone. New ASR and DeepSeek estimates both use official/reference CNY rates and display four decimals. Old currency snapshots remain immutable and, if present, are shown separately. No Japan-market scope.
+Visual ownership: [DESIGN.md](DESIGN.md). Platform: native macOS 14+, verified build host macOS 26.6.2 arm64. UI locale zh-Hans; dates use the Mac's locale/timezone. New ASR and DeepSeek estimates both use official/reference CNY rates and display two decimals for CNY while retaining full calculation/sync precision. Old currency snapshots remain immutable and, if present, are shown separately. No Japan-market scope.
 
 ## Business-context sources
 

@@ -53,10 +53,10 @@ final class StorageTests: XCTestCase {
             XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "invalid-json-sentinel")
         }
     }
-    func testFourDecimalDisplayAndCNYPrices() async {
+    func testTwoDecimalCNYDisplayAndPrices() async {
         await MainActor.run {
-            XCTAssertEqual(money(0.123456, "CNY"), "¥0.1235")
-            XCTAssertEqual(money(1, "CNY"), "¥1.0000")
+            XCTAssertEqual(money(0.123456, "CNY"), "¥0.12")
+            XCTAssertEqual(money(1, "CNY"), "¥1.00")
             XCTAssertEqual(PriceSnapshot.flash.currency, "CNY")
             XCTAssertEqual(PriceSnapshot.flash.inputPerMillion, 2)
             XCTAssertNil(LeafTheme.scheme("system"))
