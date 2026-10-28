@@ -42,6 +42,9 @@ import UIKit
         MobileUsage.store.canSync = { [weak self] in !["starting", "recording", "processing"].contains(self?.phase ?? "") }
         MobileUsage.store.onChange = { MobileUsage.exportStatus() }
         MobileUsage.store.start()
+        MobileHistory.store.canSync = MobileUsage.store.canSync
+        MobileHistory.store.onChange = { MobileHistory.exportStatus() }
+        MobileHistory.store.start()
         // A terminated recorder never leaves a live command that can restart the microphone.
         let old = DictationExchange.read("state")
         if ["starting", "recording", "processing"].contains(old["phase"] as? String ?? "") {
@@ -56,6 +59,19 @@ import UIKit
             switch call.method {
             case "snapshot": result(self.snapshot)
             case "usage": result(MobileUsage.store.snapshot)
+            case "history": result(MobileHistory.store.snapshot)
+            case "syncHistory": Task { await MobileHistory.store.sync() }; result(nil)
+            case "eraseHistory":
+                if let id = call.arguments as? String { MobileHistory.store.erase(id) }
+                result(nil)
+            case "savePreferences":
+                guard !["starting", "recording", "processing"].contains(self.phase), let args = call.arguments as? [String: Any] else {
+                    result(FlutterError(code: "busy", message: "请先结束录音。", details: nil)); return
+                }
+                if let value = args["cleanup"] as? Bool { UserDefaults.standard.set(value, forKey: "cleanupEnabled") }
+                if let value = args["retention"] as? String, ["both", "final", "none"].contains(value) { UserDefaults.standard.set(value, forKey: "historyRetention") }
+                if let value = args["historySync"] as? Bool { MobileHistory.store.setEnabled(value) }
+                result(nil)
             case "syncUsage": Task { await MobileUsage.store.sync() }; result(nil)
             case "saveBudget":
                 guard let args = call.arguments as? [String: Double], let week = args["week"], let month = args["month"],
@@ -85,10 +101,15 @@ import UIKit
     var snapshot: [String: Any] {
         ["phase": phase, "text": text, "raw": raw, "error": error, "level": level, "seconds": elapsed,
          "cloudStatus": cloudStatus, "cloudMessage": cloudMessage, "usageVersion": MobileUsage.store.version,
+         "historyVersion": MobileHistory.store.version, "cleanup": MobileHistory.cleanup,
+         "retention": MobileHistory.retention, "historySync": MobileHistory.store.cache.enabled,
          "fromKeyboard": fromKeyboard, "returnStatus": returnStatus, "returnMessage": returnMessage, "doubaoConfigured": PersonalKeys.get("DOUBAO_API_KEY")?.isEmpty == false,
          "deepseekConfigured": PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false]
     }
     private func refreshCloudStatus() async {
+        #if targetEnvironment(simulator)
+        cloudStatus = "unavailable"; cloudMessage = "模拟器未连接 iCloud；显示本机测试资料。"; return
+        #endif
         guard !checkingCloud else { return }
         checkingCloud = true
         defer { checkingCloud = false }
@@ -302,7 +323,10 @@ import UIKit
                 let recognized = try await provider.finish()
                 guard generation == token else { return }
                 raw = recognized
-                text = try await provider.clean(recognized, prompt: prompt)
+                saveHistory()
+                text = MobileHistory.cleanup ? try await provider.clean(recognized, prompt: prompt) : recognized
+                provider.recordFinalCharacters(text)
+                saveHistory()
                 try Task.checkCancellation(); guard generation == token else { return }
                 phase = "ready"; publish(); endBackground()
             } catch { if generation == token, !Task.isCancelled { fail(error) } }
@@ -312,13 +336,19 @@ import UIKit
         guard phase == "error", !raw.isEmpty else { return }
         phase = "processing"; error = ""; publish(); let token = generation; beginBackground()
         work = Task {
-            do { let result = try await provider.clean(raw, prompt: prompt); guard generation == token else { return }; text = result; phase = "ready"; publish(); endBackground() }
+            do { let result = try await provider.clean(raw, prompt: prompt); guard generation == token else { return }; text = result; saveHistory(); phase = "ready"; publish(); endBackground() }
             catch { if generation == token, !Task.isCancelled { fail(error) } }
         }
     }
     func cancel() {
         generation = UUID(); work?.cancel(); sender?.cancel(); provider.cancel(); stopAudio(); buffer.removeAll()
         phase = "cancelled"; text = ""; raw = ""; error = ""; publish(); endBackground()
+    }
+    private func saveHistory() {
+        guard MobileHistory.retention != "none" else { return }
+        MobileHistory.store.upsert(id: requestID, created: (started ?? Date()).timeIntervalSince1970, seconds: Double(elapsed),
+            raw: MobileHistory.retention == "both" && !raw.isEmpty ? raw : nil, final: text.isEmpty ? nil : text,
+            rawRemoved: MobileHistory.retention != "both")
     }
     private func fail(_ failure: Error) {
         sender?.cancel(); provider.cancel(failed: true); stopAudio(); buffer.removeAll(); phase = "error"
@@ -355,5 +385,17 @@ import UIKit
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var value = store.snapshot; value.removeValue(forKey: "calls")
         if let data = try? JSONSerialization.data(withJSONObject: value) { try? data.write(to: folder.appendingPathComponent("status.json"), options: .atomic) }
+    }
+}
+
+@MainActor enum MobileHistory {
+    static var cleanup: Bool { UserDefaults.standard.object(forKey: "cleanupEnabled") as? Bool ?? true }
+    static var retention: String { UserDefaults.standard.string(forKey: "historyRetention") ?? "both" }
+    static let store = CloudHistorySync(file: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("UtterLeaf/history-cloud-v1.json"), device: "iPhone")
+    static func exportStatus() {
+        let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("HistorySync")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        if let data = try? JSONSerialization.data(withJSONObject: store.diagnostic) { try? data.write(to: folder.appendingPathComponent("status.json"), options: .atomic) }
     }
 }

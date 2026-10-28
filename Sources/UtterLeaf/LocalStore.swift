@@ -36,6 +36,12 @@ struct LocalDatabase: Codable {
     @Published var storageError: String?
     @Published var billingSyncing = false
     lazy var billingSync = BillingSync(store: self)
+    lazy var historyCloud: CloudHistorySync = {
+        let cloud = CloudHistorySync(file: root.appendingPathComponent("history-cloud-v1.json"), device: "Mac")
+        cloud.onChange = { [weak self] in self?.objectWillChange.send() }
+        cloud.onRemoteChange = { [weak self] in self?.applyHistoryRedactions() }
+        return cloud
+    }()
     lazy var usageCloud: CloudUsageSync = {
         let control = ProcessInfo.processInfo.arguments.contains("--cloud-container-control")
         // Keep the previous container's account-bound cache intact in its original file.
@@ -88,6 +94,38 @@ struct LocalDatabase: Codable {
             var folder = root; try folder.setResourceValues(resource)
         } catch { storageError = "本地记录保存失败。当前文字仍在预览中，请先复制。" }
         captureCloudUsage()
+        captureCloudHistory()
+    }
+    func captureCloudHistory() {
+        for job in database.jobs where job.kind != "meeting" {
+            let id = job.id.uuidString.lowercased()
+            if job.rawText == nil && job.finalText == nil {
+                if historyCloud.cache.rows[id] != nil { historyCloud.erase(id) }
+            } else {
+                historyCloud.upsert(id: id, created: job.created.timeIntervalSince1970, seconds: job.seconds,
+                    raw: job.rawText, final: job.finalText, rawRemoved: job.rawText == nil)
+            }
+        }
+    }
+    private func applyHistoryRedactions() {
+        var changed = false
+        for i in database.jobs.indices where database.jobs[i].kind != "meeting" {
+            guard let row = historyCloud.cache.rows[database.jobs[i].id.uuidString.lowercased()] else { continue }
+            if (row.erased || row.rawRemoved) && database.jobs[i].rawText != nil { database.jobs[i].rawText = nil; changed = true }
+            if row.erased && database.jobs[i].finalText != nil { database.jobs[i].finalText = nil; changed = true }
+        }
+        if changed { save() }
+    }
+    var historyJobs: [HistoryJob] {
+        var jobs = Dictionary(database.jobs.filter { $0.kind != "meeting" }.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for row in historyCloud.cache.visible {
+            guard let id = UUID(uuidString: row.id), jobs[id] == nil else { continue }
+            var job = HistoryJob(id: id, pipeline: .final)
+            job.created = Date(timeIntervalSince1970: row.created); job.seconds = row.seconds
+            job.rawText = row.raw; job.finalText = row.final; job.finalCharacters = (row.final ?? row.raw ?? "").unicodeScalars.count
+            job.status = "已同步"; jobs[id] = job
+        }
+        return jobs.values.sorted { $0.created > $1.created }
     }
     func captureCloudUsage() {
         for call in database.calls {
@@ -156,7 +194,8 @@ struct LocalDatabase: Codable {
         database.preferences.vocabulary = vocabulary.filter { $0.id != id }; save()
     }
     func clearText() {
-        for i in database.jobs.indices { database.jobs[i].rawText = nil; database.jobs[i].finalText = nil }
+        historyCloud.eraseAll()
+        for i in database.jobs.indices where database.jobs[i].kind != "meeting" { database.jobs[i].rawText = nil; database.jobs[i].finalText = nil }
         save()
     }
 }

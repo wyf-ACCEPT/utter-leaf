@@ -125,7 +125,7 @@ final class KeyboardViewController: UIInputViewController {
         switch phase {
         case "recording": model.status = String(format: "正在录音 · %02d:%02d", seconds / 60, seconds % 60)
         case "starting": model.status = "正在准备麦克风…"
-        case "processing": model.status = "正在转写与整理…"
+        case "processing": model.status = "正在处理文字…"
         case "ready": model.status = "文字已保留，回到原输入框后自动放入"; insert()
         case "error": model.status = state["error"] as? String ?? "请返回言叶重试"
         default: model.status = "让想法，自然落成文字。"
@@ -182,9 +182,9 @@ private struct KeyboardSurface: View {
                     Button { controller.command("stop") } label: {
                         VStack(spacing: 5) {
                             KeyboardWave(level: model.level).frame(width: 150, height: 26)
-                            Text("结束并整理").font(.caption.weight(.semibold))
+                            Text("结束录音").font(.caption.weight(.semibold))
                         }
-                    }.accessibilityLabel("结束并整理")
+                    }.accessibilityLabel("结束录音")
                 } else if model.phase == "ready" {
                     Label("等待原输入框", systemImage: "text.badge.checkmark")
                 } else if ["starting", "processing"].contains(model.phase) {

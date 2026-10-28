@@ -161,7 +161,7 @@ class _UsagePageState extends State<UsagePage> {
           ),
           const SizedBox(height: 16),
           const Text(
-            '共享预算只作提醒，不是供应商余额。仅汇总 CNY 已知估算；调用明细显示最近 50 次，筛选只作用于明细。手机记录从此版本开始累计。只同步用量与预算，录音、正文和 API Key 留在本机。',
+            '共享预算只作提醒，不是供应商余额。仅汇总 CNY 已知估算；调用明细显示最近 50 次，筛选只作用于明细。手机记录从此版本开始累计。用量与预算自动同步；听写正文在历史页查看，录音和 API Key 留在本机。',
             style: TextStyle(fontSize: 12),
           ),
         ],

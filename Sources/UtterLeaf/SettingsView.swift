@@ -60,9 +60,9 @@ struct SettingsView: View {
             Text("单按并松开 Fn 切换录音。仅拦截 Fn 本身的系统动作，不更改系统键盘设置；Fn + 方向键等组合键继续传给原应用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             Text("先在目标输入框按快捷键开始，结束后会按上面的方式自动输入或预览。不支持辅助功能回填的应用可复制粘贴。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
-        Surface(title: "本地历史与隐私") {
+        Surface(title: "听写历史与隐私") {
             LeafSegments(title: "正文保留", selection: binding(\.retention), items: [LeafSegment("both", "原始 + 最终稿"), LeafSegment("final", "仅最终稿"), LeafSegment("none", "仅用量")])
-            Text("当前设置应用于新记录。已有正文保留至手动清除。音频不落盘，最长录音 5 分钟。用量记录不含正文，保存在 Application Support/UtterLeaf；不会主动同步或上传到公司服务。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("当前设置应用于新记录。已有正文保留至手动清除。音频不落盘，最长录音 5 分钟。用量与听写历史同步到个人私有 iCloud；录音、密钥和会议正文不参与同步。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             Button("清除全部听写正文…", role: .destructive) { confirmClear = true }.disabled(model.busy || model.inserting)
         }
         BillingSyncView(store: store)
@@ -102,7 +102,7 @@ struct SettingsView: View {
             refresh(); savedPrompt = (try? model.prompt()) ?? ""; promptText = model.promptEditorDraft ?? savedPrompt
         }
         .onChange(of: promptText) { _, value in model.promptEditorDraft = value }
-        .confirmationDialog("清除全部听写原始转写和最终稿？会议记录需在会议页面处理。此操作不能撤销，用量记录与当前预览会保留。", isPresented: $confirmClear) {
+        .confirmationDialog("清除已载入的全部听写正文，并同步清除到 iCloud 和其他设备？会议记录不受影响。此操作不能撤销，用量记录与当前预览会保留。", isPresented: $confirmClear) {
             Button("清除全部听写正文", role: .destructive) { store.clearText(); feedback = "已清除听写正文，保留用量与字符计数。" }
             Button("取消", role: .cancel) {}
         }

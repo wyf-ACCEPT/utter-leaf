@@ -26,7 +26,7 @@ struct UsageView: View {
             }
             Text("近 30 天设备来源 · Mac " + money(window["mac"] as? Double ?? 0, "CNY") + " · iPhone " + money(window["phone"] as? Double ?? 0, "CNY"))
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            Text("仅同步用量与预算；录音、转录正文和 API Key 留在本机。每分钟自动检查，离线时保留记录。")
+            Text("用量与预算自动同步；听写正文可在历史页同步，录音和 API Key 留在本机。每分钟自动检查，离线时保留记录。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
         UsageBudgetView(store: store)

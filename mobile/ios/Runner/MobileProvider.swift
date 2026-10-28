@@ -22,7 +22,7 @@ enum MobileFailure: Error, LocalizedError {
     }()
     func start(jobID: String) async throws {
         guard let key = PersonalKeys.get("DOUBAO_API_KEY"), !key.isEmpty else { throw MobileFailure.message("请先配置个人豆包 Key。") }
-        guard PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false else { throw MobileFailure.message("请先配置个人 DeepSeek Key。") }
+        guard !MobileHistory.cleanup || PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false else { throw MobileFailure.message("请先配置个人 DeepSeek Key。") }
         sentSeconds = 0; checkpointSeconds = 0
         let ledger = MobileUsage.store
         var job = ledger.row(id: "job." + jobID.lowercased(), kind: "job")
@@ -128,6 +128,9 @@ enum MobileFailure: Error, LocalizedError {
         } catch { call.status = Task.isCancelled ? "cancelled" : "failed"; ledger.ingest(call); throw error }
     }
 
+    func recordFinalCharacters(_ text: String) {
+        if var job = usageJob { job.characters = text.unicodeScalars.count; usageJob = job; MobileUsage.store.ingest(job) }
+    }
     func cancel(failed: Bool = false) { checkpoint(status: failed ? "failed" : "cancelled"); receiver?.cancel(); socket?.cancel(with: .goingAway, reason: nil); socket = nil; receiver = nil }
 }
 
