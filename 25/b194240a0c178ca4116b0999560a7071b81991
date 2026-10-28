@@ -1,0 +1,60 @@
+Sources/UtterLeafCore/CloudUsageSync.swift
+  s_299dc04098b816::t_185b63da1abe8d 1-194
+mobile/scripts/configure_signing.py
+  s_299dc04098b816::t_185b63da1abe8d 9,15
+mobile/ios/Runner/Info.plist
+  s_299dc04098b816::t_185b63da1abe8d 91
+App/Info.plist
+  s_299dc04098b816::t_185b63da1abe8d 3-32
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_185b63da1abe8d 39-53,90-131
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_185b63da1abe8d 42-44,58-65,87,196,324,348-357
+  s_3e875cd533eb64::t_69bd87e3eeeabf 358-359
+DESIGN.md
+  s_299dc04098b816::t_dfd8ca912cdcea 165,171,178-180
+README.md
+  s_299dc04098b816::t_89b171cd40360a 22,24,68,97,126,168,191,215-231
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_862604b97ee569 13,27,74,98
+Sources/UtterLeaf/UsageView.swift
+  s_299dc04098b816::t_252cac19ecc09e 10,14-31,44-45,55-56
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_b113d0bcd012f7 19-40,96-100,109
+UX-CONTRACT.md
+  s_299dc04098b816::t_92f03ccf1430c7 174,177,181-183
+mobile/README.md
+  s_299dc04098b816::t_6a2a2513bd86c6 65,72,74
+mobile/ios/Runner.xcodeproj/project.pbxproj
+  s_299dc04098b816::t_66be0496d177b4 33-34,108-109,440-441
+mobile/ios/Runner/MobileProvider.swift
+  s_299dc04098b816::t_909c8905666e67 12-15,23,26-34,48,62-67,70-78,82,84-90,101-128,130-131
+mobile/ios/Runner/Runner.entitlements
+  s_299dc04098b816::t_2bc89b669b5c70 10
+mobile/lib/main.dart
+  s_299dc04098b816::t_91439f208d1bd7 2,64-65,102-107,112-115,199-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "25b194240a0c178ca4116b0999560a7071b81991",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    },
+    "s_3e875cd533eb64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677c-b29e-7602-81bb-544d99041296",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
