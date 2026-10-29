@@ -71,6 +71,7 @@ class _DictationPageState extends State<DictationPage>
   Map<String, dynamic> state = {'phase': 'idle'};
   String? bridgeError;
   bool refreshing = false, sending = false;
+  String? copiedText;
   int selectedTab = 0;
   Map<String, dynamic> usage = {}, history = {};
   int? usageVersion, historyVersion;
@@ -127,6 +128,7 @@ class _DictationPageState extends State<DictationPage>
         setState(() {
           final wasBusy = busy;
           state = next;
+          if (!wasBusy && busy) copiedText = null;
           if (nextUsage != null) {
             usage = nextUsage;
             usageVersion = next['usageVersion'] as int?;
@@ -441,6 +443,7 @@ class _DictationPageState extends State<DictationPage>
                                 ClipboardData(text: text.isEmpty ? raw : text),
                               );
                               if (context.mounted) {
+                                setState(() => copiedText = text.isEmpty ? raw : text);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('已复制')),
                                 );
@@ -450,7 +453,7 @@ class _DictationPageState extends State<DictationPage>
                               CupertinoIcons.doc_on_doc,
                               size: 18,
                             ),
-                            label: const Text('复制'),
+                            label: Text(copiedText == (text.isEmpty ? raw : text) ? '已复制' : '复制'),
                           ),
                         ],
                       ),

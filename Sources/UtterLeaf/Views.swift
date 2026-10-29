@@ -247,7 +247,7 @@ struct DictationView: View {
                 HStack {
                     Text("输入到 \(model.targetName)").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     Spacer()
-                    Button("复制", action: model.copy).disabled(model.draft.isEmpty || model.busy)
+                    Button(model.draftWasCopied ? "已复制" : "复制", action: model.copy).disabled(model.draft.isEmpty || model.busy)
                     Button(model.inserting ? "正在输入…" : "输入到原应用", action: model.insert).buttonStyle(PrimaryStyle())
                         .disabled(model.inserting || model.busy || model.draft.isEmpty)
                 }
