@@ -13,6 +13,7 @@ enum MobileFailure: Error, LocalizedError {
     private var usageJob: CloudUsageRow?
     private var sentSeconds = 0.0
     private var checkpointSeconds = 0.0
+    private var activeVocabulary: [VocabularyEntry] = []
     private let session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 40
@@ -21,6 +22,7 @@ enum MobileFailure: Error, LocalizedError {
         return URLSession(configuration: config, delegate: MobileNoRedirect(), delegateQueue: nil)
     }()
     func start(jobID: String) async throws {
+        activeVocabulary = MobileVocabulary.store.entries
         guard let key = PersonalKeys.get("DOUBAO_API_KEY"), !key.isEmpty else { throw MobileFailure.message("请先配置个人豆包 Key。") }
         guard !MobileHistory.cleanup || PersonalKeys.get("DEEPSEEK_API_KEY")?.isEmpty == false else { throw MobileFailure.message("请先配置个人 DeepSeek Key。") }
         sentSeconds = 0; checkpointSeconds = 0
@@ -89,15 +91,17 @@ enum MobileFailure: Error, LocalizedError {
             return text
         } catch { if usageCall?.id == callID { checkpoint(status: "failed") }; throw error }
     }
-    func clean(_ text: String, prompt: String) async throws -> String {
+    func clean(_ text: String, prompt: String, vocabulary: [VocabularyEntry]? = nil) async throws -> String {
         guard let key = PersonalKeys.get("DEEPSEEK_API_KEY") else { throw MobileFailure.message("缺少 DeepSeek Key。") }
         var request = URLRequest(url: URL(string: "https://api.deepseek.com/chat/completions")!)
         request.httpMethod = "POST"
         request.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let envelope = String(data: try JSONSerialization.data(withJSONObject: ["transcript": text]), encoding: .utf8)!
+        let entries = vocabulary ?? activeVocabulary
+        let envelope = try TextEnvelope.wrap(text, vocabulary: entries)
+        let effectivePrompt = VocabularyContext.systemPrompt(prompt, entries: entries)
         request.httpBody = try JSONSerialization.data(withJSONObject: ["model": "deepseek-flash", "thinking": ["type": "disabled"], "max_tokens": 8192,
-            "messages": [["role": "system", "content": prompt], ["role": "user", "content": envelope]]])
+            "messages": [["role": "system", "content": effectivePrompt], ["role": "user", "content": envelope]]])
         let ledger = MobileUsage.store
         let targetJob = usageJob
         var call = ledger.row(id: "call." + UUID().uuidString.lowercased(), kind: "call")

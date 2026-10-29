@@ -51,8 +51,8 @@ final class VocabularyAndWaveformTests: XCTestCase {
             try store.saveVocabulary(entry)
             entry.term = "言叶"; try store.saveVocabulary(entry)
             XCTAssertEqual(store.vocabulary.count, 2)
-            XCTAssertEqual(LocalStore(root: root).vocabulary.last?.term, "言叶")
-            store.deleteVocabulary(entry.id); store.deleteVocabulary(VocabularyEntry.typeless.id)
+            XCTAssertTrue(LocalStore(root: root).vocabulary.contains(where: { $0.id == entry.id && $0.term == "言叶" }))
+            try store.deleteVocabulary(entry.id); try store.deleteVocabulary(VocabularyEntry.typeless.id)
             XCTAssertTrue(LocalStore(root: root).vocabulary.isEmpty)
         }
     }

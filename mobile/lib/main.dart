@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'usage_page.dart';
 import 'history_page.dart';
+import 'vocabulary_page.dart';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -443,7 +444,9 @@ class _DictationPageState extends State<DictationPage>
                                 ClipboardData(text: text.isEmpty ? raw : text),
                               );
                               if (context.mounted) {
-                                setState(() => copiedText = text.isEmpty ? raw : text);
+                                setState(
+                                  () => copiedText = text.isEmpty ? raw : text,
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('已复制')),
                                 );
@@ -453,7 +456,11 @@ class _DictationPageState extends State<DictationPage>
                               CupertinoIcons.doc_on_doc,
                               size: 18,
                             ),
-                            label: Text(copiedText == (text.isEmpty ? raw : text) ? '已复制' : '复制'),
+                            label: Text(
+                              copiedText == (text.isEmpty ? raw : text)
+                                  ? '已复制'
+                                  : '复制',
+                            ),
                           ),
                         ],
                       ),
@@ -609,6 +616,18 @@ class _DictationPageState extends State<DictationPage>
           const Text(
             '只影响之后的录音。已有正文可在历史详情中清除，清除会同步到其他设备。',
             style: TextStyle(fontSize: 13, color: Leaf.muted),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        settingsCard('词汇表', [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('管理词汇'),
+            subtitle: const Text('同步人名、术语和易错写法'),
+            trailing: const Icon(CupertinoIcons.chevron_forward),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const VocabularyPage()),
+            ),
           ),
         ]),
         const SizedBox(height: 16),

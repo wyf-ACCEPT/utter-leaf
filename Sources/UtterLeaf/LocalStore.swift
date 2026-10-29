@@ -36,6 +36,12 @@ struct LocalDatabase: Codable {
     @Published var storageError: String?
     @Published var billingSyncing = false
     lazy var billingSync = BillingSync(store: self)
+    lazy var vocabularyCloud: CloudVocabularySync = {
+        let cloud = CloudVocabularySync(file: root.appendingPathComponent("vocabulary-cloud-v1.json"))
+        cloud.seed(database.preferences.vocabulary ?? [.typeless])
+        cloud.onChange = { [weak self] in self?.objectWillChange.send() }
+        return cloud
+    }()
     lazy var historyCloud: CloudHistorySync = {
         let cloud = CloudHistorySync(file: root.appendingPathComponent("history-cloud-v1.json"), device: "Mac")
         cloud.onChange = { [weak self] in self?.objectWillChange.send() }
@@ -182,16 +188,15 @@ struct LocalDatabase: Codable {
         else { database.calls.insert(call, at: 0) }
         save()
     }
-    var vocabulary: [VocabularyEntry] { database.preferences.vocabulary ?? [.typeless] }
+    var vocabulary: [VocabularyEntry] { vocabularyCloud.entries }
     func saveVocabulary(_ entry: VocabularyEntry) throws {
         if let error = VocabularyContext.validationError(entry, existing: vocabulary) { throw AppFailure(error, code: "vocabulary_validation") }
-        var entries = vocabulary
-        if let index = entries.firstIndex(where: { $0.id == entry.id }) { entries[index] = entry.normalized() }
-        else { entries.append(entry.normalized()) }
-        database.preferences.vocabulary = entries; save()
+        try vocabularyCloud.upsert(entry)
+        database.preferences.vocabulary = vocabularyCloud.entries; save()
     }
-    func deleteVocabulary(_ id: UUID) {
-        database.preferences.vocabulary = vocabulary.filter { $0.id != id }; save()
+    func deleteVocabulary(_ id: UUID) throws {
+        try vocabularyCloud.delete(id)
+        database.preferences.vocabulary = vocabularyCloud.entries; save()
     }
     func clearText() {
         historyCloud.eraseAll()

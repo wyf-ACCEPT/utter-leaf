@@ -19,9 +19,9 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 ## Status
 
-**Working personal development build — October 28, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
+**Working personal development build — October 29, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **131 tests** (latest run: 128 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **134 tests** (latest run: 131 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -29,7 +29,7 @@ The shared Swift suite contains **131 tests** (latest run: 128 passed, 3 desktop
 - **Up to five minutes per dictation.** The capsule shows a countdown during the last 30 seconds, then stops recording and processes the captured audio.
 - **Three selectable Doubao ASR routes:** streaming with results after recording, live streaming, and file transcription. No route is preselected on a fresh install.
 - **Optional DeepSeek Flash cleanup:** removes disfluencies, preserves meaning, converts spoken symbols, and favors digits in numbered English expressions such as `session one → session 1`. Transcript data is JSON-wrapped and treated as data, not executable instructions.
-- **Contextual vocabulary** for names, preferred spellings and commonly confused terms, rather than unconditional replacement.
+- **Shared contextual vocabulary** for names, preferred spellings and commonly confused terms, synchronized privately between Mac and iPhone, rather than unconditional replacement.
 - **Guarded automatic insertion**, with an optional preview mode. If the target app, field or caret changes, the text is retained for recovery. Clipboard paste is used where appropriate; insertion is verified where the target exposes enough information.
 - **Cross-device dictation history** with configurable text retention, plus usage counts, CNY cost estimates, and rolling 7/30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
 - **Dark mode by default**, light/system themes, a lightweight audio-reactive capsule, reduced-motion support and three bundled sound sets.
@@ -123,7 +123,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 **截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
 
-共享 Swift 测试共 **131 项**（最近一次：128 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
+共享 Swift 测试共 **134 项**（最近一次：131 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
@@ -131,7 +131,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 - **单次最长 5 分钟**，最后 30 秒在胶囊内倒计时，到时自动结束并继续处理。
 - **三条可选豆包管线**：流式结束后返回、实时流式、文件转写；新安装不预选管线。
 - **可选 DeepSeek Flash 整理**：去除口吃与赘词、保留原意、转换口述符号、规范编号数字。输入使用 JSON 数据封装，不执行录音里的命令。
-- **语境词汇表**：帮助规范专有名称及易错拼写，不做无条件全文替换。
+- **共享语境词汇表**：Mac 与 iPhone 通过私有 iCloud 同步专有名称、易错拼写及说明，不做无条件全文替换。
 - **自动回填及可选预览**：核对原应用、输入框和光标；发生变化时保留稿件供恢复。必要时使用剪贴板粘贴，并在接口允许时读取确认结果。
 - **本地历史与用量费用**：原始/最终稿保留策略、CNY 费用估算、供应商成本占比、滚动 7/30 天预算。预算仅作提醒，不限制录音，也不是供应商余额。
 - **默认深色**，支持浅色/跟随系统、轻量动态波形胶囊、减少动态效果和三组提示音。
@@ -243,3 +243,18 @@ Settings matches Home's palette/cards and exposes optional cleanup, new-recordin
 手机底栏现有“主页、历史、用量、设置”。历史支持搜索、设备筛选、查看原始转录与整理稿并复制。Mac 已保留的听写正文会补同步；旧手机版未完整保存的记录无法回补。会议正文、音频与密钥不参与历史同步。
 
 设置页沿用主页样式，可关闭文字整理、选择新录音正文保留方式，以及关闭此设备的历史同步。清除某条正文会同步到其他设备，防止旧缓存把文字重新传回；用量统计保留。关闭同步不会删除已有本机记录。
+
+
+### Vocabulary sync and preview copying · October 29
+
+Vocabulary now shares spelling, aliases, notes and enabled state through a separate private `vocabulary.snapshot.v1` record in the existing usage container. Mac entries migrate once; iPhone Settings → Vocabulary supports search, add, edit, enable/disable and confirmed deletion. Stable IDs, deterministic conflict resolution, duplicate-spelling coalescing, durable offline edits and deletion markers prevent stale devices from restoring removed entries. Account changes pause synchronization. Only the app accesses the cloud; the keyboard receives the completed dictation as before.
+
+Each recording snapshots its vocabulary; retries use current entries. The iPhone cleanup now uses the same data-envelope vocabulary rules as the Mac: aliases/notes are data, never executable instructions, and disabled entries are omitted from provider requests. Vocabulary applies only when DeepSeek cleanup is enabled. No ASR-provider request or private speech test was needed to validate transport.
+
+Copy on the Mac no longer dismisses the editable preview or clears its raw text, insertion target or job. The label changes to Copied, and editing resets it. The iPhone result card likewise keeps its text and displays Copied.
+
+### 词汇表同步与复制反馈
+
+词汇表现可在 Mac 与 iPhone 的私有 iCloud 间同步，包含首选拼写、易错写法、说明和启用状态。手机入口为“设置 → 词汇表 → 管理词汇”。两端可修改，离线时先保存，删除会传播且不会被旧缓存恢复。词条在每次录音开始时固定；关闭文字整理时不使用词汇表。
+
+复制后保留预览正文、原始转录与输入目标，按钮显示“已复制”；编辑文字后恢复“复制”。

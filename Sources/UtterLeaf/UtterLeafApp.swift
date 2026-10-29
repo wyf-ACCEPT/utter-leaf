@@ -16,7 +16,7 @@ import UtterLeafCore
     var panel: NSPanel!
     var item: NSStatusItem!
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if ProcessInfo.processInfo.arguments.contains("--usage-sync-check") || ProcessInfo.processInfo.arguments.contains("--history-sync-check") {
+        if ProcessInfo.processInfo.arguments.contains("--usage-sync-check") || ProcessInfo.processInfo.arguments.contains("--history-sync-check") || ProcessInfo.processInfo.arguments.contains("--vocabulary-sync-check") {
             NSApp.setActivationPolicy(.prohibited)
             let path = model.store.root.appendingPathComponent("ledger.json")
             if let data = try? Data(contentsOf: path), let original = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -30,6 +30,11 @@ import UtterLeafCore
             model.store.captureCloudUsage()
             model.store.usageCloud.onRemoteBudget = nil
             Task {
+                if ProcessInfo.processInfo.arguments.contains("--vocabulary-sync-check") {
+                    await model.store.vocabularyCloud.sync()
+                    if let data = try? JSONSerialization.data(withJSONObject: model.store.vocabularyCloud.diagnostic, options: [.sortedKeys]), let text = String(data: data, encoding: .utf8) { print(text) }
+                    NSApp.terminate(nil); return
+                }
                 if ProcessInfo.processInfo.arguments.contains("--history-sync-check") {
                     model.store.captureCloudHistory()
                     model.store.historyCloud.onRemoteChange = nil
@@ -107,6 +112,8 @@ import UtterLeafCore
             model.store.captureCloudHistory()
             model.store.historyCloud.canSync = model.store.usageCloud.canSync
             model.store.historyCloud.start()
+            model.store.vocabularyCloud.canSync = model.store.usageCloud.canSync
+            model.store.vocabularyCloud.start()
             showMain()
         }
     }
@@ -116,7 +123,7 @@ import UtterLeafCore
     @objc func toggleRecording() { model.toggle() }
     @objc func quit() { model.abort(); NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        pill.closeImmediately(); meetingCaptions.close(); model.meetings.shutdown(); model.store.billingSync.stop(); model.store.usageCloud.stop(); model.store.historyCloud.stop(); hotkey.unregister(); model.abort(); return .terminateNow
+        pill.closeImmediately(); meetingCaptions.close(); model.meetings.shutdown(); model.store.billingSync.stop(); model.store.usageCloud.stop(); model.store.historyCloud.stop(); model.store.vocabularyCloud.stop(); hotkey.unregister(); model.abort(); return .terminateNow
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showMain(); return true }
     func updatePanel() {
