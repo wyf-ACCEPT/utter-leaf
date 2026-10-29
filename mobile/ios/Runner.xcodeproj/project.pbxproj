@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A012CDFA0000000000000205 = {isa = PBXBuildFile; fileRef = A012CDFA0000000000000204; };
+		A012CDFA0000000000000203 = {isa = PBXBuildFile; fileRef = A012CDFA0000000000000202; };
+		A012CDFA0000000000000201 = {isa = PBXBuildFile; fileRef = A012CDFA0000000000000200; };
 		A012CDFA0000000000000011 = {isa = PBXBuildFile; fileRef = A012CDFA0000000000000010; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		291F07E690913F7529E9D126 /* KeyboardReturn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CC147277812F6F8A02F4311 /* KeyboardReturn.swift */; };
@@ -77,6 +80,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A012CDFA0000000000000204 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Sources/UtterLeafCore/Domain.swift"; sourceTree = SOURCE_ROOT; };
+		A012CDFA0000000000000202 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Sources/UtterLeafCore/Vocabulary.swift"; sourceTree = SOURCE_ROOT; };
+		A012CDFA0000000000000200 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Sources/UtterLeafCore/CloudVocabularySync.swift"; sourceTree = SOURCE_ROOT; };
 		A012CDFA0000000000000010 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Sources/UtterLeafCore/CloudHistorySync.swift"; sourceTree = SOURCE_ROOT; };
 		0C9F47E8F5EECB04618DC5FD /* MobileProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileProvider.swift; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -441,6 +447,9 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A012CDFA0000000000000006 /* CloudUsageSync.swift in Sources */,
 				A012CDFA0000000000000011 /* CloudHistorySync.swift in Sources */,
+				A012CDFA0000000000000205 /* Domain.swift in Sources */,
+				A012CDFA0000000000000203 /* Vocabulary.swift in Sources */,
+				A012CDFA0000000000000201 /* CloudVocabularySync.swift in Sources */,
 				A012CDFA0000000000000005 /* CloudUsageModel.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,

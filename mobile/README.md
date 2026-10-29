@@ -81,3 +81,10 @@ Navigation motion refinement: one shared native glass selector slides continuous
 The four-item glass bar adds a History page with clearable search, device filters and bounded original/final-text details. `CloudHistorySync` uses the same Swift implementation as the Mac. Stable IDs and permanent redaction markers prevent duplication and stale-text resurrection. `Library/Caches/HistorySync/status.json` exports status/counts only, never text. Earlier mobile versions did not persist a complete history; new captures now obey the selected retention policy.
 
 Settings matches Home's surfaces and green controls. Optional cleanup skips DeepSeek when off; retention (both/final/usage-only) affects future recordings; history sync is per-device. API/cloud-debug cards are removed. Canonical app, keyboard, group, scheme and signing identities stay unchanged.
+
+
+### Shared vocabulary
+
+Settings → Vocabulary opens a searchable editor with spelling, newline-separated aliases, context note and enabled state. It shares `CloudVocabularySync`, `VocabularyEntry`, and the text-envelope rules with the Mac. Native validation retains the current limits (200 visible entries, 100-character spelling/aliases, 20 aliases and 500-character note). Dictation snapshots vocabulary before starting; cleanup retries read current words. No word data enters the keyboard extension or usage-metadata snapshot. `Library/Caches/VocabularySync/status.json` exposes only counts/status/time.
+
+When preparing a physical release after simulator builds, use a clean derived-data directory, verify the full app signature, copy to a separate ignored installation directory and verify again. Incremental Xcode builds may otherwise leave the enclosing resource seal stale after Flutter framework regeneration. Never install a package failing `codesign --verify --deep --strict`.

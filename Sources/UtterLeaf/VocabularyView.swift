@@ -14,6 +14,11 @@ struct VocabularyView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             PageHeading(title: "词汇表", subtitle: "让人名、产品名和专业术语，保留你熟悉的拼写。")
+            HStack {
+                Text(store.vocabularyCloud.status).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                Spacer()
+                Button("立即同步") { Task { await store.vocabularyCloud.sync() } }.disabled(store.vocabularyCloud.syncing)
+            }
             Surface {
                 HStack {
                     VStack(alignment: .leading, spacing: 7) {
@@ -50,7 +55,7 @@ struct VocabularyView: View {
                         Toggle("启用", isOn: Binding(get: { store.vocabulary.first(where: { $0.id == entry.id })?.enabled ?? entry.enabled }, set: {
                             var updated = entry; updated.enabled = $0
                             do { try store.saveVocabulary(updated); feedback = $0 ? "已启用词条。" : "已停用词条。" }
-                            catch { feedback = safeFailure(error).message }
+                            catch { feedback = error.localizedDescription }
                         })).toggleStyle(.switch).fixedSize()
                         Button("编辑") { editing = entry }.buttonStyle(.bordered).handCursor()
                         Button { deleting = entry } label: { Image(systemName: "trash") }.buttonStyle(.borderless).handCursor()
@@ -59,12 +64,15 @@ struct VocabularyView: View {
                 }
             }
             if rows.count > limit { Button("加载更多词条") { limit += 30 }.buttonStyle(.bordered).handCursor() }
-            Text("录音开始时会固定本次使用的词汇表；修改影响下一次听写。“重新整理”会读取最新词汇表。词条仅保存在本机，启用的词条会随整理请求发送至你选择的 DeepSeek API。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("词汇表通过私有 iCloud 在 Mac 与 iPhone 同步。录音开始时固定本次词条；修改影响下一次听写。“重新整理”读取最新词汇表。启用的词条会随整理请求发送至你选择的 DeepSeek API。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             if !feedback.isEmpty { Text(feedback).font(LeafType.caption).foregroundStyle(LeafTheme.leaf) }
         }
         .sheet(item: $editing) { entry in VocabularyEditor(store: store, entry: entry) { feedback = "已保存词条。" } }
-        .confirmationDialog("删除词条？后续整理不再参考它。已有历史记录会保留。", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
-            if let deleting { Button("删除 " + deleting.term, role: .destructive) { store.deleteVocabulary(deleting.id); self.deleting = nil; feedback = "已删除词条。" } }
+        .confirmationDialog("删除词条并同步到 Mac 与 iPhone？后续整理不再参考它，已有历史文字不变。", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible) {
+                if let deleting { Button("删除 " + deleting.term, role: .destructive) {
+                    do { try store.deleteVocabulary(deleting.id); self.deleting = nil; feedback = "已删除词条，将同步到其他设备。" }
+                    catch { feedback = error.localizedDescription }
+                } }
             Button("取消", role: .cancel) { deleting = nil }
         }
     }
@@ -121,6 +129,6 @@ struct VocabularyEditor: View {
         var updated = entry; updated.term = term; updated.aliases = aliases.components(separatedBy: .newlines)
         updated.note = note; updated.enabled = enabled
         do { try store.saveVocabulary(updated); onSave(); dismiss() }
-        catch { self.error = safeFailure(error).message; termFocused = true }
+        catch { self.error = error.localizedDescription; termFocused = true }
     }
 }

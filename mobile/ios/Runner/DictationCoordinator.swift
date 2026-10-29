@@ -45,6 +45,9 @@ import UIKit
         MobileHistory.store.canSync = MobileUsage.store.canSync
         MobileHistory.store.onChange = { MobileHistory.exportStatus() }
         MobileHistory.store.start()
+        MobileVocabulary.store.canSync = MobileUsage.store.canSync
+        MobileVocabulary.store.onChange = { MobileVocabulary.exportStatus() }
+        MobileVocabulary.store.start()
         // A terminated recorder never leaves a live command that can restart the microphone.
         let old = DictationExchange.read("state")
         if ["starting", "recording", "processing"].contains(old["phase"] as? String ?? "") {
@@ -59,6 +62,25 @@ import UIKit
             switch call.method {
             case "snapshot": result(self.snapshot)
             case "usage": result(MobileUsage.store.snapshot)
+            case "vocabulary":
+                var value = MobileVocabulary.store.snapshot; value["busy"] = ["starting", "recording", "processing"].contains(self.phase); result(value)
+            case "syncVocabulary": Task { await MobileVocabulary.store.sync() }; result(nil)
+            case "saveVocabulary", "deleteVocabulary":
+                guard !["starting", "recording", "processing"].contains(self.phase) else { result(FlutterError(code: "busy", message: "请先结束录音。", details: nil)); return }
+                do {
+                    if call.method == "deleteVocabulary" {
+                        guard let value = call.arguments as? String, let id = UUID(uuidString: value) else { throw MobileFailure.message("词条标识无效。") }
+                        try MobileVocabulary.store.delete(id)
+                    } else {
+                        guard let args = call.arguments as? [String: Any], let term = args["term"] as? String else { throw MobileFailure.message("词条格式无效。") }
+                        let id: UUID
+                        if let value = args["id"] as? String {
+                            guard let parsed = UUID(uuidString: value) else { throw MobileFailure.message("词条标识无效。") }; id = parsed
+                        } else { id = UUID() }
+                        try MobileVocabulary.store.upsert(.init(id: id, term: term, aliases: args["aliases"] as? [String] ?? [], note: args["note"] as? String ?? "", enabled: args["enabled"] as? Bool ?? true))
+                    }
+                    result(nil)
+                } catch { result(FlutterError(code: "vocabulary", message: error.localizedDescription, details: nil)) }
             case "history": result(MobileHistory.store.snapshot)
             case "syncHistory": Task { await MobileHistory.store.sync() }; result(nil)
             case "eraseHistory":
@@ -336,7 +358,7 @@ import UIKit
         guard phase == "error", !raw.isEmpty else { return }
         phase = "processing"; error = ""; publish(); let token = generation; beginBackground()
         work = Task {
-            do { let result = try await provider.clean(raw, prompt: prompt); guard generation == token else { return }; text = result; saveHistory(); phase = "ready"; publish(); endBackground() }
+            do { let result = try await provider.clean(raw, prompt: prompt, vocabulary: MobileVocabulary.store.entries); guard generation == token else { return }; text = result; saveHistory(); phase = "ready"; publish(); endBackground() }
             catch { if generation == token, !Task.isCancelled { fail(error) } }
         }
     }
@@ -395,6 +417,18 @@ import UIKit
         .appendingPathComponent("UtterLeaf/history-cloud-v1.json"), device: "iPhone")
     static func exportStatus() {
         let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("HistorySync")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        if let data = try? JSONSerialization.data(withJSONObject: store.diagnostic) { try? data.write(to: folder.appendingPathComponent("status.json"), options: .atomic) }
+    }
+}
+
+@MainActor enum MobileVocabulary {
+    static let store: CloudVocabularySync = {
+        let value = CloudVocabularySync(file: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("UtterLeaf/vocabulary-cloud-v1.json"))
+        value.seed([]); return value
+    }()
+    static func exportStatus() {
+        let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("VocabularySync")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         if let data = try? JSONSerialization.data(withJSONObject: store.diagnostic) { try? data.write(to: folder.appendingPathComponent("status.json"), options: .atomic) }
     }

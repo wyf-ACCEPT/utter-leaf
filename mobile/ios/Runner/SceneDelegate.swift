@@ -7,6 +7,7 @@ class SceneDelegate: FlutterSceneDelegate {
     DictationExchange.exportNavigationDiagnostics()
     MobileUsage.store.requestSync()
     MobileHistory.store.requestSync()
+    MobileVocabulary.store.requestSync()
   }
   override func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
