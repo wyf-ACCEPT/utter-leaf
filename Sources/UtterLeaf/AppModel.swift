@@ -7,7 +7,9 @@ import UtterLeafCore
     @Published var promptEditorDraft: String?
     @Published var phase: Phase = .idle
     @Published var partial = ""
-    @Published var draft = ""
+    @Published var draft = "" { didSet { if oldValue != draft { copiedDraft = nil } } }
+    @Published private var copiedDraft: String?
+    var draftWasCopied: Bool { !draft.isEmpty && copiedDraft == draft }
     @Published var raw = ""
     @Published var message = ""
     @Published var elapsed: Double = 0
@@ -251,11 +253,14 @@ import UtterLeafCore
     }
     func discard() { draft = ""; raw = ""; target = nil; job = nil; message = ""; changePhase(.idle) }
     func copy() {
-        NSPasteboard.general.clearContents(); NSPasteboard.general.setString(draft, forType: .string)
+        guard !draft.isEmpty, !busy, !inserting else { return }
+        NSPasteboard.general.clearContents()
+        guard NSPasteboard.general.setString(draft, forType: .string) else {
+            copiedDraft = nil; message = "复制未完成，请重试。"; return
+        }
         persistDraft(status: "copied")
-        draft = ""; raw = ""; target = nil; job = nil
-        message = "已复制到剪贴板，可在原应用粘贴；也可以继续按 Fn 录音。"
-        changePhase(.idle)
+        copiedDraft = draft
+        message = "已复制到剪贴板，预览仍可继续编辑。"
     }
     func preservePendingDraft() {
         if !draft.isEmpty { persistDraft(status: "saved") }
