@@ -204,3 +204,5 @@ User decision2026-10-30: display real Lark/Feishu Minutes allowance separately f
 User refinement2026-10-30: prioritize local and official allowance above sync status. The expression-budget info button opens a native popover with full estimate/non-enforcement/methodology text; Escape and click-outside dismiss it. Keep all money and character values in the wide one-line metrics layout with a narrow two-line fallback. Compact spacing does not hide missing-usage or overspend warnings and does not change period calculations.
 
 User refinement2026-10-30: keep official recovery time inline in parentheses with its source allowance, omit routine summary-count/polling copy, retain last query and actionable recovery states. Sidebar allowance receives8pt additional vertical space without changing accounting, period timing or navigation.
+
+User refinement2026-10-30: equal-width official query/login actions; successful authenticated response displays static 已登录 instead of a login action. Keep authentication state separate from cached quota and transport errors; explicit login expiry returns to the login action, startup requires live verification.
