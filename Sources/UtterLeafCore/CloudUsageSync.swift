@@ -180,9 +180,10 @@ import CryptoKit
         } catch let error as CKError where error.code == .unknownItem { return nil }
     }
     public var snapshot: [String: Any] {
+        let now = Date().timeIntervalSince1970
         let recent = cache.rows.values.filter { $0.kind == "call" }.sorted { ($0.started ?? 0) > ($1.started ?? 0) }.prefix(50)
         return ["status": status, "syncing": syncing, "lastSync": cache.lastSync ?? 0,
-            "week": cache.window(days: 7), "month": cache.window(days: 30),
+            "week": cache.window(days: 7, now: now), "month": cache.window(days: 30, now: now),
             "macCalls": cache.rows.values.filter { $0.kind == "call" && $0.device == "Mac" }.count,
             "phoneCalls": cache.rows.values.filter { $0.kind == "call" && $0.device == "iPhone" }.count,
             "calls": recent.map { row -> [String: Any] in

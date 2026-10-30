@@ -1,5 +1,26 @@
 import Foundation
 
+/// Budget weeks are fixed UTC weeks; other day ranges remain rolling windows.
+public struct UsageWindow: Equatable {
+    public let start: Date
+    public let end: Date
+    public let isWeekly: Bool
+    public init(days: Int, now: Date) {
+        isWeekly = days == 7
+        if isWeekly {
+            var calendar = Calendar(identifier: .iso8601)
+            calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+            let interval = calendar.dateInterval(of: .weekOfYear, for: now)!
+            start = interval.start; end = interval.end
+        } else {
+            start = now.addingTimeInterval(-Double(max(1, days)) * 86400); end = now
+        }
+    }
+    public func contains(_ date: Date, asOf now: Date) -> Bool {
+        date >= start && date <= now && (!isWeekly || date < end)
+    }
+}
+
 /// A strict metadata envelope. No transcript, audio, credentials, app targets or free-form notes.
 public struct CloudUsageRow: Codable, Equatable {
     public var id: String
@@ -68,9 +89,9 @@ public struct CloudUsageCache: Codable {
     public var week: Double { rows["budget.v1"]?.weekly ?? 5 }
     public var month: Double { rows["budget.v1"]?.monthly ?? 20 }
     public func window(days: Int, now: Double = Date().timeIntervalSince1970) -> [String: Any] {
-        let cutoff = now - Double(days) * 86400
-        let calls = rows.values.filter { $0.kind == "call" && $0.currency == "CNY" && ($0.started ?? 0) >= cutoff && ($0.started ?? 0) <= now }
-        let jobs = rows.values.filter { $0.kind == "job" && ($0.started ?? 0) >= cutoff && ($0.started ?? 0) <= now }
+        let date = Date(timeIntervalSince1970: now), window = UsageWindow(days: days, now: date)
+        let calls = rows.values.filter { $0.kind == "call" && $0.currency == "CNY" && window.contains(Date(timeIntervalSince1970: $0.started ?? 0), asOf: date) }
+        let jobs = rows.values.filter { $0.kind == "job" && window.contains(Date(timeIntervalSince1970: $0.started ?? 0), asOf: date) }
         let spent = calls.compactMap(\.amount).reduce(0, +), limit = days == 7 ? week : month
         let dictation = calls.filter { $0.purpose == "dictation" }.compactMap(\.amount).reduce(0, +)
         let meeting = spent - dictation
@@ -83,7 +104,9 @@ public struct CloudUsageCache: Codable {
                 matchedCharacters += job.characters ?? 0; matchedCost += related.compactMap(\.amount).reduce(0, +)
             }
         }
-        var result: [String: Any] = ["days": days, "spent": spent, "budget": limit, "remaining": max(0, limit - spent),
+        var result: [String: Any] = ["days": days, "periodStart": window.start.timeIntervalSince1970,
+            "periodEnd": window.end.timeIntervalSince1970, "fixedWeek": window.isWeekly,
+            "spent": spent, "budget": limit, "remaining": max(0, limit - spent),
             "remainingFraction": max(0, 1 - spent / limit), "dictationFraction": dictation / max(limit, spent),
             "meetingFraction": meeting / max(limit, spent), "written": written,
             "unknown": calls.filter { $0.amount == nil }.count, "calls": calls.count,

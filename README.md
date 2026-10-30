@@ -31,7 +31,7 @@ The shared Swift suite contains **134 tests** (latest run: 131 passed, 3 desktop
 - **Optional DeepSeek Flash cleanup:** removes disfluencies, preserves meaning, converts spoken symbols, and favors digits in numbered English expressions such as `session one → session 1`. Transcript data is JSON-wrapped and treated as data, not executable instructions.
 - **Shared contextual vocabulary** for names, preferred spellings and commonly confused terms, synchronized privately between Mac and iPhone, rather than unconditional replacement.
 - **Guarded automatic insertion**, with an optional preview mode. If the target app, field or caret changes, the text is retained for recovery. Clipboard paste is used where appropriate; insertion is verified where the target exposes enough information.
-- **Cross-device dictation history** with configurable text retention, plus usage counts, CNY cost estimates, and rolling 7/30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
+- **Cross-device dictation history** with configurable text retention, plus usage counts, CNY cost estimates, and fixed UTC weekly / rolling 30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
 - **Dark mode by default**, light/system themes, a lightweight audio-reactive capsule, reduced-motion support and three bundled sound sets.
 
 ### Build and run
@@ -133,7 +133,7 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 - **可选 DeepSeek Flash 整理**：去除口吃与赘词、保留原意、转换口述符号、规范编号数字。输入使用 JSON 数据封装，不执行录音里的命令。
 - **共享语境词汇表**：Mac 与 iPhone 通过私有 iCloud 同步专有名称、易错拼写及说明，不做无条件全文替换。
 - **自动回填及可选预览**：核对原应用、输入框和光标；发生变化时保留稿件供恢复。必要时使用剪贴板粘贴，并在接口允许时读取确认结果。
-- **本地历史与用量费用**：原始/最终稿保留策略、CNY 费用估算、供应商成本占比、滚动 7/30 天预算。预算仅作提醒，不限制录音，也不是供应商余额。
+- **本地历史与用量费用**：原始/最终稿保留策略、CNY 费用估算、供应商成本占比、固定 UTC 周预算与滚动 30 天预算。预算仅作提醒，不限制录音，也不是供应商余额。
 - **默认深色**，支持浅色/跟随系统、轻量动态波形胶囊、减少动态效果和三组提示音。
 
 ### 构建与配置
@@ -216,7 +216,7 @@ After a development signing-team change, macOS may retain an enabled Accessibili
 
 ### Private iCloud usage sync · October 28
 
-Mac and iPhone share typed call/job metadata and rolling 7/30-day budgets through `iCloud.network.utterleaf.usage` (personal team, Development). The original container remains intact. Each installation keeps its own durable metadata cache, original-call ownership and stable UUIDs; conflict merges are deterministic, and conditional CloudKit writes retry concurrent updates. Account changes pause synchronization rather than transferring another account's cached rows. Automatic checks run every minute while the app is active and defer during capture/processing. A successful account check alone never displays a successful sync.
+Mac and iPhone share typed call/job metadata and fixed UTC weekly and rolling 30-day budgets through `iCloud.network.utterleaf.usage` (personal team, Development). The original container remains intact. Each installation keeps its own durable metadata cache, original-call ownership and stable UUIDs; conflict merges are deterministic, and conditional CloudKit writes retry concurrent updates. Account changes pause synchronization rather than transferring another account's cached rows. Automatic checks run every minute while the app is active and defer during capture/processing. A successful account check alone never displays a successful sync.
 
 The dashboard combines device/purpose costs, written characters and known/unknown amounts. Complete provider receipts stay on the originating device. iPhone collection starts with this version; earlier phone spend is unavailable. Local/offline writes persist first, and empty unsynchronized caches do not display invented zero spend or full allowance. The usage projection excludes recordings, transcripts, target-app context and credentials. Dictation history uses a separate text snapshot.
 
@@ -226,7 +226,7 @@ For a personal Mac build, run `python3 scripts/prepare-macos-cloud-signing.py --
 
 ### 私有 iCloud 用量同步
 
-Mac 与 iPhone 现已同步调用统计、听写字数、听写/会议成本和最近 7/30 天预算。用量快照只含筛选的统计字段，听写正文通过独立历史快照同步；录音、会议正文、目标 App 信息与密钥留在本机。失败与无回执金额保持未知，不视为免费；完整回执只在原设备查看。手机用量从本版开始记录，之前的手机消费无法回补。
+Mac 与 iPhone 现已同步调用统计、听写字数、听写/会议成本和固定 UTC 周预算与滚动 30 天预算。用量快照只含筛选的统计字段，听写正文通过独立历史快照同步；录音、会议正文、目标 App 信息与密钥留在本机。失败与无回执金额保持未知，不视为免费；完整回执只在原设备查看。手机用量从本版开始记录，之前的手机消费无法回补。
 
 两端正常版已做真实设备用量同步核验。离线时先保存，App 活跃期间每分钟检查，并避开录音与处理；账户切换会暂停同步。当前使用个人开发团队的 Development 环境，未发布生产环境或公开分发。
 

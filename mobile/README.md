@@ -62,7 +62,7 @@ Keyboard return actions follow the host field's returnKeyType. Search/Send/Go/Ne
 
 The recording capsule includes a measured-level wave. Simulator maximum/zero scalar controls verify visible amplitude range; real microphone gain still requires user trial. The main Flutter wave uses the same RMS-derived source.
 
-Home / History / Usage / Settings use a native Liquid Glass navigation surface on iOS26 (system blur fallback on older OS, opaque material with Reduce Transparency). Tab changes preserve capture. Private CloudKit usage synchronization now shares metadata and budgets with the Mac. Source-device filters, known/unknown costs and bounded call details avoid crowding the two rolling allowance bars. Phone usage collection begins with this version; historical phone spend cannot be reconstructed. Never sync local database files wholesale: they contain private text.
+Home / History / Usage / Settings use a native Liquid Glass navigation surface on iOS26 (system blur fallback on older OS, opaque material with Reduce Transparency). Tab changes preserve capture. Private CloudKit usage synchronization now shares metadata and budgets with the Mac. Source-device filters, known/unknown costs and bounded call details avoid crowding the fixed UTC weekly and rolling 30-day allowance bars. Phone usage collection begins with this version; historical phone spend cannot be reconstructed. Never sync local database files wholesale: they contain private text.
 
 
 ### Paid personal team migration · 2026-10-27

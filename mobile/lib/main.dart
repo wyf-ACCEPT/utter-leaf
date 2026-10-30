@@ -76,6 +76,7 @@ class _DictationPageState extends State<DictationPage>
   int selectedTab = 0;
   Map<String, dynamic> usage = {}, history = {};
   int? usageVersion, historyVersion;
+  int? usageMinute;
   String get phase => state['phase'] as String? ?? 'idle';
   bool get busy => ['starting', 'recording', 'processing'].contains(phase);
   bool get configured =>
@@ -113,10 +114,13 @@ class _DictationPageState extends State<DictationPage>
     refreshing = true;
     try {
       final next = await bridge.invokeMapMethod<String, dynamic>('snapshot');
+      final minute = DateTime.now().millisecondsSinceEpoch ~/ 60000;
       Map<String, dynamic>? nextUsage;
       if (next != null &&
           selectedTab == 2 &&
-          (usage.isEmpty || usageVersion != next['usageVersion'])) {
+          (usage.isEmpty ||
+              usageVersion != next['usageVersion'] ||
+              usageMinute != minute)) {
         nextUsage = await bridge.invokeMapMethod<String, dynamic>('usage');
       }
       Map<String, dynamic>? nextHistory;
@@ -133,6 +137,7 @@ class _DictationPageState extends State<DictationPage>
           if (nextUsage != null) {
             usage = nextUsage;
             usageVersion = next['usageVersion'] as int?;
+            usageMinute = minute;
           }
           if (nextHistory != null) {
             history = nextHistory;

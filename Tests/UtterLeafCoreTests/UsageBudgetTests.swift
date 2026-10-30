@@ -8,7 +8,7 @@ final class UsageBudgetTests: XCTestCase {
         row.started = now.addingTimeInterval(-daysAgo * 86400); row.status = .succeeded; row.estimatedAmount = cost
         return row
     }
-    func testRollingWindowsCurrencyAndDeduplicatedCharacters() {
+    func testWeeklyAndRollingWindowsCurrencyAndDeduplicatedCharacters() {
         var job = HistoryJob(pipeline: .final); job.finalCharacters = 1000
         let rows = [call(job, daysAgo: 1, cost: 0.8), call(job, daysAgo: 1, provider: "DeepSeek", cost: 0.2), call(job, daysAgo: 8, cost: 2), call(job, daysAgo: 1, cost: 9, currency: "USD"), call(job, daysAgo: -1, cost: 9)]
         let week = UsageBudget(calls: rows, jobs: [job], days: 7, limit: 5, now: now)

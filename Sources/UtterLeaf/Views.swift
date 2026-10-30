@@ -128,7 +128,7 @@ struct RootView: View {
     let pages = [("听写", "waveform"), ("会议", "person.2"), ("听写历史", "clock.arrow.circlepath"), ("词汇表", "character.book.closed"), ("用量与费用", "chart.bar.xaxis"), ("模型与设置", "slider.horizontal.3")]
     var body: some View {
         HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 30) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 10) {
                     LeafMark().fill(LeafTheme.leaf, style: FillStyle(eoFill: true)).frame(width: 34, height: 34).accessibilityLabel("言叶标志")
                     VStack(alignment: .leading, spacing: 2) {
@@ -142,6 +142,7 @@ struct RootView: View {
                     }
                 }
                 Spacer()
+                SidebarBudgetView(store: store) { model.route = "用量与费用" }
                 VStack(alignment: .leading, spacing: 9) {
                     Text("给表达一点空间。").font(.system(size: LeafType.scaled(12))).foregroundStyle(LeafTheme.muted)
                     HStack { Text("Fn").font(.system(size: LeafType.scaled(12), design: .monospaced)); Text("开始 / 结束").font(.system(size: LeafType.scaled(11))) }

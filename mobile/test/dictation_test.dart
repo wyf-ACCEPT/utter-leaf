@@ -22,6 +22,8 @@ void main() {
       'macCalls': 0,
       'phoneCalls': 1,
       'week': {
+        'periodStart': DateTime.utc(2026, 10, 26).millisecondsSinceEpoch / 1000,
+        'periodEnd': DateTime.utc(2026, 11, 2).millisecondsSinceEpoch / 1000,
         'spent': 0.2,
         'budget': 5,
         'remainingFraction': 0.96,
@@ -240,6 +242,12 @@ void main() {
       await tester.pump();
       expect(find.text('离线记录已保留'), findsOneWidget);
       expect(find.textContaining('已用 ¥0.20'), findsWidgets);
+      expect(find.text('本周'), findsOneWidget);
+      expect(find.text('每周一 00:00 UTC 更新'), findsOneWidget);
+      expect(
+        find.text('2026/10/26 00:00 → 2026/11/02 00:00 UTC'),
+        findsOneWidget,
+      );
       await tester.tap(find.byTooltip('立即同步'));
       await tester.pump();
       expect(commands, ['syncUsage']);

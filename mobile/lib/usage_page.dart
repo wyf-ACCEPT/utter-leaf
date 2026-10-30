@@ -28,6 +28,14 @@ class _UsagePageState extends State<UsagePage> {
     return '${date.month}/${date.day} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
+  String periodTime(dynamic value) {
+    final date = DateTime.fromMillisecondsSinceEpoch(
+      (number(value) * 1000).round(),
+      isUtc: true,
+    );
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final data = widget.data, colors = Theme.of(context).colorScheme;
@@ -269,14 +277,13 @@ class _UsagePageState extends State<UsagePage> {
         colors = Theme.of(context).colorScheme;
     final usedDictation = number(value['dictationFraction']).clamp(0.0, 1.0),
         usedMeeting = number(value['meetingFraction']).clamp(0.0, 1.0);
+    final title = days == 7 ? '本周' : '最近 30 天';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text('最近 $days 天', style: const TextStyle(fontSize: 18)),
-            ),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 18))),
             Text(
               '剩余 ${(fraction * 100).toStringAsFixed(1)}%',
               style: TextStyle(
@@ -287,9 +294,21 @@ class _UsagePageState extends State<UsagePage> {
             ),
           ],
         ),
+        if (value['periodStart'] is num && value['periodEnd'] is num) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${periodTime(value['periodStart'])} → ${periodTime(value['periodEnd'])} UTC',
+            style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+          ),
+        ],
+        const SizedBox(height: 4),
+        Text(
+          days == 7 ? '每周一 00:00 UTC 更新' : '按最近 30 × 24 小时滚动统计',
+          style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+        ),
         const SizedBox(height: 12),
         Semantics(
-          label: '最近 $days 天剩余 ${(fraction * 100).toStringAsFixed(1)}%',
+          label: '$title剩余 ${(fraction * 100).toStringAsFixed(1)}%',
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LayoutBuilder(
@@ -368,7 +387,7 @@ class _UsagePageState extends State<UsagePage> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: '7 天预算 · CNY'),
+                    decoration: const InputDecoration(labelText: '每周预算 · CNY'),
                   ),
                   const SizedBox(height: 14),
                   TextField(
