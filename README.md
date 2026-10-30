@@ -21,7 +21,7 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 **Working personal development build — October 29, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **134 tests** (latest run: 131 passed, 3 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **143 tests** (latest run: 139 passed, 4 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -258,3 +258,9 @@ Copy on the Mac no longer dismisses the editable preview or clears its raw text,
 词汇表现可在 Mac 与 iPhone 的私有 iCloud 间同步，包含首选拼写、易错写法、说明和启用状态。手机入口为“设置 → 词汇表 → 管理词汇”。两端可修改，离线时先保存，删除会传播且不会被旧缓存恢复。词条在每次录音开始时固定；关闭文字整理时不使用词汇表。
 
 复制后保留预览正文、原始转录与输入目标，按钮显示“已复制”；编辑文字后恢复“复制”。
+
+### Official Minutes allowance / 妙记官方额度
+
+The Mac Usage screen has a separate blue **飞书妙记 · 官方额度** card. Log in through its dedicated website session to read actual remaining transcription minutes, source allowances, the provider-supplied reset time and the last successful query. The card checks at most every five minutes while visible and pauses during recording. Failed/auth-expired queries keep the previous snapshot with an explicit status. The session and whitelisted quota cache stay on this Mac; browser Cookies, audio and transcripts are not imported or synchronized. This feature does not submit recordings or enable a Minutes transcription provider.
+
+Mac 用量页现有独立的蓝色“飞书妙记 · 官方额度”卡片，显示真实转文字分钟数、分项额度、官方恢复时间和最近成功查询时间。首次需在言叶独立会话中登录飞书；打开用量页时每5分钟检查，录音期间暂停查询。它与本地周预算和30天预算分开，失败时保留旧值并提示；不会上传录音，也不会购买额度。

@@ -18,6 +18,7 @@ enum LeafTheme {
     static let line = adaptive(0xD3DDD6, 0x35463C)
     static let usageDictation = adaptive(0xA1ADA6, 0x3F594A)
     static let usageMeeting = adaptive(0x939F98, 0x4B6555)
+    static let serviceBlue = adaptive(0x2766AC, 0x88B8F0)
     static let actionInk = adaptive(0xFFFFFF, 0x102A1C)
     static func scheme(_ preference: String?) -> ColorScheme? {
         switch preference ?? "dark" { case "light": return .light; case "system": return nil; default: return .dark }
