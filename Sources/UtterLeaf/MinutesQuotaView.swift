@@ -53,30 +53,10 @@ private struct MinutesQuotaCard: View {
         TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { context in
             Surface {
                 HStack(alignment: .center, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Label("飞书妙记 · 官方额度", systemImage: "cloud").font(LeafType.headline).foregroundStyle(LeafTheme.serviceBlue)
-                        Menu {
-                            ForEach(profiles) { entry in
-                                Button { select(entry.id) } label: {
-                                    if entry.id == profile.id { Label(entry.name, systemImage: "checkmark") }
-                                    else { Text(entry.name) }
-                                }
-                            }
-                            Divider()
-                            Button("添加账号…", action: add)
-                            Button("重命名当前账号…", action: rename)
-                        } label: {
-                            HStack(spacing: 5) {
-                                Text(profile.name).lineLimit(1).truncationMode(.tail)
-                                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
-                            }.font(LeafType.caption).foregroundStyle(LeafTheme.serviceBlue)
-                        }.menuStyle(.borderlessButton).menuIndicator(.hidden).frame(maxWidth: 220, alignment: .leading)
-                            .accessibilityLabel("切换飞书账号，当前 " + profile.name)
-                            .help(profile.name + "：此账号官方额度与本地 CNY 预算分开，各账号不合并计算。")
-                    }
+                    Label("飞书妙记 · 官方额度", systemImage: "cloud").font(LeafType.headline).foregroundStyle(LeafTheme.serviceBlue)
                     Spacer(minLength: 12)
-                    MinutesQuotaActions(authentication: quota.authentication, checking: quota.checking,
-                                        refresh: { quota.refresh(force: true) }, login: openLogin)
+                    MinutesQuotaActions(authentication: quota.authentication, checking: quota.checking, profile: profile, profiles: profiles,
+                                        refresh: { quota.refresh(force: true) }, login: openLogin, select: select, add: add, rename: rename)
                 }
                 if let value = quota.snapshot {
                     HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -126,7 +106,7 @@ private struct MinutesQuotaCard: View {
     private func errorText(_ code: String) -> String {
         switch code {
         case "busy": return "录音或处理期间暂停额度查询，结束后可再试。"
-        case "login": return "需要登录或登录已过期。请点“登录飞书”；已有结果保留为上次查询值。"
+        case "login": return "需要登录或登录已过期。请在右上角账号菜单选择“登录飞书”；已有结果保留为上次查询值。"
         case "timeout": return "查询超时，上次结果已保留，可稍后重试。"
         case "storage": return "已查询，但本机缓存保存失败。"
         case "response": return "官方返回格式暂不兼容，上次结果已保留。"
@@ -201,20 +181,38 @@ private struct MinutesProfileEditor: View {
 struct MinutesQuotaActions: View {
     let authentication: MinutesQuotaStore.Authentication
     let checking: Bool
+    let profile: MinutesAccountProfile
+    let profiles: [MinutesAccountProfile]
     var refresh: () -> Void
     var login: () -> Void
+    var select: (UUID) -> Void
+    var add: () -> Void
+    var rename: () -> Void
+    private var status: String {
+        if authentication == .authenticated { return "已登录" }
+        if checking && authentication == .unverified { return "验证中…" }
+        return authentication == .required ? "未登录" : "待验证"
+    }
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             CardHeaderButton(title: checking ? "查询中…" : "立即查询", busy: checking, tint: LeafTheme.serviceBlue, action: refresh)
                 .disabled(checking)
-            if authentication == .authenticated {
-                CardHeaderStatus(title: "已登录", symbol: "checkmark.circle.fill", tint: LeafTheme.serviceBlue)
-                    .accessibilityLabel("飞书已登录")
-            } else if checking && authentication == .unverified {
-                CardHeaderStatus(title: "验证中…", busy: true, tint: LeafTheme.serviceBlue)
-            } else {
-                CardHeaderButton(title: "登录飞书", tint: LeafTheme.serviceBlue, action: login)
+            CardHeaderMenu(title: profile.name + " · " + status,
+                           symbol: authentication == .authenticated ? "checkmark.circle.fill" : "person.crop.circle",
+                           busy: checking && authentication == .unverified, tint: LeafTheme.serviceBlue) {
+                ForEach(profiles) { entry in
+                    Button { select(entry.id) } label: {
+                        if entry.id == profile.id { Label(entry.name, systemImage: "checkmark") }
+                        else { Text(entry.name) }
+                    }
+                }
+                Divider()
+                if authentication != .authenticated { Button("登录飞书…", action: login) }
+                Button("添加账号…", action: add)
+                Button("重命名当前账号…", action: rename)
             }
+            .accessibilityLabel("切换飞书账号，当前 " + profile.name + "，" + status)
+            .help(profile.name + "：" + status + "。点击切换或管理账号；各账号官方额度与本地 CNY 预算分开，不合并计算。")
         }
     }
 }
