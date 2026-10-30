@@ -1,6 +1,6 @@
 import Foundation
 
-/// Local rolling-budget guidance. It never enforces an API limit or represents a balance.
+/// Local budget guidance. It never enforces an API limit or represents a balance.
 public struct UsageBudget {
     public let limit: Double
     public let spent: Double
@@ -23,12 +23,12 @@ public struct UsageBudget {
     public var remainingCharacters: Double? { costPerCharacter.map { remaining / $0 } }
     public init(calls: [UsageCall], jobs: [HistoryJob], days: Int, limit: Double, now: Date = Date()) {
         self.limit = limit.isFinite && limit > 0 ? limit : 5
-        let cutoff = now.addingTimeInterval(-Double(days) * 86400)
+        let window = UsageWindow(days: days, now: now)
         var seenJobs = Set<UUID>()
         writtenCharacters = jobs.filter {
-            $0.kind != "meeting" && $0.created >= cutoff && $0.created <= now && seenJobs.insert($0.id).inserted
+            $0.kind != "meeting" && window.contains($0.created, asOf: now) && seenJobs.insert($0.id).inserted
         }.reduce(0) { $0 + max(0, $1.finalCharacters) }
-        let rows = calls.filter { $0.price.currency == "CNY" && $0.started >= now.addingTimeInterval(-Double(days) * 86400) && $0.started <= now }
+        let rows = calls.filter { $0.price.currency == "CNY" && window.contains($0.started, asOf: now) }
         spent = rows.compactMap(\.estimatedAmount).reduce(0, +)
         meetingEstimated = rows.filter { UsagePurpose.isMeeting($0, jobs: jobs) }.compactMap(\.estimatedAmount).reduce(0, +)
         dictationEstimated = spent - meetingEstimated

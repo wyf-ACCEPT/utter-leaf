@@ -4,48 +4,42 @@ import UtterLeafCore
 struct UsageBudgetView: View {
     @ObservedObject var store: LocalStore
     @State private var editing = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
+        TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { _ in
+            content(now: Date())
+        }.sheet(isPresented: $editing) { BudgetEditor(store: store) }
+    }
+    private func content(now: Date) -> some View {
         Surface {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("表达额度").font(LeafType.headline)
-                    Text(store.usageCloud.cache.lastSync == nil ? "本机缓存预算 · CNY" : "跨设备滚动预算 · CNY").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                    Text(store.usageCloud.cache.lastSync == nil ? "本机缓存预算 · CNY" : "跨设备共享预算 · CNY").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
                 Button("调整预算") { editing = true }.buttonStyle(.bordered).handCursor()
             }
-            budgetRow(days: 7, limit: store.database.preferences.weeklyBudget ?? 5)
-            budgetRow(days: 30, limit: store.database.preferences.monthlyBudget ?? 20)
+            budgetRow(days: 7, limit: store.database.preferences.weeklyBudget ?? 5, now: now)
+            budgetRow(days: 30, limit: store.database.preferences.monthlyBudget ?? 20, now: now)
             Divider().overlay(LeafTheme.line)
-            sharedSummary
+            sharedSummary(now: now)
             Text("包含听写与会议的豆包 ASR + DeepSeek 已知估算；已写字数与预计还能写按短听写口径，不受下方筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-        }.sheet(isPresented: $editing) { BudgetEditor(store: store) }
+        }
     }
-    @ViewBuilder private func budgetRow(days: Int, limit: Double) -> some View {
-        let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: days, limit: limit)
+    @ViewBuilder private func budgetRow(days: Int, limit: Double, now: Date) -> some View {
+        let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: days, limit: limit, now: now)
+        let window = UsageWindow(days: days, now: now), title = days == 7 ? "本周" : "最近 30 天"
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("最近 \(days) 天").font(.system(size: LeafType.scaled(16), weight: .medium))
+                Text(title).font(.system(size: LeafType.scaled(16), weight: .medium))
                 Spacer()
                 Text("剩余 \(String(format: "%.1f", budget.remainingFraction * 100))%")
                     .font(.system(size: LeafType.scaled(22), weight: .semibold, design: .rounded)).monospacedDigit()
                     .foregroundStyle(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
             }
-            GeometryReader { geometry in
-                HStack(spacing: 0) {
-                    Rectangle().fill(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf).frame(width: geometry.size.width * budget.remainingFraction)
-                    Rectangle().fill(LeafTheme.usageDictation).frame(width: geometry.size.width * budget.dictationFraction)
-                    Rectangle().fill(LeafTheme.usageMeeting).frame(width: geometry.size.width * budget.meetingFraction)
-                }.clipShape(Capsule())
-            }.frame(height: 10)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.dictationFraction)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.meetingFraction)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.remainingFraction)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("最近 \(days) 天额度构成")
-                .accessibilityValue("听写 \(percent(budget.dictationFraction))，会议 \(percent(budget.meetingFraction))，剩余 \(percent(budget.remainingFraction))")
+            Text(budgetRange(window)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            BudgetCompositionBar(budget: budget, title: title)
             HStack(spacing: 18) {
                 legend("剩余", budget.remainingFraction, budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
                 legend("听写", budget.dictationFraction, LeafTheme.usageDictation)
@@ -70,8 +64,8 @@ struct UsageBudgetView: View {
             }
         }.padding(.vertical, 6)
     }
-    @ViewBuilder private var sharedSummary: some View {
-        let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20)
+    @ViewBuilder private func sharedSummary(now: Date) -> some View {
+        let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20, now: now)
         Text("近 30 天支出 · 听写 \(money(budget.dictationEstimated, "CNY")) · 会议 \(money(budget.meetingEstimated, "CNY"))")
             .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         if budget.unknown >= 5 {
@@ -86,6 +80,63 @@ struct UsageBudgetView: View {
     private func thousands(_ characters: Double) -> String { String(format: "%.1f", characters / 1000) }
 }
 
+private func budgetRange(_ window: UsageWindow) -> String {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "zh_CN"); formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = "yyyy/MM/dd HH:mm"
+    return "\(formatter.string(from: window.start)) → \(formatter.string(from: window.end)) UTC" + (window.isWeekly ? " · 周一更新" : " · 滚动统计")
+}
+
+struct BudgetCompositionBar: View {
+    let budget: UsageBudget
+    let title: String
+    var height: CGFloat = 10
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var body: some View {
+        GeometryReader { geometry in
+            HStack(spacing: 0) {
+                Rectangle().fill(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf).frame(width: geometry.size.width * budget.remainingFraction)
+                Rectangle().fill(LeafTheme.usageDictation).frame(width: geometry.size.width * budget.dictationFraction)
+                Rectangle().fill(LeafTheme.usageMeeting).frame(width: geometry.size.width * budget.meetingFraction)
+            }.clipShape(Capsule())
+        }.frame(height: height)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.remainingFraction)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.dictationFraction)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: budget.meetingFraction)
+            .accessibilityElement(children: .ignore).accessibilityLabel(title + "额度构成")
+            .accessibilityValue(String(format: "剩余 %.1f%%，听写 %.1f%%，会议 %.1f%%", budget.remainingFraction * 100, budget.dictationFraction * 100, budget.meetingFraction * 100))
+    }
+}
+
+struct SidebarBudgetView: View {
+    @ObservedObject var store: LocalStore
+    var openUsage: () -> Void
+    var body: some View {
+        TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { _ in
+            let now = Date(), limit = store.database.preferences.weeklyBudget ?? 5
+            let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: 7, limit: limit, now: now)
+            Button(action: openUsage) {
+                VStack(alignment: .leading, spacing: 9) {
+                    HStack {
+                        Text("本周额度").foregroundStyle(LeafTheme.ink)
+                        Spacer(minLength: 4)
+                        Text(String(format: "%.1f%%", budget.remainingFraction * 100))
+                            .foregroundStyle(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf).monospacedDigit()
+                    }.font(LeafType.caption)
+                    BudgetCompositionBar(budget: budget, title: "本周", height: 6)
+                    Text("剩余 \(money(budget.remaining, "CNY")) / \(money(budget.limit, "CNY"))")
+                        .font(.system(size: LeafType.scaled(11))).monospacedDigit().foregroundStyle(LeafTheme.muted)
+                    Text("周一 00:00 UTC 更新").font(.system(size: LeafType.scaled(10))).foregroundStyle(LeafTheme.muted)
+                }.padding(12).background(LeafTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+            }.buttonStyle(.plain).handCursor()
+                .help(budgetRange(UsageWindow(days: 7, now: now)) + "。查看用量与费用；这是本地提醒预算，不是供应商余额。")
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("本周额度，剩余 \(money(budget.remaining, "CNY"))，预算 \(money(budget.limit, "CNY"))，查看用量与费用")
+        }
+    }
+}
+
 private struct BudgetEditor: View {
     @ObservedObject var store: LocalStore
     @Environment(\.dismiss) private var dismiss
@@ -95,9 +146,9 @@ private struct BudgetEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("调整表达额度").font(.system(size: 25, weight: .medium))
-            Text("共享提醒预算，不会修改 API 账户或停止录音。按最近 7 天 / 30 天滚动统计。")
+            Text("共享提醒预算，不会修改 API 账户或停止录音。周预算每周一 00:00 UTC 更新；30 天预算仍滚动统计。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            LabeledContent("7 天预算 · CNY") { TextField("5", text: $week).leafInput().accessibilityLabel("7 天预算 CNY") }
+            LabeledContent("每周预算 · CNY") { TextField("5", text: $week).leafInput().accessibilityLabel("每周预算 CNY") }
             LabeledContent("30 天预算 · CNY") { TextField("20", text: $month).leafInput().accessibilityLabel("30 天预算 CNY") }
             Text(valid ? "字数额度根据近期完整听写的费用与最终稿字数估算。" : "请输入大于 0、且不超过 1,000,000 的有效金额。")
                 .font(LeafType.caption).foregroundStyle(valid ? LeafTheme.muted : .orange).frame(minHeight: 36, alignment: .top)
