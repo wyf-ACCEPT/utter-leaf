@@ -183,6 +183,8 @@ Dictation history (2026-10-28, direct user request): four equal native glass des
 
 Keyboard ready-state recovery reuses the current 200x80pt capsule and subdued status slot. The blocked state offers explicit placement in the current input and a secondary new-recording action. Send/Return is visibly dimmed and disabled while text is pending, preventing an unrelated draft action. Normal automatic insertion retains its existing guards and adds no routine extra tap.
 
+Keyboard Return/Search/Send keeps its existing dimensions and label but is disabled and dimmed during launch, microphone preparation, recording, processing and pending insertion. The controller rechecks shared capture state at the action boundary so a tap cannot race the polling interval. After insertion or cancellation/error, normal explicit Return behavior resumes; automatic insertion never sends.
+
 Mobile waveform refinement (2026-10-28): both the Flutter recording trace and native keyboard use a 1.5 display gain on measured level, capped at1. The keyboard trace uses34pt of the existing200x80pt capsule instead of26pt; the capsule dimensions, audio acquisition, near-silence baseline and reduced-motion behavior remain unchanged. Flutter traces remain inside the existing86pt region. This is visual response tuning, not microphone gain or altered ASR audio.
 
 

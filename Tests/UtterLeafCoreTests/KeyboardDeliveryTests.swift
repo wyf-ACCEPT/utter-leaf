@@ -2,6 +2,16 @@ import XCTest
 @testable import UtterLeafCore
 
 final class KeyboardDeliveryTests: XCTestCase {
+    func testReturnActionsStayDisabledThroughoutCaptureAndDelivery() {
+        for phase in ["starting", "recording", "processing", "ready"] {
+            XCTAssertFalse(KeyboardDelivery.canPerformReturn(phase: phase, launching: false, fullAccess: true), phase)
+        }
+        for phase in ["idle", "inserted", "error"] {
+            XCTAssertTrue(KeyboardDelivery.canPerformReturn(phase: phase, launching: false, fullAccess: true), phase)
+        }
+        XCTAssertFalse(KeyboardDelivery.canPerformReturn(phase: "idle", launching: true, fullAccess: true))
+        XCTAssertFalse(KeyboardDelivery.canPerformReturn(phase: "inserted", launching: false, fullAccess: false))
+    }
     func testExpiredDuplicateEmptyAndFutureResultsNeverInsert() {
         let id = UUID().uuidString
         XCTAssertTrue(KeyboardDelivery.hasFreshResult(request: id, consumed: nil, text: "Synthetic text", updated: 1000, now: 1010))

@@ -1,6 +1,9 @@
 import Foundation
 
 public enum KeyboardDelivery {
+    public static func canPerformReturn(phase: String, launching: Bool, fullAccess: Bool) -> Bool {
+        fullAccess && !launching && !["starting", "recording", "processing", "ready"].contains(phase)
+    }
     public static func hasFreshResult(request: String, consumed: String?, text: String, updated: TimeInterval, now: TimeInterval) -> Bool {
         UUID(uuidString: request) != nil && request != consumed && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && updated.isFinite && now.isFinite && now >= updated && now - updated < 900
