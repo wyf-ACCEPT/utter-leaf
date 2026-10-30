@@ -33,12 +33,8 @@ struct MinutesQuotaView: View {
                             .accessibilityLabel("妙记官方语音转文字额度").accessibilityValue("剩余 \(number(value.remainingMinutes)) 分钟，总额 \(number(total)) 分钟")
                     }
                     ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: 30) { sourceRows(value) }
+                        HStack(alignment: .top, spacing: 30) { sourceRows(value) }.fixedSize(horizontal: true, vertical: false)
                         VStack(alignment: .leading, spacing: 10) { sourceRows(value) }
-                    }
-                    if let summaries = value.summaryRemaining {
-                        Text("智能纪要剩余 \(number(summaries)) 篇；这与转文字分钟数分开计算。")
-                            .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     }
                     Text("最近成功查询 \(stamp(value.fetched))").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     if let next = value.nextRefresh, next <= Date() {
@@ -52,8 +48,6 @@ struct MinutesQuotaView: View {
                 if let error = quota.errorCode {
                     Text(errorText(error)).font(LeafType.caption).foregroundStyle(.orange)
                 }
-                Text("打开此页时检查，每 5 分钟更新一次；恢复时间按官方接口返回值显示。失败时保留上次数据，不会补成零。")
-                    .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             }.overlay(RoundedRectangle(cornerRadius: 18).stroke(LeafTheme.serviceBlue.opacity(0.3)))
                 .tint(LeafTheme.serviceBlue)
                 .onChange(of: context.date) { _, _ in quota.refresh() }
@@ -63,13 +57,10 @@ struct MinutesQuotaView: View {
     }
     @ViewBuilder private func sourceRows(_ snapshot: MinutesQuotaSnapshot) -> some View {
         ForEach(snapshot.sources) { source in
-            VStack(alignment: .leading, spacing: 5) {
-                Text("\(source.title) · 剩余 \(number(source.remaining))" + (source.amount.map { " / \(number($0)) 分钟" } ?? " 分钟"))
-                    .font(LeafType.caption).foregroundStyle(LeafTheme.ink).monospacedDigit()
-                if let refresh = source.refresh {
-                    Text("官方恢复 \(stamp(refresh))").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                }
-            }
+            Text("\(source.title) · 剩余 \(number(source.remaining))"
+                 + (source.amount.map { " / \(number($0)) 分钟" } ?? " 分钟")
+                 + (source.refresh.map { "（官方恢复 \(stamp($0))）" } ?? ""))
+                .font(LeafType.caption).foregroundStyle(LeafTheme.ink).monospacedDigit()
         }
     }
     private func number(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0...1))) }
