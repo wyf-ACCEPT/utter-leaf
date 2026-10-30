@@ -30,6 +30,7 @@ struct UsageView: View {
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
         UsageBudgetView(store: store)
+        MinutesQuotaView(quota: store.minutesQuota)
         Surface(title: "单位成本 · 最近 30 天") {
             HStack(alignment: .top, spacing: 24) {
                 unit(.dictation, title: "听写", unit: "每千字")
