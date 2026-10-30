@@ -36,7 +36,7 @@ struct LocalDatabase: Codable {
     @Published var storageError: String?
     @Published var billingSyncing = false
     lazy var billingSync = BillingSync(store: self)
-    lazy var minutesQuota = MinutesQuotaStore(file: root.appendingPathComponent("minutes-quota-v1.json"))
+    lazy var minutesAccounts = MinutesAccountStore(root: root)
     lazy var vocabularyCloud: CloudVocabularySync = {
         let cloud = CloudVocabularySync(file: root.appendingPathComponent("vocabulary-cloud-v1.json"))
         cloud.seed(database.preferences.vocabulary ?? [.typeless])

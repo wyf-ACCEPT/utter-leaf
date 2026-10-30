@@ -12,7 +12,7 @@ struct UsageView: View {
     var body: some View {
         PageHeading(title: "每次开口，都算得清楚。", subtitle: "听写与会议共享预算 · 费用估算与实际核对分别保留")
         UsageBudgetView(store: store)
-        MinutesQuotaView(quota: store.minutesQuota)
+        MinutesQuotaView(accounts: store.minutesAccounts)
         cloudSummary
         unitCosts
         Surface {
