@@ -29,7 +29,7 @@ struct UsageBudgetView: View {
                     Text(store.usageCloud.cache.lastSync == nil ? "本机缓存预算 · CNY" : "跨设备共享预算 · CNY").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
-                Button("调整预算") { editing = true }.buttonStyle(.bordered).handCursor()
+                CardHeaderButton(title: "调整预算") { editing = true }
             }
             budgetRow(days: 7, limit: store.database.preferences.weeklyBudget ?? 5, now: now)
             budgetRow(days: 30, limit: store.database.preferences.monthlyBudget ?? 20, now: now)

@@ -22,7 +22,7 @@ struct UsageView: View {
                     Text("汇总包含跨设备用量；完整 API 回执仅在原设备保留").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
-                Button("查看明细") { showingDetails = true }.buttonStyle(.bordered).handCursor()
+                CardHeaderButton(title: "查看明细") { showingDetails = true }
             }
         }.sheet(isPresented: $showingDetails) { UsageDetailsView(store: store) }
         DisclosureGroup("官方核对与同步", isExpanded: $showingBilling) { BillingSyncView(store: store).padding(.top, 12) }
@@ -40,7 +40,7 @@ struct UsageView: View {
                     }
                 }
                 Spacer()
-                Button(store.usageCloud.syncing ? "同步中…" : "立即同步") { Task { await store.usageCloud.sync() } }.disabled(store.usageCloud.syncing)
+                CardHeaderButton(title: store.usageCloud.syncing ? "同步中…" : "立即同步", busy: store.usageCloud.syncing) { Task { await store.usageCloud.sync() } }.disabled(store.usageCloud.syncing)
             }
             Text("近 30 天设备来源 · Mac " + money(window["mac"] as? Double ?? 0, "CNY") + " · iPhone " + money(window["phone"] as? Double ?? 0, "CNY"))
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
