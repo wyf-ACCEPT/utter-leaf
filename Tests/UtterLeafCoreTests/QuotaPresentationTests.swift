@@ -22,6 +22,7 @@ final class QuotaPresentationTests: XCTestCase {
         store.refresh(force: true)
         XCTAssertEqual(store.snapshot, snapshot); XCTAssertFalse(store.checking)
         XCTAssertNil(store.lastAttempt)
+        XCTAssertEqual(store.authentication, .unverified)
     }
     @MainActor func testNativeQuotaAndSidebarAtMinimumWindowSize() async throws {
         guard ProcessInfo.processInfo.environment["UTTERLEAF_NATIVE_PANEL_TEST"] == "1" else { throw XCTSkip("Requires an interactive macOS desktop") }

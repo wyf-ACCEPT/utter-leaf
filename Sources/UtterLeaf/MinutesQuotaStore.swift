@@ -4,12 +4,14 @@ import UtterLeafCore
 
 /// Owns a dedicated website session; browser Cookies never leave WebKit.
 @MainActor final class MinutesQuotaStore: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
+    enum Authentication { case unverified, authenticated, required }
     static let tenant = "ucnaknhwgwdu.feishu.cn"
     static let home = URL(string: "https://\(tenant)/minutes/home")!
     @Published private(set) var snapshot: MinutesQuotaSnapshot?
     @Published private(set) var checking = false
     @Published private(set) var errorCode: String?
     @Published private(set) var lastAttempt: Date?
+    @Published private(set) var authentication: Authentication = .unverified
     var canRefresh: () -> Bool = { true }
     private let file: URL
     private let networkEnabled: Bool
@@ -34,7 +36,7 @@ import UtterLeafCore
         }
         super.init()
     }
-    var needsLogin: Bool { errorCode == "login" }
+    var needsLogin: Bool { authentication == .required }
     var refreshDue: Bool {
         guard let lastAttempt else { return true }
         return Date().timeIntervalSince(lastAttempt) >= 300
@@ -76,7 +78,7 @@ import UtterLeafCore
             guard let text = envelope["body"] as? String else { fail("network"); return }
             do {
                 let value = try MinutesQuotaSnapshot.parse(Data(text.utf8))
-                snapshot = value; checking = false; errorCode = nil; deadline?.cancel()
+                snapshot = value; authentication = .authenticated; checking = false; errorCode = nil; deadline?.cancel()
                 do {
                     try JSONEncoder().encode(value).write(to: file, options: .atomic)
                     try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
@@ -86,6 +88,7 @@ import UtterLeafCore
         }
     }
     private func fail(_ code: String) {
+        if code == "login" { authentication = .required }
         checking = false; errorCode = code; deadline?.cancel(); generation = UUID()
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

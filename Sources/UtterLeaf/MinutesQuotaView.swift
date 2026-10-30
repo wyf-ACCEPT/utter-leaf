@@ -18,9 +18,21 @@ struct MinutesQuotaView: View {
                         HStack(spacing: 6) {
                             if quota.checking { ProgressView().controlSize(.small) }
                             Text(quota.checking ? "查询中…" : "立即查询")
-                        }.frame(width: 92)
-                    }.disabled(quota.checking).buttonStyle(.bordered).handCursor()
-                    Button("登录飞书") { login = true }.buttonStyle(.bordered).handCursor()
+                        }.frame(maxWidth: .infinity)
+                    }.disabled(quota.checking).buttonStyle(.bordered).frame(width: 120).handCursor()
+                    Group {
+                        if quota.authentication == .authenticated {
+                            Label("已登录", systemImage: "checkmark.circle.fill")
+                                .font(LeafType.caption).foregroundStyle(LeafTheme.serviceBlue)
+                                .accessibilityElement(children: .ignore).accessibilityLabel("飞书已登录")
+                        } else if quota.checking && quota.authentication == .unverified {
+                            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("验证中…") }
+                                .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                        } else {
+                            Button { login = true } label: { Text("登录飞书").frame(maxWidth: .infinity) }
+                                .buttonStyle(.bordered).handCursor()
+                        }
+                    }.frame(width: 120)
                 }
                 if let value = quota.snapshot {
                     HStack(alignment: .firstTextBaseline, spacing: 9) {
