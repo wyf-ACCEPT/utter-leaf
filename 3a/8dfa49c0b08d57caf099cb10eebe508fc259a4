@@ -1,0 +1,50 @@
+Tests/UtterLeafCoreTests/UsageWindowTests.swift
+  s_299dc04098b816::t_dbf14a4af45476 1-62
+Sources/UtterLeafCore/CloudUsageSync.swift
+  s_299dc04098b816::t_7ddc2d119c7e44 183,186
+mobile/lib/main.dart
+  s_299dc04098b816::t_bc0fbb9a919541 79,117,121
+  s_299dc04098b816::t_259b8a5f45fd8e 122-123,140
+mobile/test/dictation_test.dart
+  s_299dc04098b816::t_f77b0937781af0 25-26,245-247
+  s_299dc04098b816::t_6eb4744f82f975 248-250
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_dbf14a4af45476 131
+  s_299dc04098b816::t_64faa395984824 145
+mobile/lib/usage_page.dart
+  s_299dc04098b816::t_389c6b8c125f9a 31-38,280,286,297-303
+  s_299dc04098b816::t_6913fe3aa4926f 304-306
+  s_299dc04098b816::t_57bea600a853ef 307-308,311,390
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_64faa395984824 8-12,17,22-23,25,28,30-32,35,41-42,67-68,83-138,148,150
+Sources/UtterLeafCore/UsageBudget.swift
+  s_299dc04098b816::t_7ddc2d119c7e44 3,26,29,31
+Sources/UtterLeafCore/CloudUsageModel.swift
+  s_299dc04098b816::t_7ddc2d119c7e44 3-23,92-94,107-109
+DESIGN.md
+  s_299dc04098b816::t_32292a565403dd 98,110,114,118,192-193
+README.md
+  s_299dc04098b816::t_8ec06194e2434a 34,136,219,229
+Tests/UtterLeafCoreTests/UsageBudgetTests.swift
+  s_299dc04098b816::t_e7a9b1c1e96b2a 11
+UX-CONTRACT.md
+  s_299dc04098b816::t_700ae16ed1ce87 64,93,199-200
+mobile/README.md
+  s_299dc04098b816::t_2c6d6bc59436ca 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3a8dfa49c0b08d57caf099cb10eebe508fc259a4",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
