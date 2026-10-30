@@ -101,9 +101,10 @@ struct LeafMark: Shape {
 
 struct Surface<Content: View>: View {
     var title: String?
+    var spacing: CGFloat = 16
     @ViewBuilder var content: Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: spacing) {
             if let title { Text(title).font(LeafType.headline) }
             content
         }.padding(22).frame(maxWidth: .infinity, alignment: .leading)

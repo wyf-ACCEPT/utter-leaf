@@ -11,6 +11,24 @@ struct UsageView: View {
     }
     var body: some View {
         PageHeading(title: "每次开口，都算得清楚。", subtitle: "听写与会议共享预算 · 费用估算与实际核对分别保留")
+        UsageBudgetView(store: store)
+        MinutesQuotaView(quota: store.minutesQuota)
+        cloudSummary
+        unitCosts
+        Surface {
+            HStack {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("本机回执明细").font(LeafType.headline)
+                    Text("汇总包含跨设备用量；完整 API 回执仅在原设备保留").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                }
+                Spacer()
+                Button("查看明细") { showingDetails = true }.buttonStyle(.bordered).handCursor()
+            }
+        }.sheet(isPresented: $showingDetails) { UsageDetailsView(store: store) }
+        DisclosureGroup("官方核对与同步", isExpanded: $showingBilling) { BillingSyncView(store: store).padding(.top, 12) }
+            .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+    }
+    private var cloudSummary: some View {
         Surface {
             let window = store.usageCloud.cache.window(days: 30)
             HStack {
@@ -29,8 +47,8 @@ struct UsageView: View {
             Text("用量与预算自动同步；听写正文可在历史页同步，录音和 API Key 留在本机。每分钟自动检查，离线时保留记录。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
-        UsageBudgetView(store: store)
-        MinutesQuotaView(quota: store.minutesQuota)
+    }
+    private var unitCosts: some View {
         Surface(title: "单位成本 · 最近 30 天") {
             HStack(alignment: .top, spacing: 24) {
                 unit(.dictation, title: "听写", unit: "每千字")
@@ -39,18 +57,6 @@ struct UsageView: View {
             Text("听写按最终稿字符数（含标点、空白）；会议按整场时长，同场多路 API 不重复累计时长。只计已知估算，实际费用以账单核对为准。")
                 .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
-        Surface {
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("本机回执明细").font(LeafType.headline)
-                    Text("汇总包含跨设备用量；完整 API 回执仅在原设备保留").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                }
-                Spacer()
-                Button("查看明细") { showingDetails = true }.buttonStyle(.bordered).handCursor()
-            }
-        }.sheet(isPresented: $showingDetails) { UsageDetailsView(store: store) }
-        DisclosureGroup("官方核对与同步", isExpanded: $showingBilling) { BillingSyncView(store: store).padding(.top, 12) }
-            .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
     }
     private func unit(_ purpose: UsagePurpose, title: String, unit: String) -> some View {
         let calls = recent.filter { purpose.matches($0, jobs: store.combinedJobs) }
