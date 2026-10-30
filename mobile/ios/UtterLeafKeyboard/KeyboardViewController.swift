@@ -29,7 +29,13 @@ final class KeyboardViewController: UIInputViewController {
     }
     override func textDidChange(_ textInput: UITextInput?) { super.textDidChange(textInput); refresh() }
     override func selectionDidChange(_ textInput: UITextInput?) { super.selectionDidChange(textInput); refresh() }
-    fileprivate func performReturn() { textDocumentProxy.insertText("\n") }
+    fileprivate func performReturn() {
+        guard model.canReturn else { return }
+        // Recheck shared state so a tap cannot race the keyboard's polling interval.
+        let phase = DictationExchange.read("state")["phase"] as? String ?? "idle"
+        guard !["starting", "recording", "processing"].contains(phase) else { refresh(); return }
+        textDocumentProxy.insertText("\n")
+    }
     private var returnTitle: String {
         switch textDocumentProxy.returnKeyType ?? .default {
         case .search, .google, .yahoo: return "搜索"
@@ -175,6 +181,7 @@ private final class KeyboardModel: ObservableObject {
     @Published var showSwitcher = true
     @Published var host: String?
     @Published var launching = false
+    var canReturn: Bool { KeyboardDelivery.canPerformReturn(phase: phase, launching: launching, fullAccess: fullAccess) }
 }
 
 private struct KeyboardSurface: View {
@@ -226,9 +233,9 @@ private struct KeyboardSurface: View {
                     Text(model.returnTitle).font(.system(size: 18, weight: .medium))
                         .frame(width: 112, height: 52)
                         .background(leaf.opacity(0.16), in: Capsule()).contentShape(Capsule())
-                }.buttonStyle(.plain).accessibilityLabel(model.returnTitle).disabled(model.phase == "ready" || !model.fullAccess)
-                    .opacity(model.phase == "ready" ? 0.35 : 1)
-                    .accessibilityHint(model.phase == "ready" ? "先放入文字后再执行此操作" : "")
+                }.buttonStyle(.plain).accessibilityLabel(model.returnTitle).disabled(!model.canReturn)
+                    .opacity(model.canReturn ? 1 : 0.35)
+                    .accessibilityHint(model.canReturn ? "" : model.phase == "ready" ? "先放入文字后再执行此操作" : "录音和文字处理完成后可用")
                 HStack {
                     if model.showSwitcher {
                         Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
