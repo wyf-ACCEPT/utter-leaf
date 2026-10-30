@@ -5,8 +5,9 @@ import UtterLeafCore
 /// Owns a dedicated website session; browser Cookies never leave WebKit.
 @MainActor final class MinutesQuotaStore: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
     enum Authentication { case unverified, authenticated, required }
-    static let tenant = "ucnaknhwgwdu.feishu.cn"
-    static let home = URL(string: "https://\(tenant)/minutes/home")!
+    let sessionIdentifier: UUID
+    private let home: URL
+    var onAuthenticatedHost: ((String) -> Void)?
     @Published private(set) var snapshot: MinutesQuotaSnapshot?
     @Published private(set) var checking = false
     @Published private(set) var errorCode: String?
@@ -22,15 +23,18 @@ import UtterLeafCore
     var webView: WKWebView {
         if let browser { return browser }
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = WKWebsiteDataStore(forIdentifier: UUID(uuidString: "B19683D3-4195-4B82-8620-6D3E45048CC2")!)
+        configuration.websiteDataStore = WKWebsiteDataStore(forIdentifier: sessionIdentifier)
         configuration.mediaTypesRequiringUserActionForPlayback = .all
         let browser = WKWebView(frame: .zero, configuration: configuration)
         browser.navigationDelegate = self; browser.uiDelegate = self
         self.browser = browser
         return browser
     }
-    init(file: URL, networkEnabled: Bool = true) {
+    init(file: URL, networkEnabled: Bool = true, sessionIdentifier: UUID = MinutesAccountProfile.originalID, preferredHost: String? = "ucnaknhwgwdu.feishu.cn") {
         self.file = file; self.networkEnabled = networkEnabled
+        self.sessionIdentifier = sessionIdentifier
+        let host = preferredHost.flatMap { MinutesAccountProfile.validHost($0) ? $0 : nil } ?? "meetings.feishu.cn"
+        home = URL(string: "https://\(host)/minutes/home")!
         if let data = try? Data(contentsOf: file), data.count <= 1_048_576 {
             snapshot = try? JSONDecoder().decode(MinutesQuotaSnapshot.self, from: data)
         }
@@ -53,16 +57,24 @@ import UtterLeafCore
             guard let self, checking, generation == token else { return }
             browser?.stopLoading(); fail("timeout")
         }
-        if webView.url?.host == Self.tenant && webView.url?.path == "/minutes/home" && !webView.isLoading { readQuota(token: token) }
-        else { webView.load(URLRequest(url: Self.home, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)) }
+        if isQuotaPage(webView.url) && !webView.isLoading { readQuota(token: token) }
+        else { webView.load(URLRequest(url: home, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)) }
     }
     func beginLogin() {
         loginVisible = true
         if webView.url == nil { refresh(force: true) }
     }
     func endLogin() { loginVisible = false }
+    func suspend() {
+        generation = UUID(); deadline?.cancel(); checking = false; loginVisible = false
+        browser?.stopLoading()
+    }
+    private func isQuotaPage(_ url: URL?) -> Bool {
+        guard let url, url.scheme == "https", let host = url.host, MinutesAccountProfile.validHost(host) else { return false }
+        return url.path == "/minutes/home"
+    }
     private func readQuota(token: UUID) {
-        guard checking, token == generation, webView.url?.host == Self.tenant else { return }
+        guard checking, token == generation, isQuotaPage(webView.url) else { return }
         let path = "/minutes/api/quota_data?benefit_type_list[]=1&benefit_type_list[]=3&benefit_type_list[]=4&function_scene_list[]=minutes_list&function_scene_list[]=upload_notice&function_scene_list[]=upload_popup&function_scene_list[]=asr_function_popup_mainpage&function_scene_list[]=asr_function_popup_upload&function_scene_list[]=minutes_recording_transcript_page&language=zh_cn"
         // The only evaluated operation is a same-origin, read-only quota request.
         let script = """
@@ -79,6 +91,7 @@ import UtterLeafCore
             do {
                 let value = try MinutesQuotaSnapshot.parse(Data(text.utf8))
                 snapshot = value; authentication = .authenticated; checking = false; errorCode = nil; deadline?.cancel()
+                if let host = webView.url?.host { onAuthenticatedHost?(host) }
                 do {
                     try JSONEncoder().encode(value).write(to: file, options: .atomic)
                     try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
@@ -92,7 +105,7 @@ import UtterLeafCore
         checking = false; errorCode = code; deadline?.cancel(); generation = UUID()
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        guard webView.url?.host == Self.tenant, webView.url?.path == "/minutes/home" else {
+        guard isQuotaPage(webView.url) else {
             if checking { fail("login") }; return
         }
         if checking { readQuota(token: generation) }
@@ -107,8 +120,8 @@ import UtterLeafCore
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { if checking { fail("network") } }
     private func allowed(_ url: URL) -> Bool {
         guard url.scheme == "https", let host = url.host else { return false }
-        guard host == "feishu.cn" || host.hasSuffix(".feishu.cn") else { return false }
-        if host == Self.tenant && url.path.hasPrefix("/minutes/") { return url.path == "/minutes/home" }
+        guard MinutesAccountProfile.validHost(host) else { return false }
+        if url.path.hasPrefix("/minutes/") { return url.path == "/minutes/home" }
         return true
     }
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {

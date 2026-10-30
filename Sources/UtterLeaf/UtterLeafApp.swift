@@ -113,7 +113,7 @@ import UtterLeafCore
             model.store.historyCloud.canSync = model.store.usageCloud.canSync
             model.store.historyCloud.start()
             model.store.vocabularyCloud.canSync = model.store.usageCloud.canSync
-            model.store.minutesQuota.canRefresh = model.store.usageCloud.canSync
+            model.store.minutesAccounts.canRefresh = model.store.usageCloud.canSync
             model.store.vocabularyCloud.start()
             showMain()
         }

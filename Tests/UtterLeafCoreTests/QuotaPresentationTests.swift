@@ -29,9 +29,9 @@ final class QuotaPresentationTests: XCTestCase {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let store = LocalStore(root: directory), file = directory.appendingPathComponent("quota.json")
+        let store = LocalStore(root: directory), file = directory.appendingPathComponent("minutes-quota-v1.json")
         try JSONEncoder().encode(sample()).write(to: file)
-        store.minutesQuota = MinutesQuotaStore(file: file, networkEnabled: false)
+        store.minutesAccounts = MinutesAccountStore(root: directory, networkEnabled: false)
         var job = HistoryJob(pipeline: .final); job.finalCharacters = 1200
         var call = UsageCall(jobID: job.id, provider: "Doubao", model: "test", price: .init(version: "test", currency: "CNY", note: "test"))
         call.status = .succeeded; call.estimatedAmount = 2
@@ -43,7 +43,7 @@ final class QuotaPresentationTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(150))
         try save(root, name: "6x30-sidebar-minimum")
         let cards = NSHostingView(rootView: ScrollView {
-            VStack(spacing: 18) { UsageBudgetView(store: store); MinutesQuotaView(quota: store.minutesQuota) }.padding(24)
+            VStack(spacing: 18) { UsageBudgetView(store: store); MinutesQuotaView(accounts: store.minutesAccounts) }.padding(24)
         }.frame(width: 920, height: 1300).background(LeafTheme.mist).preferredColorScheme(.dark))
         cards.frame = NSRect(x: 0, y: 0, width: 920, height: 1300); cards.layoutSubtreeIfNeeded()
         try await Task.sleep(for: .milliseconds(150))

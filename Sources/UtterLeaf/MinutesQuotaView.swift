@@ -3,19 +3,80 @@ import WebKit
 import UtterLeafCore
 
 struct MinutesQuotaView: View {
+    @ObservedObject var accounts: MinutesAccountStore
+    @State private var editing: MinutesProfileEdit?
+    @State private var login: MinutesProfileLogin?
+    @State private var pendingLogin: UUID?
+    @State private var operationError: String?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let message = operationError ?? accounts.error {
+                Label(message, systemImage: "exclamationmark.triangle").font(LeafType.caption).foregroundStyle(.orange)
+            }
+            MinutesQuotaCard(quota: accounts.active, profile: accounts.profile, profiles: accounts.profiles,
+                select: { id in do { try accounts.select(id); operationError = nil } catch { operationError = error.localizedDescription } },
+                add: { editing = MinutesProfileEdit(profile: nil) },
+                rename: { editing = MinutesProfileEdit(profile: accounts.profile) },
+                openLogin: { login = MinutesProfileLogin(id: accounts.selected) })
+                .id(accounts.selected)
+        }.sheet(item: $editing, onDismiss: {
+            if let id = pendingLogin, accounts.selected == id { login = MinutesProfileLogin(id: id) }
+            pendingLogin = nil
+        }) { request in
+            MinutesProfileEditor(initialName: request.profile?.name ?? suggestedName, adding: request.profile == nil) { name in
+                if let profile = request.profile { try accounts.rename(profile.id, name: name) }
+                else { pendingLogin = try accounts.add(name: name) }
+                operationError = nil
+            }
+        }.sheet(item: $login) { request in
+            if request.id == accounts.selected {
+                MinutesLoginSheet(quota: accounts.active, name: accounts.profile.name, close: { login = nil })
+            }
+        }
+    }
+    private var suggestedName: String {
+        var index = accounts.profiles.count + 1
+        while accounts.profiles.contains(where: { $0.name == "账号 \(index)" }) { index += 1 }
+        return "账号 \(index)"
+    }
+}
+
+private struct MinutesQuotaCard: View {
     @ObservedObject var quota: MinutesQuotaStore
-    @State private var login = false
+    let profile: MinutesAccountProfile
+    let profiles: [MinutesAccountProfile]
+    var select: (UUID) -> Void
+    var add: () -> Void
+    var rename: () -> Void
+    var openLogin: () -> Void
     var body: some View {
         TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { context in
             Surface {
                 HStack(alignment: .center, spacing: 14) {
                     VStack(alignment: .leading, spacing: 5) {
                         Label("飞书妙记 · 官方额度", systemImage: "cloud").font(LeafType.headline).foregroundStyle(LeafTheme.serviceBlue)
-                        Text("Lark / 飞书账户权益 · 与本地 CNY 预算分开").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                        Menu {
+                            ForEach(profiles) { entry in
+                                Button { select(entry.id) } label: {
+                                    if entry.id == profile.id { Label(entry.name, systemImage: "checkmark") }
+                                    else { Text(entry.name) }
+                                }
+                            }
+                            Divider()
+                            Button("添加账号…", action: add)
+                            Button("重命名当前账号…", action: rename)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Text(profile.name).lineLimit(1).truncationMode(.tail)
+                                Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+                            }.font(LeafType.caption).foregroundStyle(LeafTheme.serviceBlue)
+                        }.menuStyle(.borderlessButton).menuIndicator(.hidden).frame(maxWidth: 220, alignment: .leading)
+                            .accessibilityLabel("切换飞书账号，当前 " + profile.name)
+                            .help(profile.name + "：此账号官方额度与本地 CNY 预算分开，各账号不合并计算。")
                     }
                     Spacer(minLength: 12)
                     MinutesQuotaActions(authentication: quota.authentication, checking: quota.checking,
-                                        refresh: { quota.refresh(force: true) }, login: { login = true })
+                                        refresh: { quota.refresh(force: true) }, login: openLogin)
                 }
                 if let value = quota.snapshot {
                     HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -47,8 +108,6 @@ struct MinutesQuotaView: View {
                 .tint(LeafTheme.serviceBlue)
                 .onChange(of: context.date) { _, _ in quota.refresh() }
         }.task { quota.refresh() }
-            .sheet(isPresented: $login, onDismiss: { quota.endLogin() }) { loginSheet }
-            .onChange(of: quota.snapshot?.fetched) { _, _ in if quota.errorCode == nil { login = false } }
     }
     @ViewBuilder private func sourceRows(_ snapshot: MinutesQuotaSnapshot) -> some View {
         ForEach(snapshot.sources) { source in
@@ -74,16 +133,22 @@ struct MinutesQuotaView: View {
         default: return "暂时无法连接飞书，上次结果已保留。"
         }
     }
-    private var loginSheet: some View {
+}
+
+private struct MinutesLoginSheet: View {
+    @ObservedObject var quota: MinutesQuotaStore
+    let name: String
+    var close: () -> Void
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("登录飞书妙记").font(LeafType.headline)
-                    Text("登录保留在言叶独立的网站会话中，只查询额度，不上传录音。")
+                    Text("登录飞书 · " + name).font(LeafType.headline)
+                    Text("此账号使用独立登录会话，只查询额度，不上传录音。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
-                Button("关闭") { login = false }.keyboardShortcut(.cancelAction)
+                Button("关闭", action: close).keyboardShortcut(.cancelAction)
             }
             MinutesLoginBrowser(browser: quota.webView)
             HStack {
@@ -93,6 +158,43 @@ struct MinutesQuotaView: View {
             }
         }.padding(20).frame(minWidth: 650, idealWidth: 780, minHeight: 600, idealHeight: 730)
             .foregroundStyle(LeafTheme.ink).background(LeafTheme.mist).onAppear { quota.beginLogin() }
+            .onDisappear { quota.endLogin() }
+            .onChange(of: quota.authentication) { _, value in if value == .authenticated { close() } }
+    }
+}
+
+private struct MinutesProfileEdit: Identifiable {
+    let id = UUID()
+    let profile: MinutesAccountProfile?
+}
+private struct MinutesProfileLogin: Identifiable { let id: UUID }
+
+private struct MinutesProfileEditor: View {
+    let initialName: String
+    let adding: Bool
+    var save: (String) throws -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var error: String?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text(adding ? "添加飞书账号" : "重命名账号").font(.system(size: 24, weight: .medium))
+            Text(adding ? "名称仅用于本机区分账号；登录和额度将独立保存。" : "修改本机显示名称，不会改变飞书登录。")
+                .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            LabeledContent("账号名称") {
+                TextField("账号名称", text: $name).leafInput().accessibilityLabel("飞书账号名称")
+            }
+            if let error { Text(error).font(LeafType.caption).foregroundStyle(.orange) }
+            HStack {
+                Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer()
+                Button(adding ? "添加并登录" : "保存名称") {
+                    do { try save(name); dismiss() } catch { self.error = error.localizedDescription }
+                }.buttonStyle(PrimaryStyle()).keyboardShortcut(.defaultAction)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }.padding(28).frame(width: 480).foregroundStyle(LeafTheme.ink).background(LeafTheme.mist)
+            .onAppear { name = initialName }
     }
 }
 
