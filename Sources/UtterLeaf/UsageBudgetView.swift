@@ -4,16 +4,28 @@ import UtterLeafCore
 struct UsageBudgetView: View {
     @ObservedObject var store: LocalStore
     @State private var editing = false
+    @State private var showingInfo = false
     var body: some View {
         TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { _ in
             content(now: Date())
         }.sheet(isPresented: $editing) { BudgetEditor(store: store) }
     }
     private func content(now: Date) -> some View {
-        Surface {
+        Surface(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("表达额度").font(LeafType.headline)
+                    HStack(spacing: 6) {
+                        Text("表达额度").font(LeafType.headline)
+                        Button { showingInfo = true } label: {
+                            Image(systemName: "info.circle").font(.system(size: 16)).frame(width: 28, height: 28)
+                        }.buttonStyle(.plain).handCursor().foregroundStyle(LeafTheme.muted)
+                            .accessibilityLabel("表达额度说明").help("查看统计口径与预算说明")
+                            .popover(isPresented: $showingInfo, arrowEdge: .top) {
+                                Text("包含听写与会议的豆包 ASR + DeepSeek 已知估算；已写字数与预计还能写按短听写口径，不受明细筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。字数含标点与空白，同一次听写只计一次，清除正文后保留计数。")
+                                    .font(LeafType.caption).foregroundStyle(LeafTheme.ink).padding(20).frame(width: 360)
+                                    .background(LeafTheme.surface)
+                            }
+                    }
                     Text(store.usageCloud.cache.lastSync == nil ? "本机缓存预算 · CNY" : "跨设备共享预算 · CNY").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
@@ -23,14 +35,12 @@ struct UsageBudgetView: View {
             budgetRow(days: 30, limit: store.database.preferences.monthlyBudget ?? 20, now: now)
             Divider().overlay(LeafTheme.line)
             sharedSummary(now: now)
-            Text("包含听写与会议的豆包 ASR + DeepSeek 已知估算；已写字数与预计还能写按短听写口径，不受下方筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。")
-                .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
     }
     @ViewBuilder private func budgetRow(days: Int, limit: Double, now: Date) -> some View {
         let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: days, limit: limit, now: now)
         let window = UsageWindow(days: days, now: now), title = days == 7 ? "本周" : "最近 30 天"
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).font(.system(size: LeafType.scaled(16), weight: .medium))
                 Spacer()
@@ -39,30 +49,35 @@ struct UsageBudgetView: View {
                     .foregroundStyle(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
             }
             Text(budgetRange(window)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            BudgetCompositionBar(budget: budget, title: title)
+            BudgetCompositionBar(budget: budget, title: title, height: 8)
             HStack(spacing: 18) {
                 legend("剩余", budget.remainingFraction, budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
                 legend("听写", budget.dictationFraction, LeafTheme.usageDictation)
                 legend("会议", budget.meetingFraction, LeafTheme.usageMeeting)
             }.font(LeafType.caption)
-            HStack {
-                Text("已用 \(money(budget.spent, "CNY")) · 预算 \(money(budget.limit, "CNY"))")
-                Spacer()
-                Text("剩余 \(money(budget.remaining, "CNY"))")
-            }.font(LeafType.caption).monospacedDigit().foregroundStyle(LeafTheme.muted)
-            if let remaining = budget.remainingCharacters {
-                Text("已写 \(budget.writtenCharacters.formatted()) 字 · 预计还能写 \(thousands(remaining)) 千字")
-                    .help("按本周期听写的最终稿字符数统计，含标点和空白。同一次听写只计一次；预览和复制均计入，清除正文后保留计数。")
-                    .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            } else {
-                Text("已写 \(budget.writtenCharacters.formatted()) 字 · 完成听写后估算剩余字数。")
-                    .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            }
+            metrics(budget)
             if budget.spent > budget.limit {
                 Text("已超出预算 \(money(budget.spent - budget.limit, "CNY"))，仍可继续录音；条内按两类已知消耗占比分配。")
                     .font(LeafType.caption).foregroundStyle(.orange)
             }
-        }.padding(.vertical, 6)
+        }.padding(.vertical, 2)
+    }
+    private func metrics(_ budget: UsageBudget) -> some View {
+        let moneyText = "已用 \(money(budget.spent, "CNY")) · 预算 \(money(budget.limit, "CNY"))"
+        let projection = budget.remainingCharacters.map { "预计还能写 \(thousands($0)) 千字" } ?? "暂无剩余字数估算"
+        let writing = "已写 \(budget.writtenCharacters.formatted()) 字 · " + projection
+        let remaining = "剩余 \(money(budget.remaining, "CNY"))"
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                Text(moneyText + " · " + writing).fixedSize()
+                Spacer(minLength: 0)
+                Text(remaining).fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack { Text(moneyText); Spacer(minLength: 4); Text(remaining) }
+                Text(writing)
+            }
+        }.font(LeafType.caption).foregroundStyle(LeafTheme.muted).monospacedDigit()
     }
     @ViewBuilder private func sharedSummary(now: Date) -> some View {
         let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20, now: now)
