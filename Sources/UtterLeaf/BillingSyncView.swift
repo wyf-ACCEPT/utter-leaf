@@ -15,13 +15,8 @@ struct BillingSyncView: View {
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
-                Button("同步设置") { settings = true }.buttonStyle(.bordered).handCursor()
-                Button { store.billingSync.request(force: true) } label: {
-                    HStack(spacing: 7) {
-                        if store.billingSyncing { ProgressView().controlSize(.small) }
-                        Text(store.billingSyncing ? "核对中" : "立即核对")
-                    }.frame(width: 100)
-                }.buttonStyle(.bordered).handCursor().disabled(store.billingSyncing)
+                CardHeaderButton(title: "同步设置") { settings = true }
+                CardHeaderButton(title: store.billingSyncing ? "核对中…" : "立即核对", busy: store.billingSyncing) { store.billingSync.request(force: true) }.disabled(store.billingSyncing)
             }
             VStack(alignment: .leading, spacing: 7) {
                 Text("豆包 · 官方实例账单").font(LeafType.headline)

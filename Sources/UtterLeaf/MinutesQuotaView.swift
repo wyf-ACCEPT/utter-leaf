@@ -8,31 +8,14 @@ struct MinutesQuotaView: View {
     var body: some View {
         TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { context in
             Surface {
-                HStack(alignment: .top) {
+                HStack(alignment: .center, spacing: 14) {
                     VStack(alignment: .leading, spacing: 5) {
                         Label("飞书妙记 · 官方额度", systemImage: "cloud").font(LeafType.headline).foregroundStyle(LeafTheme.serviceBlue)
                         Text("Lark / 飞书账户权益 · 与本地 CNY 预算分开").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     }
                     Spacer(minLength: 12)
-                    Button { quota.refresh(force: true) } label: {
-                        HStack(spacing: 6) {
-                            if quota.checking { ProgressView().controlSize(.small) }
-                            Text(quota.checking ? "查询中…" : "立即查询")
-                        }.frame(maxWidth: .infinity)
-                    }.disabled(quota.checking).buttonStyle(.bordered).frame(width: 120).handCursor()
-                    Group {
-                        if quota.authentication == .authenticated {
-                            Label("已登录", systemImage: "checkmark.circle.fill")
-                                .font(LeafType.caption).foregroundStyle(LeafTheme.serviceBlue)
-                                .accessibilityElement(children: .ignore).accessibilityLabel("飞书已登录")
-                        } else if quota.checking && quota.authentication == .unverified {
-                            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("验证中…") }
-                                .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                        } else {
-                            Button { login = true } label: { Text("登录飞书").frame(maxWidth: .infinity) }
-                                .buttonStyle(.bordered).handCursor()
-                        }
-                    }.frame(width: 120)
+                    MinutesQuotaActions(authentication: quota.authentication, checking: quota.checking,
+                                        refresh: { quota.refresh(force: true) }, login: { login = true })
                 }
                 if let value = quota.snapshot {
                     HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -106,10 +89,31 @@ struct MinutesQuotaView: View {
             HStack {
                 Text("完成登录后会自动查询；若未更新，可点右侧按钮。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 Spacer()
-                Button(quota.checking ? "查询中…" : "刷新额度") { quota.refresh(force: true) }.disabled(quota.checking)
+                CardHeaderButton(title: quota.checking ? "查询中…" : "刷新额度", busy: quota.checking, tint: LeafTheme.serviceBlue) { quota.refresh(force: true) }.disabled(quota.checking)
             }
         }.padding(20).frame(minWidth: 650, idealWidth: 780, minHeight: 600, idealHeight: 730)
             .foregroundStyle(LeafTheme.ink).background(LeafTheme.mist).onAppear { quota.beginLogin() }
+    }
+}
+
+struct MinutesQuotaActions: View {
+    let authentication: MinutesQuotaStore.Authentication
+    let checking: Bool
+    var refresh: () -> Void
+    var login: () -> Void
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            CardHeaderButton(title: checking ? "查询中…" : "立即查询", busy: checking, tint: LeafTheme.serviceBlue, action: refresh)
+                .disabled(checking)
+            if authentication == .authenticated {
+                CardHeaderStatus(title: "已登录", symbol: "checkmark.circle.fill", tint: LeafTheme.serviceBlue)
+                    .accessibilityLabel("飞书已登录")
+            } else if checking && authentication == .unverified {
+                CardHeaderStatus(title: "验证中…", busy: true, tint: LeafTheme.serviceBlue)
+            } else {
+                CardHeaderButton(title: "登录飞书", tint: LeafTheme.serviceBlue, action: login)
+            }
+        }
     }
 }
 

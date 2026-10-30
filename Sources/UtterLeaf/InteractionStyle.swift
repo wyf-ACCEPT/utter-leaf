@@ -20,6 +20,74 @@ struct HandCursor: ViewModifier {
 extension View {
     func handCursor() -> some View { modifier(HandCursor()) }
 }
+
+/// Shared card-header geometry for actions and noninteractive status capsules.
+private struct CardHeaderContent: View {
+    let title: String
+    var symbol: String?
+    var busy = false
+    var body: some View {
+        HStack(spacing: 6) {
+            if busy { ProgressView().controlSize(.small).frame(width: 14, height: 14) }
+            else if let symbol { Image(systemName: symbol).font(.system(size: 13)).frame(width: 14, height: 14) }
+            Text(title)
+        }
+    }
+}
+private struct CardHeaderChrome: ViewModifier {
+    let tint: Color
+    var enabled = true
+    var hovered = false
+    var pressed = false
+    func body(content: Content) -> some View {
+        content.font(.system(size: 14, weight: .medium)).lineLimit(1)
+            .foregroundStyle(tint.opacity(enabled ? 1 : 0.5))
+            .frame(width: 120, height: 34)
+            .background(tint.opacity(enabled ? (pressed ? 0.22 : hovered ? 0.16 : 0.10) : 0.05), in: Capsule())
+            .overlay(Capsule().stroke(tint.opacity(enabled ? 0.18 : 0.08), lineWidth: 1))
+            .contentShape(Capsule())
+    }
+}
+private struct CardHeaderButtonStyle: ButtonStyle {
+    let tint: Color
+    func makeBody(configuration: Configuration) -> some View { CardHeaderButtonFace(configuration: configuration, tint: tint) }
+}
+private struct CardHeaderButtonFace: View {
+    let configuration: ButtonStyleConfiguration
+    let tint: Color
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hovered = false
+    var body: some View {
+        configuration.label.modifier(CardHeaderChrome(tint: tint, enabled: enabled, hovered: hovered, pressed: configuration.isPressed))
+            .onHover { hovered = $0 }.handCursor()
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
+    }
+}
+struct CardHeaderButton: View {
+    let title: String
+    var busy = false
+    var tint: Color = LeafTheme.leaf
+    let action: () -> Void
+    @FocusState private var focused: Bool
+    var body: some View {
+        Button(action: action) { CardHeaderContent(title: title, busy: busy) }
+            .buttonStyle(CardHeaderButtonStyle(tint: tint)).focused($focused)
+            .overlay(Capsule().stroke(focused ? tint : .clear, lineWidth: 2).padding(-3).allowsHitTesting(false))
+            .accessibilityLabel(title)
+    }
+}
+struct CardHeaderStatus: View {
+    let title: String
+    var symbol: String?
+    var busy = false
+    var tint: Color = LeafTheme.leaf
+    var body: some View {
+        CardHeaderContent(title: title, symbol: symbol, busy: busy)
+            .modifier(CardHeaderChrome(tint: tint))
+            .accessibilityElement(children: .ignore).accessibilityLabel(title)
+    }
+}
 struct SidebarItem: View {
     let title: String
     let icon: String

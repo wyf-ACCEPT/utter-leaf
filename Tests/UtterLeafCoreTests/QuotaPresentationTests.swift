@@ -48,6 +48,40 @@ final class QuotaPresentationTests: XCTestCase {
         cards.frame = NSRect(x: 0, y: 0, width: 920, height: 1300); cards.layoutSubtreeIfNeeded()
         try await Task.sleep(for: .milliseconds(150))
         try save(cards, name: "6x30-weekly-and-provider-quota")
+        let states: [(String, MinutesQuotaStore.Authentication, Bool)] = [
+            ("Signed out", .required, false), ("Checking session", .unverified, true),
+            ("Signed in", .authenticated, false), ("Refreshing", .authenticated, true)]
+        let board = NSHostingView(rootView: VStack(spacing: 18) {
+            ForEach(states.indices, id: \.self) { index in
+                HStack {
+                    Text(states[index].0).font(.system(size: 14)).foregroundStyle(LeafTheme.muted)
+                    Spacer()
+                    MinutesQuotaActions(authentication: states[index].1, checking: states[index].2, refresh: {}, login: {})
+                }
+            }
+            Divider()
+            HStack { CardHeaderButton(title: "同步设置") {}; CardHeaderButton(title: "核对中…", busy: true) {}.disabled(true) }
+        }.padding(24).frame(width: 540).background(LeafTheme.mist).preferredColorScheme(.dark))
+        board.frame = NSRect(x: 0, y: 0, width: 540, height: 320); board.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(150))
+        try save(board, name: "6x30-header-control-states")
+
+        var frames: [String: CGRect] = [:]
+        let measured = NSHostingView(rootView: HStack(spacing: 10) {
+            measure("action") { CardHeaderButton(title: "立即查询", tint: LeafTheme.serviceBlue) {} }
+            measure("status") { CardHeaderStatus(title: "已登录", symbol: "checkmark.circle.fill", tint: LeafTheme.serviceBlue) }
+            measure("busyAction") { CardHeaderButton(title: "查询中…", busy: true, tint: LeafTheme.serviceBlue) {}.disabled(true) }
+            measure("busyStatus") { CardHeaderStatus(title: "验证中…", busy: true, tint: LeafTheme.serviceBlue) }
+        }.coordinateSpace(name: "controls").onPreferenceChange(HeaderFrames.self) { frames = $0 }
+            .padding(20).frame(width: 600, height: 90))
+        measured.frame = NSRect(x: 0, y: 0, width: 600, height: 90); measured.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertEqual(frames.count, 4)
+        for rect in frames.values {
+            XCTAssertEqual(rect.width, 120, accuracy: 0.5)
+            XCTAssertEqual(rect.height, 34, accuracy: 0.5)
+            XCTAssertEqual(rect.midY, frames["action"]?.midY ?? -.infinity, accuracy: 0.5)
+        }
     }
     @MainActor private func save(_ view: NSView, name: String) throws {
         let image = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
@@ -55,4 +89,14 @@ final class QuotaPresentationTests: XCTestCase {
         let file = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".local/verification/\(name).png")
         try XCTUnwrap(image.representation(using: .png, properties: [:])).write(to: file)
     }
+    private func measure<Content: View>(_ name: String, @ViewBuilder content: () -> Content) -> some View {
+        content().background(GeometryReader { geometry in
+            Color.clear.preference(key: HeaderFrames.self, value: [name: geometry.frame(in: .named("controls"))])
+        })
+    }
+}
+
+private struct HeaderFrames: PreferenceKey {
+    static let defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) { value.merge(nextValue()) { _, new in new } }
 }
