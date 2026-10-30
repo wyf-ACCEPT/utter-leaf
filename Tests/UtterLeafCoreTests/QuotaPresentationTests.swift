@@ -56,7 +56,7 @@ final class QuotaPresentationTests: XCTestCase {
                 HStack {
                     Text(states[index].0).font(.system(size: 14)).foregroundStyle(LeafTheme.muted)
                     Spacer()
-                    MinutesQuotaActions(authentication: states[index].1, checking: states[index].2, refresh: {}, login: {})
+                    MinutesQuotaActions(authentication: states[index].1, checking: states[index].2, profile: store.minutesAccounts.profile, profiles: store.minutesAccounts.profiles, refresh: {}, login: {}, select: { _ in }, add: {}, rename: {})
                 }
             }
             Divider()
@@ -69,16 +69,16 @@ final class QuotaPresentationTests: XCTestCase {
         var frames: [String: CGRect] = [:]
         let measured = NSHostingView(rootView: HStack(spacing: 10) {
             measure("action") { CardHeaderButton(title: "立即查询", tint: LeafTheme.serviceBlue) {} }
-            measure("status") { CardHeaderStatus(title: "已登录", symbol: "checkmark.circle.fill", tint: LeafTheme.serviceBlue) }
+            measure("status") { CardHeaderMenu(title: "默认账号 · 已登录", symbol: "checkmark.circle.fill", tint: LeafTheme.serviceBlue) { Button("默认账号") {} } }
             measure("busyAction") { CardHeaderButton(title: "查询中…", busy: true, tint: LeafTheme.serviceBlue) {}.disabled(true) }
-            measure("busyStatus") { CardHeaderStatus(title: "验证中…", busy: true, tint: LeafTheme.serviceBlue) }
+            measure("busyStatus") { CardHeaderMenu(title: "默认账号 · 验证中…", busy: true, tint: LeafTheme.serviceBlue) { Button("默认账号") {} } }
         }.coordinateSpace(name: "controls").onPreferenceChange(HeaderFrames.self) { frames = $0 }
-            .padding(20).frame(width: 600, height: 90))
-        measured.frame = NSRect(x: 0, y: 0, width: 600, height: 90); measured.layoutSubtreeIfNeeded()
+            .padding(20).frame(width: 720, height: 90))
+        measured.frame = NSRect(x: 0, y: 0, width: 720, height: 90); measured.layoutSubtreeIfNeeded()
         try await Task.sleep(for: .milliseconds(150))
         XCTAssertEqual(frames.count, 4)
-        for rect in frames.values {
-            XCTAssertEqual(rect.width, 120, accuracy: 0.5)
+        for (name, rect) in frames {
+            XCTAssertEqual(rect.width, name == "status" || name == "busyStatus" ? 190 : 120, accuracy: 0.5)
             XCTAssertEqual(rect.height, 34, accuracy: 0.5)
             XCTAssertEqual(rect.midY, frames["action"]?.midY ?? -.infinity, accuracy: 0.5)
         }
