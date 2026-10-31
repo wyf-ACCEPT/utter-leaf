@@ -91,7 +91,7 @@ import UtterLeafCore
         panel.backgroundColor = .clear; panel.hasShadow = false
         panel.animationBehavior = .none; panel.hidesOnDeactivate = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(rootView: RecordingPill(model: model, store: model.store, presentation: pill))
+        panel.contentView = RecordingPillHost(rootView: RecordingPill(model: model, store: model.store, presentation: pill))
         pill.orderFront = { [weak self] in
             guard let self else { return }
             if let screen = NSScreen.main {
@@ -136,6 +136,11 @@ import UtterLeafCore
         case .transcribing: pill.show(.processing, detail: "正在转写 · Esc 取消", reduceMotion: reduced)
         case .cleaning: pill.show(.processing, detail: "整理文字 · Esc 取消", reduceMotion: reduced)
         case .inserting: pill.show(.processing, detail: "输入到原应用", reduceMotion: reduced)
+        case .preview where model.showsPillRecovery:
+            panel.ignoresMouseEvents = false
+            pill.show(.recovery, detail: "文字已保留", reduceMotion: reduced)
+        case .preview where pill.stage == .recovery:
+            panel.ignoresMouseEvents = true; pill.closeImmediately()
         default:
             panel.ignoresMouseEvents = true
             pill.finish(model.pillOutcome, reduceMotion: reduced)

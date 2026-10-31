@@ -3,19 +3,19 @@ import SwiftUI
 /// Presentation tasks never delay recording, cleanup or insertion work.
 @MainActor final class PillPresentation: ObservableObject {
     enum Stage: Equatable {
-        case preparing, recording, processing, inserted, pasteRequested, retained, cancelled, failed
+        case preparing, recording, processing, recovery, inserted, pasteRequested, retained, cancelled, failed
         var width: CGFloat {
-            switch self { case .preparing, .processing: return 290; case .recording: return 350; default: return 230 }
+            switch self { case .preparing, .processing: return 290; case .recording: return 350; case .recovery: return 380; default: return 230 }
         }
         var title: String {
             switch self {
             case .preparing: return "准备录音"; case .recording: return "正在听你说"; case .processing: return "处理中"
-            case .inserted: return "已输入"; case .pasteRequested: return "已请求粘贴"; case .retained: return "文字已保留"
+            case .inserted: return "已输入"; case .pasteRequested: return "已请求粘贴"; case .retained, .recovery: return "文字已保留"
             case .cancelled: return "已取消"; case .failed: return "需要处理"
             }
         }
         var icon: String {
-            switch self { case .inserted: return "checkmark"; case .pasteRequested: return "arrow.up.doc"; case .retained: return "doc.text"; case .cancelled: return "xmark"; case .failed: return "exclamationmark"; default: return "leaf" }
+            switch self { case .inserted: return "checkmark"; case .pasteRequested: return "arrow.up.doc"; case .retained, .recovery: return "doc.text"; case .cancelled: return "xmark"; case .failed: return "exclamationmark"; default: return "leaf" }
         }
         var isTerminal: Bool { ![.preparing, .recording, .processing].contains(self) }
     }
@@ -47,6 +47,7 @@ import SwiftUI
         }
     }
     func finish(_ stage: Stage, reduceMotion: Bool) {
+        if stage == .recovery { show(stage, detail: "文字已保留", reduceMotion: reduceMotion); return }
         guard onScreen else { return }
         task?.cancel(); revision += 1
         let token = revision

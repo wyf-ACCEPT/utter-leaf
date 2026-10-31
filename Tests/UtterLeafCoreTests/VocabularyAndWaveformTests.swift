@@ -131,7 +131,8 @@ final class AutomaticInputTests: XCTestCase {
             XCTAssertFalse(root.1.calls[0].1)
             XCTAssertEqual(root.0.phase, expectPreview ? .preview : .idle)
             XCTAssertEqual(root.0.draft, expectPreview ? "Synthetic dictation" : "")
-            XCTAssertEqual(root.1.opens, expectPreview ? 1 : 0)
+            XCTAssertEqual(root.1.opens, 0)
+            XCTAssertEqual(root.0.showsPillRecovery, expectPreview)
         }
     }
     func testMissingTargetFallsBackWithoutLosingText() async {

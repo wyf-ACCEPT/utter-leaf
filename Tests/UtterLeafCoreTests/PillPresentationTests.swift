@@ -2,6 +2,19 @@ import XCTest
 @testable import UtterLeaf
 
 final class PillPresentationTests: XCTestCase {
+    @MainActor func testRecoveryStaysVisibleUntilDismissedOrReplaced() async throws {
+        let pill = PillPresentation(dwell: .milliseconds(20), exitWait: .milliseconds(20))
+        var hidden = 0; pill.orderOut = { hidden += 1 }
+        pill.show(.recording, detail: "synthetic", reduceMotion: true)
+        pill.finish(.recovery, reduceMotion: true)
+        try await Task.sleep(for: .milliseconds(160))
+        XCTAssertTrue(pill.onScreen); XCTAssertTrue(pill.revealed)
+        XCTAssertEqual(pill.stage, .recovery); XCTAssertEqual(hidden, 0)
+        pill.show(.recording, detail: "new synthetic session", reduceMotion: true)
+        try await Task.sleep(for: .milliseconds(70))
+        XCTAssertTrue(pill.onScreen); XCTAssertEqual(pill.stage, .recording)
+        pill.closeImmediately(); XCTAssertEqual(hidden, 1)
+    }
     @MainActor func testRestartDuringDismissalCannotHideNewRecording() async throws {
         let pill = PillPresentation(dwell: .milliseconds(30), exitWait: .milliseconds(30))
         var shown = 0, hidden = 0
