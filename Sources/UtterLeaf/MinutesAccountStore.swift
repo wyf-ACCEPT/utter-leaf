@@ -7,12 +7,14 @@ import UtterLeafCore
     @Published private(set) var manifest: MinutesAccountsManifest
     @Published private(set) var active: MinutesQuotaStore
     @Published private(set) var error: String?
+    @Published private(set) var duplicateProfileID: UUID?
+    private var duplicateCandidate: MinutesQuotaStore?
     private let root: URL
     private let networkEnabled: Bool
     private var writable = true
     var canRefresh: () -> Bool = { true } { didSet { configure(active) } }
     var selected: UUID { manifest.selected }
-    var profiles: [MinutesAccountProfile] { manifest.profiles }
+    var profiles: [MinutesAccountProfile] { manifest.profiles.filter { $0.duplicateOf == nil } }
     var profile: MinutesAccountProfile { profiles.first { $0.id == selected }! }
     private var file: URL { root.appendingPathComponent("minutes-accounts-v1.json") }
     init(root: URL, networkEnabled: Bool = true) {
@@ -33,6 +35,7 @@ import UtterLeafCore
                                    sessionIdentifier: profile.id, preferredHost: profile.host)
         if loadFailed { error = "账号配置无法读取，已停止修改以保护原有数据。" }
         configure(active)
+        if profile.id != MinutesAccountProfile.originalID && profile.identity == nil && active.snapshot == nil { active.prepareIdentitySelection() }
     }
     static func cacheFile(root: URL, id: UUID) -> URL {
         root.appendingPathComponent(id == MinutesAccountProfile.originalID ? "minutes-quota-v1.json" : "minutes-quota-\(id.uuidString.lowercased()).json")
@@ -47,22 +50,57 @@ import UtterLeafCore
             do { try persist(next); manifest = next } catch { self.error = "账号登录已完成，但本机配置保存失败。" }
         }
         store.onIdentity = { [weak self, weak store] identity in
-            guard let self, let store, store === active, identity.valid,
-                  let index = manifest.profiles.firstIndex(where: { $0.id == store.sessionIdentifier }),
-                  manifest.profiles[index].identity != identity else { return }
-            var next = manifest; next.profiles[index].identity = identity
-            do { try persist(next); manifest = next } catch { self.error = "已读取账号名称，但本机配置保存失败。" }
+            guard let self, let store else { return .accepted }
+            return acceptIdentity(identity, from: store)
         }
     }
+    private func makeStore(_ profile: MinutesAccountProfile) -> MinutesQuotaStore {
+        let store = MinutesQuotaStore(file: Self.cacheFile(root: root, id: profile.id), networkEnabled: networkEnabled,
+                                     sessionIdentifier: profile.id, preferredHost: profile.host)
+        configure(store)
+        if profile.id != MinutesAccountProfile.originalID && profile.identity == nil && store.snapshot == nil { store.prepareIdentitySelection() }
+        return store
+    }
+    private func acceptIdentity(_ identity: MinutesAccountIdentity, from store: MinutesQuotaStore) -> MinutesQuotaStore.IdentityDecision {
+        guard (store === active || store === duplicateCandidate), identity.valid,
+              let index = manifest.profiles.firstIndex(where: { $0.id == store.sessionIdentifier }) else { return .accepted }
+        guard identity.subjectKey != nil else { return .unverifiable }
+        var next = manifest; next.profiles[index].identity = identity; next.profiles[index].duplicateOf = nil
+        if store === duplicateCandidate { next.selected = store.sessionIdentifier }
+        let merged = next.mergeVerifiedDuplicates()
+        if next != manifest {
+            do { try persist(next) } catch { self.error = "身份校验已完成，但账号配置无法保存。"; return .unverifiable }
+        }
+        let newlyArchived = next.profiles.first { entry in
+            merged[entry.id] != nil && manifest.profiles.first(where: { $0.id == entry.id })?.duplicateOf == nil
+        }
+        manifest = next
+        if let removed = newlyArchived { duplicateProfileID = removed.id }
+        if merged[store.sessionIdentifier] != nil {
+            duplicateCandidate = store; store.suspend()
+            if active === store { active = makeStore(profile) }
+            error = nil; return .duplicate
+        }
+        if store === duplicateCandidate {
+            active.suspend(); active = store; duplicateCandidate = nil; duplicateProfileID = nil
+        }
+        error = nil; return .accepted
+    }
+    func duplicateLoginContext() -> (MinutesAccountProfile, MinutesQuotaStore)? {
+        guard let id = duplicateProfileID, let profile = manifest.profiles.first(where: { $0.id == id }) else { return nil }
+        if duplicateCandidate?.sessionIdentifier != id { duplicateCandidate = makeStore(profile) }
+        guard let store = duplicateCandidate else { return nil }
+        return (profile, store)
+    }
+    func dismissDuplicateNotice() { duplicateProfileID = nil; duplicateCandidate?.suspend(); duplicateCandidate = nil }
     func select(_ id: UUID) throws {
         guard id != selected else { return }
         guard let profile = profiles.first(where: { $0.id == id }) else { throw Failure.storage }
         var next = manifest; next.selected = id
         try persist(next)
         active.suspend()
-        let store = MinutesQuotaStore(file: Self.cacheFile(root: root, id: id), networkEnabled: networkEnabled,
-                                     sessionIdentifier: id, preferredHost: profile.host)
-        configure(store); manifest = next; active = store; error = nil
+        let store = makeStore(profile)
+        manifest = next; active = store; error = nil
     }
     @discardableResult func add(name: String) throws -> UUID {
         let name = try validated(name)
@@ -73,18 +111,18 @@ import UtterLeafCore
         active.suspend()
         let store = MinutesQuotaStore(file: Self.cacheFile(root: root, id: profile.id), networkEnabled: networkEnabled,
                                      sessionIdentifier: profile.id, preferredHost: nil)
-        configure(store); manifest = next; active = store; error = nil
+        configure(store); store.prepareIdentitySelection(); manifest = next; active = store; error = nil
         return profile.id
     }
     func rename(_ id: UUID, name: String) throws {
         let name = try validated(name, excluding: id)
-        guard let index = profiles.firstIndex(where: { $0.id == id }) else { throw Failure.storage }
+        guard let index = manifest.profiles.firstIndex(where: { $0.id == id && $0.duplicateOf == nil }) else { throw Failure.storage }
         var next = manifest; next.profiles[index].name = name
         next.profiles[index].automaticName = false
         try persist(next); manifest = next; error = nil
     }
     func useAutomaticName(_ id: UUID) throws {
-        guard let index = profiles.firstIndex(where: { $0.id == id }) else { throw Failure.storage }
+        guard let index = manifest.profiles.firstIndex(where: { $0.id == id && $0.duplicateOf == nil }) else { throw Failure.storage }
         var next = manifest; next.profiles[index].automaticName = true
         try persist(next); manifest = next; error = nil
     }

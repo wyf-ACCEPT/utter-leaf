@@ -25,24 +25,98 @@ final class MinutesAccountTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let accounts = MinutesAccountStore(root: root, networkEnabled: false)
         let original = accounts.active
-        let identity = try XCTUnwrap(MinutesAccountIdentity(userName: "Alex", organization: "Example Studio"))
-        original.onIdentity?(identity)
+        let identity = try XCTUnwrap(MinutesAccountIdentity(userName: "Alex", organization: "Example Studio", subjectKey: String(repeating: "a", count: 64)))
+        _ = original.onIdentity?(identity)
         XCTAssertEqual(accounts.profile.displayName, "Alex · Example Studio")
         try accounts.rename(accounts.selected, name: "我的工作账号")
-        original.onIdentity?(MinutesAccountIdentity(userName: "Alex", organization: "Other Studio")!)
+        _ = original.onIdentity?(MinutesAccountIdentity(userName: "Alex", organization: "Other Studio", subjectKey: String(repeating: "a", count: 64))!)
         XCTAssertEqual(accounts.profile.displayName, "我的工作账号")
         try accounts.useAutomaticName(accounts.selected)
         XCTAssertEqual(accounts.profile.displayName, "Alex · Other Studio")
         let second = try accounts.add(name: "账号 2")
         XCTAssertTrue(accounts.profile.usesAutomaticName)
-        original.onIdentity?(MinutesAccountIdentity(userName: "Wrong", organization: "Wrong")!)
+        _ = original.onIdentity?(MinutesAccountIdentity(userName: "Wrong", organization: "Wrong")!)
         XCTAssertNil(accounts.profile.identity)
-        accounts.active.onIdentity?(MinutesAccountIdentity(userName: "Sam", organization: "Personal")!)
+        _ = accounts.active.onIdentity?(MinutesAccountIdentity(userName: "Sam", organization: "Personal", subjectKey: String(repeating: "b", count: 64))!)
         let restored = MinutesAccountStore(root: root, networkEnabled: false)
         XCTAssertEqual(restored.selected, second)
         XCTAssertEqual(restored.profile.displayName, "Sam · Personal")
         try restored.select(MinutesAccountProfile.originalID)
         XCTAssertEqual(restored.profile.displayName, "Alex · Other Studio")
+    }
+    private func identity(_ key: String?, kind: String = "organization") -> MinutesAccountIdentity {
+        MinutesAccountIdentity(userName: "Alex", organization: "Example Studio", subjectKey: key.map { String(repeating: $0, count: 64) }, kind: kind)!
+    }
+    func testDuplicateMergeRequiresFingerprintAndNeverUsesDisplayName() {
+        var value = MinutesAccountsManifest()
+        value.profiles[0].identity = identity(nil)
+        var second = MinutesAccountProfile(name: "账号 2"); second.identity = identity(nil)
+        value.profiles.append(second); value.selected = second.id
+        XCTAssertTrue(value.mergeVerifiedDuplicates().isEmpty)
+        value.profiles[0].identity = identity("a"); value.profiles[1].identity = identity("b")
+        XCTAssertTrue(value.mergeVerifiedDuplicates().isEmpty)
+        value.profiles[1].identity = identity("a")
+        XCTAssertEqual(value.mergeVerifiedDuplicates()[second.id], value.profiles[0].id)
+        XCTAssertEqual(value.selected, value.profiles[0].id)
+        XCTAssertTrue(value.valid)
+        XCTAssertEqual(value.profiles.count, 2)
+    }
+    func testPersonalIdentityAndInvalidFingerprints() {
+        XCTAssertEqual(identity("a", kind: "personal").displayName, "Alex · 个人账号")
+        XCTAssertNil(MinutesAccountIdentity(userName: "Alex", organization: nil, subjectKey: "invalid")?.subjectKey)
+        var value = MinutesAccountsManifest()
+        value.profiles[0].identity = identity("a")
+        var second = MinutesAccountProfile(name: "账号 2"); second.identity = identity("b", kind: "personal")
+        value.profiles.append(second)
+        XCTAssertTrue(value.mergeVerifiedDuplicates().isEmpty)
+    }
+    @MainActor func testDuplicateLoginIsArchivedAndCanBecomePersonalWithoutLosingCaches() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let accounts = MinutesAccountStore(root: root, networkEnabled: false)
+        XCTAssertEqual(accounts.active.onIdentity?(identity("a")), .accepted)
+        let duplicate = try accounts.add(name: "账号 2")
+        let candidate = accounts.active
+        XCTAssertTrue(candidate.choosingIdentity)
+        let cache = MinutesAccountStore.cacheFile(root: root, id: duplicate)
+        let bytes = try snapshot(30); try bytes.write(to: cache)
+        XCTAssertEqual(candidate.onIdentity?(identity("a")), .duplicate)
+        XCTAssertEqual(accounts.profiles.count, 1)
+        XCTAssertEqual(accounts.manifest.profiles.count, 2)
+        XCTAssertEqual(accounts.selected, MinutesAccountProfile.originalID)
+        XCTAssertEqual(accounts.duplicateProfileID, duplicate)
+        XCTAssertEqual(try Data(contentsOf: cache), bytes)
+        let (_, retry) = try XCTUnwrap(accounts.duplicateLoginContext())
+        XCTAssertTrue(retry === candidate)
+        XCTAssertEqual(retry.onIdentity?(identity("a")), .duplicate)
+        XCTAssertEqual(accounts.profiles.count, 1)
+        XCTAssertEqual(retry.onIdentity?(identity("b", kind: "personal")), .accepted)
+        XCTAssertEqual(accounts.profiles.count, 2)
+        XCTAssertEqual(accounts.selected, duplicate)
+        XCTAssertNil(accounts.duplicateProfileID)
+        XCTAssertEqual(accounts.profile.displayName, "Alex · 个人账号")
+        XCTAssertTrue(accounts.active === retry)
+        let restored = MinutesAccountStore(root: root, networkEnabled: false)
+        XCTAssertEqual(restored.profiles.count, 2)
+        XCTAssertEqual(restored.profile.displayName, "Alex · 个人账号")
+        try restored.rename(duplicate, name: "个人")
+        XCTAssertEqual(restored.profile.displayName, "个人")
+    }
+    @MainActor func testArchivedProfileDoesNotShiftRenameIndexAndUnverifiedIdentityCannotReplaceKey() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let accounts = MinutesAccountStore(root: root, networkEnabled: false)
+        _ = accounts.active.onIdentity?(identity("a"))
+        _ = try accounts.add(name: "账号 2")
+        _ = accounts.active.onIdentity?(identity("a"))
+        accounts.dismissDuplicateNotice()
+        let unique = try accounts.add(name: "账号 3")
+        _ = accounts.active.onIdentity?(identity("c"))
+        XCTAssertEqual(accounts.active.onIdentity?(identity(nil)), .unverifiable)
+        XCTAssertEqual(accounts.profile.identity?.subjectKey, String(repeating: "c", count: 64))
+        try accounts.rename(unique, name: "独立账号")
+        XCTAssertEqual(accounts.profile.name, "独立账号")
+        XCTAssertTrue(accounts.manifest.valid)
     }
     private func snapshot(_ minutes: Int) throws -> Data {
         let data = try JSONSerialization.data(withJSONObject: ["code": 0, "data": ["display_quota": ["remaining_asr_quota": minutes]]])
