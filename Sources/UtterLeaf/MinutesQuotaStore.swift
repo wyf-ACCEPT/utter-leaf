@@ -4,16 +4,18 @@ import UtterLeafCore
 
 /// Owns a dedicated website session; browser Cookies never leave WebKit.
 @MainActor final class MinutesQuotaStore: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
-    enum Authentication { case unverified, authenticated, required }
+    enum Authentication { case unverified, authenticated, required, duplicate }
+    enum IdentityDecision { case accepted, duplicate, unverifiable }
     let sessionIdentifier: UUID
     private let home: URL
     var onAuthenticatedHost: ((String) -> Void)?
-    var onIdentity: ((MinutesAccountIdentity) -> Void)?
+    var onIdentity: ((MinutesAccountIdentity) -> IdentityDecision)?
     @Published private(set) var snapshot: MinutesQuotaSnapshot?
     @Published private(set) var checking = false
     @Published private(set) var errorCode: String?
     @Published private(set) var lastAttempt: Date?
     @Published private(set) var authentication: Authentication = .unverified
+    @Published private(set) var choosingIdentity = false
     var canRefresh: () -> Bool = { true }
     private let file: URL
     private let networkEnabled: Bool
@@ -48,7 +50,7 @@ import UtterLeafCore
             || (snapshot?.nextRefresh.map { $0 > lastAttempt && $0 <= Date() } ?? false)
     }
     func refresh(force: Bool = false) {
-        guard networkEnabled, !checking, force || (refreshDue && !needsLogin) else { return }
+        guard networkEnabled, !checking, !choosingIdentity, force || (refreshDue && !needsLogin) else { return }
         guard canRefresh() else { if force { errorCode = "busy" }; return }
         checking = true; errorCode = nil; lastAttempt = Date(); generation = UUID()
         let token = generation
@@ -66,6 +68,17 @@ import UtterLeafCore
         if webView.url == nil { refresh(force: true) }
     }
     func endLogin() { loginVisible = false }
+    func prepareIdentitySelection() {
+        suspend(); choosingIdentity = true
+    }
+    func beginIdentitySelection() {
+        prepareIdentitySelection(); loginVisible = true
+        webView.load(URLRequest(url: URL(string: "https://meetings.feishu.cn/minutes/home")!))
+    }
+    func confirmIdentity() {
+        choosingIdentity = false; authentication = .unverified; loginVisible = true
+        refresh(force: true)
+    }
     func suspend() {
         generation = UUID(); deadline?.cancel(); checking = false; loginVisible = false
         browser?.stopLoading()
@@ -77,7 +90,7 @@ import UtterLeafCore
     private func readQuota(token: UUID) {
         guard checking, token == generation, isQuotaPage(webView.url) else { return }
         let path = "/minutes/api/quota_data?benefit_type_list[]=1&benefit_type_list[]=3&benefit_type_list[]=4&function_scene_list[]=minutes_list&function_scene_list[]=upload_notice&function_scene_list[]=upload_popup&function_scene_list[]=asr_function_popup_mainpage&function_scene_list[]=asr_function_popup_upload&function_scene_list[]=minutes_recording_transcript_page&language=zh_cn"
-        // Only display names cross the bridge; the full current-user payload stays in WebKit.
+        // Only bounded display metadata and a one-way fingerprint cross the bridge.
         let script = """
         const identityRequest = (async () => {
             const controller = new AbortController();
@@ -88,7 +101,16 @@ import UtterLeafCore
                 const payload = await response.json();
                 if (payload.code !== 0 || !payload.data || payload.data.guest_mode === true) return null;
                 const pick = value => typeof value === 'string' && value.length <= 240 ? value : null;
-                return {userName: pick(payload.data.user_name), organization: pick(payload.data.tenant_name)};
+                const data = payload.data;
+                const kind = data.is_c === true ? 'personal' : data.is_c === false ? 'organization' : null;
+                let subjectKey = null;
+                const validID = value => typeof value === 'string' && /^[1-9][0-9]{0,127}$/.test(value);
+                if (validID(data.user_id) && (validID(data.tenant_id) || kind === 'personal')) {
+                    const scoped = JSON.stringify(['feishu-minutes-identity-v1', data.user_id, validID(data.tenant_id) ? data.tenant_id : 'personal']);
+                    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(scoped));
+                    subjectKey = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+                }
+                return {userName: pick(data.user_name), organization: pick(data.tenant_name), subjectKey, kind};
             } catch (_) { return null; }
             finally { clearTimeout(timeout); }
         })();
@@ -104,12 +126,18 @@ import UtterLeafCore
             guard let text = envelope["body"] as? String else { fail("network"); return }
             do {
                 let value = try MinutesQuotaSnapshot.parse(Data(text.utf8))
+                guard let fields = envelope["identity"] as? [String: Any],
+                      let identity = MinutesAccountIdentity(userName: fields["userName"] as? String, organization: fields["organization"] as? String,
+                                                           subjectKey: fields["subjectKey"] as? String, kind: fields["kind"] as? String),
+                      identity.subjectKey != nil else { fail("identity"); return }
+                let decision = onIdentity?(identity) ?? .accepted
+                if decision == .unverifiable { fail("identity"); return }
+                if decision == .duplicate {
+                    snapshot = nil; authentication = .duplicate; checking = false; choosingIdentity = true
+                    errorCode = "duplicate"; deadline?.cancel(); return
+                }
                 snapshot = value; authentication = .authenticated; checking = false; errorCode = nil; deadline?.cancel()
                 if let host = webView.url?.host { onAuthenticatedHost?(host) }
-                if let fields = envelope["identity"] as? [String: Any],
-                   let identity = MinutesAccountIdentity(userName: fields["userName"] as? String, organization: fields["organization"] as? String) {
-                    onIdentity?(identity)
-                }
                 do {
                     try JSONEncoder().encode(value).write(to: file, options: .atomic)
                     try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
@@ -127,7 +155,7 @@ import UtterLeafCore
             if checking { fail("login") }; return
         }
         if checking { readQuota(token: generation) }
-        else if loginVisible { refresh(force: true) }
+        else if loginVisible && !choosingIdentity { refresh(force: true) }
     }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if checking && (error as NSError).code != NSURLErrorCancelled { fail("network") }

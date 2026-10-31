@@ -13,15 +13,28 @@ struct MinutesQuotaView: View {
             if let message = operationError ?? accounts.error {
                 Label(message, systemImage: "exclamationmark.triangle").font(LeafType.caption).foregroundStyle(.orange)
             }
+            if accounts.duplicateProfileID != nil {
+                HStack(spacing: 12) {
+                    Label("此账号已登录，已合并重复入口。", systemImage: "person.crop.circle.badge.checkmark")
+                        .font(LeafType.caption)
+                    Spacer()
+                    Button("选择个人或其他账号") {
+                        if let (profile, store) = accounts.duplicateLoginContext() {
+                            login = MinutesProfileLogin(profile: profile, store: store)
+                        }
+                    }
+                    Button("关闭") { accounts.dismissDuplicateNotice() }
+                }.padding(14).background(LeafTheme.serviceBlue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            }
             MinutesQuotaCard(quota: accounts.active, profile: accounts.profile, profiles: accounts.profiles,
                 select: { id in do { try accounts.select(id); operationError = nil } catch { operationError = error.localizedDescription } },
                 add: { editing = MinutesProfileEdit(profile: nil) },
                 rename: { editing = MinutesProfileEdit(profile: accounts.profile) },
                 automatic: { do { try accounts.useAutomaticName(accounts.selected); operationError = nil } catch { operationError = error.localizedDescription } },
-                openLogin: { login = MinutesProfileLogin(id: accounts.selected) })
+                openLogin: { login = MinutesProfileLogin(profile: accounts.profile, store: accounts.active) })
                 .id(accounts.selected)
         }.sheet(item: $editing, onDismiss: {
-            if let id = pendingLogin, accounts.selected == id { login = MinutesProfileLogin(id: id) }
+            if let id = pendingLogin, accounts.selected == id { login = MinutesProfileLogin(profile: accounts.profile, store: accounts.active) }
             pendingLogin = nil
         }) { request in
             MinutesProfileEditor(initialName: request.profile?.displayName ?? suggestedName, adding: request.profile == nil) { name in
@@ -30,9 +43,7 @@ struct MinutesQuotaView: View {
                 operationError = nil
             }
         }.sheet(item: $login) { request in
-            if request.id == accounts.selected {
-                MinutesLoginSheet(quota: accounts.active, name: accounts.profile.menuName(in: accounts.profiles), close: { login = nil })
-            }
+            MinutesLoginSheet(quota: request.store, name: request.name, close: { login = nil })
         }
     }
     private var suggestedName: String {
@@ -58,7 +69,7 @@ private struct MinutesQuotaCard: View {
                     Label("飞书妙记 · 官方额度", systemImage: "cloud").font(LeafType.headline).foregroundStyle(LeafTheme.serviceBlue)
                     Spacer(minLength: 12)
                     MinutesQuotaActions(authentication: quota.authentication, checking: quota.checking, profile: profile, profiles: profiles,
-                                        refresh: { quota.refresh(force: true) }, login: openLogin, select: select, add: add, rename: rename, automatic: automatic)
+                                        refresh: { if quota.choosingIdentity { openLogin() } else { quota.refresh(force: true) } }, login: openLogin, select: select, add: add, rename: rename, automatic: automatic)
                 }
                 if let value = quota.snapshot {
                     HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -107,6 +118,8 @@ private struct MinutesQuotaCard: View {
     }
     private func errorText(_ code: String) -> String {
         switch code {
+        case "identity": return "未能确认当前账号身份，请重试；原有账号和额度已保留。"
+        case "duplicate": return "此账号已登录，请选择个人或其他账号。"
         case "busy": return "录音或处理期间暂停额度查询，结束后可再试。"
         case "login": return "需要登录或登录已过期。请在右上角账号菜单选择“登录飞书”；已有结果保留为上次查询值。"
         case "timeout": return "查询超时，上次结果已保留，可稍后重试。"
@@ -126,20 +139,28 @@ private struct MinutesLoginSheet: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("登录飞书 · " + name).font(LeafType.headline)
-                    Text("此账号使用独立登录会话，只查询额度，不上传录音。")
+                    Text("请在飞书页面确认当前身份；若要使用个人账号，请先切换到个人身份或其他账号。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
                 Spacer()
                 Button("关闭", action: close).keyboardShortcut(.cancelAction)
             }
+            if quota.authentication == .duplicate {
+                Label("此账号已登录。请在飞书页面切换个人或其他账号后，再确认。", systemImage: "exclamationmark.circle")
+                    .font(LeafType.caption).foregroundStyle(.orange)
+            } else if let code = quota.errorCode, code == "identity" || code == "network" || code == "timeout" {
+                Text("暂时无法校验身份，请稍后重试。原有登录数据已保留。")
+                    .font(LeafType.caption).foregroundStyle(.orange)
+            }
             MinutesLoginBrowser(browser: quota.webView)
             HStack {
-                Text("完成登录后会自动查询；若未更新，可点右侧按钮。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                Text("登录并选好身份后，点击“使用当前身份”；相同账号不会重复添加。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 Spacer()
-                CardHeaderButton(title: quota.checking ? "查询中…" : "刷新额度", busy: quota.checking, tint: LeafTheme.serviceBlue) { quota.refresh(force: true) }.disabled(quota.checking)
+                CardHeaderButton(title: quota.checking ? "校验中…" : "使用当前身份", busy: quota.checking, tint: LeafTheme.serviceBlue) { quota.confirmIdentity() }.disabled(quota.checking)
             }
-        }.padding(20).frame(minWidth: 650, idealWidth: 780, minHeight: 600, idealHeight: 730)
-            .foregroundStyle(LeafTheme.ink).background(LeafTheme.mist).onAppear { quota.beginLogin() }
+        }.padding(20).frame(width: min(1100, (NSScreen.main?.visibleFrame.width ?? 1180) - 80),
+                           height: min(760, (NSScreen.main?.visibleFrame.height ?? 840) - 80))
+            .foregroundStyle(LeafTheme.ink).background(LeafTheme.mist).onAppear { quota.beginIdentitySelection() }
             .onDisappear { quota.endLogin() }
             .onChange(of: quota.authentication) { _, value in if value == .authenticated { close() } }
     }
@@ -149,7 +170,14 @@ private struct MinutesProfileEdit: Identifiable {
     let id = UUID()
     let profile: MinutesAccountProfile?
 }
-private struct MinutesProfileLogin: Identifiable { let id: UUID }
+private struct MinutesProfileLogin: Identifiable {
+    let id: UUID
+    let name: String
+    let store: MinutesQuotaStore
+    init(profile: MinutesAccountProfile, store: MinutesQuotaStore) {
+        id = profile.id; name = profile.displayName; self.store = store
+    }
+}
 
 private struct MinutesProfileEditor: View {
     let initialName: String
