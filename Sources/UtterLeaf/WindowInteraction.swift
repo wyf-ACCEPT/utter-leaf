@@ -1,6 +1,7 @@
 import AppKit
 import UtterLeafCore
 import QuartzCore
+import SwiftUI
 
 /// Owns the app's explicit titlebar gesture, independently of the system double-click preference.
 @MainActor final class UtterLeafWindow: NSWindow, NSWindowDelegate {
@@ -79,4 +80,8 @@ import QuartzCore
 @MainActor final class RecordingPanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+}
+
+@MainActor final class RecordingPillHost<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }

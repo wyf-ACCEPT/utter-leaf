@@ -7,9 +7,15 @@ import UtterLeafCore
     @Published var promptEditorDraft: String?
     @Published var phase: Phase = .idle
     @Published var partial = ""
-    @Published var draft = "" { didSet { if oldValue != draft { copiedDraft = nil } } }
+    @Published var draft = "" { didSet { if oldValue != draft { copiedDraft = nil; copyFailed = false } } }
     @Published private var copiedDraft: String?
     var draftWasCopied: Bool { !draft.isEmpty && copiedDraft == draft }
+    @Published private(set) var copyFailed = false
+    @Published private(set) var showsPillRecovery = false
+    var pillRecoveryPreview: String {
+        let text = draft.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        return text.isEmpty ? "文字已保留" : String(text.prefix(36)) + (text.count > 36 ? "…" : "")
+    }
     @Published var raw = ""
     @Published var message = ""
     @Published var elapsed: Double = 0
@@ -25,6 +31,7 @@ import UtterLeafCore
     }()
     let store: LocalStore
     private let captureTarget: (@MainActor () -> (any DictationTarget)?)?
+    private let writeClipboard: (String) -> Bool
     private var jobAutomatic = true
     private var activeVocabulary: [VocabularyEntry] = []
     let waveform = LiveAudioMeter()
@@ -46,9 +53,13 @@ import UtterLeafCore
     var onPhase: (() -> Void)?
     var busy: Bool { [.starting, .recording, .transcribing, .cleaning, .inserting].contains(phase) }
     var targetName: String { target?.displayName ?? "未捕获输入框" }
-    init(store: LocalStore? = nil, captureTarget: (@MainActor () -> (any DictationTarget)?)? = nil) {
+    init(store: LocalStore? = nil, captureTarget: (@MainActor () -> (any DictationTarget)?)? = nil, clipboardWriter: ((String) -> Bool)? = nil) {
         self.store = store ?? LocalStore()
         self.captureTarget = captureTarget
+        writeClipboard = clipboardWriter ?? { text in
+            NSPasteboard.general.clearContents()
+            return NSPasteboard.general.setString(text, forType: .string)
+        }
         api.onCall = { [weak self] in self?.store.update($0) }
         api.onPartial = { [weak self] in self?.partial = $0 }
         mic.onDisconnect = { [weak self] in self?.abort(message: "麦克风设备发生变化，录音已停止。请重新开始。") }
@@ -213,10 +224,12 @@ import UtterLeafCore
         operation = Task { do { try await self.clean(token: token, automatic: false) } catch { if self.activeToken == token { self.fail(error) } } }
     }
     func useRaw() { guard !busy, !raw.isEmpty else { return }; setPreview(raw) }
-    private func setPreview(_ text: String) {
+    private func setPreview(_ text: String, recoverInPill: Bool = false) {
         pillOutcome = .retained
+        showsPillRecovery = recoverInPill && !text.isEmpty
         draft = text; persistDraft(status: "preview")
-        changePhase(.preview); route = "听写"; showWindow?()
+        changePhase(.preview); route = "听写"
+        if !showsPillRecovery { showWindow?() }
     }
     /// Completes one dictation without opening the app on successful automatic insertion.
     func deliver(_ text: String, automatic: Bool, token: UUID? = nil) async {
@@ -251,18 +264,24 @@ import UtterLeafCore
         self.message = message ?? "已取消。已发送给供应商的内容可能产生费用。"
         changePhase(message == nil ? .idle : .error)
     }
-    func discard() { draft = ""; raw = ""; target = nil; job = nil; message = ""; changePhase(.idle) }
+    func discard() { showsPillRecovery = false; draft = ""; raw = ""; target = nil; job = nil; message = ""; changePhase(.idle) }
+    func dismissPillRecovery() {
+        guard phase == .preview, showsPillRecovery else { return }
+        persistDraft(status: draftWasCopied ? "copied" : "saved")
+        showsPillRecovery = false; onPhase?()
+    }
     func copy() {
         guard !draft.isEmpty, !busy, !inserting else { return }
-        NSPasteboard.general.clearContents()
-        guard NSPasteboard.general.setString(draft, forType: .string) else {
-            copiedDraft = nil; message = "复制未完成，请重试。"; return
+        guard writeClipboard(draft) else {
+            copyFailed = true; copiedDraft = nil; message = "复制未完成，请重试。"; return
         }
+        copyFailed = false
         persistDraft(status: "copied")
         copiedDraft = draft
         message = "已复制到剪贴板，预览仍可继续编辑。"
     }
     func preservePendingDraft() {
+        showsPillRecovery = false
         if !draft.isEmpty { persistDraft(status: "saved") }
         draft = ""; raw = ""; target = nil; job = nil
         if phase == .preview || phase == .error { changePhase(.idle) }
@@ -285,7 +304,7 @@ import UtterLeafCore
                 ? "开始时焦点在 UtterLeaf；请先点击原应用的输入框。"
                 : "开始录音时未能读取原输入框；请点击目标输入框后再试。"
             message = detail + "文字已保留，可复制后粘贴。"
-            setPreview(draft); return
+            setPreview(draft, recoverInPill: automatic); return
         }
         inserting = true; persistDraft(status: "inserting"); changePhase(.inserting)
         defer { inserting = false }
@@ -296,7 +315,7 @@ import UtterLeafCore
                 job.status = method == .pasteDispatched ? "paste_dispatched" : "inserted"
                 job.insertionMethod = method.rawValue; store.update(job)
             }
-            draft = ""; raw = ""; self.target = nil; job = nil
+            showsPillRecovery = false; draft = ""; raw = ""; self.target = nil; job = nil
             if method != .pasteDispatched { sounds.play(.complete, preferences: activeSound) }
             pillOutcome = method == .pasteDispatched ? .pasteRequested : .inserted
             message = method == .pasteDispatched ? "已向 \(target.displayName) 发出粘贴；如未显示，可从听写历史复制。" : "已输入到 \(target.displayName)。"
@@ -305,7 +324,7 @@ import UtterLeafCore
             let failure = safeFailure(error)
             if var job { job.insertionErrorCode = failure.code; self.job = job; store.update(job) }
             message = failure.message
-            setPreview(draft)
+            setPreview(draft, recoverInPill: automatic)
         }
     }
     func captureDestination() { target = captureTarget?() }

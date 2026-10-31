@@ -21,7 +21,7 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 **Working personal development build — October 29, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **148 tests** (latest run: 144 passed, 4 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **152 tests** (latest run: 147 passed, 5 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -272,3 +272,7 @@ The Minutes quota card supports multiple named local login profiles. Use the acc
 Feishu account labels can automatically use the verified personal name and organization from the current-user endpoint. Only those display fields are kept locally; custom aliases remain available and are not overwritten. Generated legacy labels update on each account's next successful refresh.
 
 飞书账号占位名称会在刷新时自动使用官方姓名与组织；手动别名保留，可在菜单恢复自动名称。不保存手机号、邮箱或会话字段。
+
+If automatic insertion cannot verify the original field, the Mac capsule keeps a short text preview and Copy/Close controls. Copy writes the entire transcript without opening the main app or sending a Return key. Text remains available after copying or closing the capsule, subject to the configured retention policy; explicit preview mode is unchanged.
+
+自动回填失败时，Mac 胶囊会保留文字开头和复制/关闭按钮，无需跳回主窗口。复制的是全文，不会自动粘贴或发送；复制、关闭胶囊都不清空当前草稿，历史保存仍遵循原保留设置。
