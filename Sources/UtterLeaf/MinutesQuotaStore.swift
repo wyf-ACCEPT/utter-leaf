@@ -8,6 +8,7 @@ import UtterLeafCore
     let sessionIdentifier: UUID
     private let home: URL
     var onAuthenticatedHost: ((String) -> Void)?
+    var onIdentity: ((MinutesAccountIdentity) -> Void)?
     @Published private(set) var snapshot: MinutesQuotaSnapshot?
     @Published private(set) var checking = false
     @Published private(set) var errorCode: String?
@@ -76,12 +77,25 @@ import UtterLeafCore
     private func readQuota(token: UUID) {
         guard checking, token == generation, isQuotaPage(webView.url) else { return }
         let path = "/minutes/api/quota_data?benefit_type_list[]=1&benefit_type_list[]=3&benefit_type_list[]=4&function_scene_list[]=minutes_list&function_scene_list[]=upload_notice&function_scene_list[]=upload_popup&function_scene_list[]=asr_function_popup_mainpage&function_scene_list[]=asr_function_popup_upload&function_scene_list[]=minutes_recording_transcript_page&language=zh_cn"
-        // The only evaluated operation is a same-origin, read-only quota request.
+        // Only display names cross the bridge; the full current-user payload stays in WebKit.
         let script = """
+        const identityRequest = (async () => {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 4000);
+            try {
+                const response = await fetch('/minutes/api/user?language=zh_cn', {credentials: 'include', cache: 'no-store', signal: controller.signal});
+                if (!response.ok || response.redirected) return null;
+                const payload = await response.json();
+                if (payload.code !== 0 || !payload.data || payload.data.guest_mode === true) return null;
+                const pick = value => typeof value === 'string' && value.length <= 240 ? value : null;
+                return {userName: pick(payload.data.user_name), organization: pick(payload.data.tenant_name)};
+            } catch (_) { return null; }
+            finally { clearTimeout(timeout); }
+        })();
         const response = await fetch(path, {credentials: 'include', cache: 'no-store'});
         if (response.status === 401 || response.status === 403 || response.redirected) return {login: true};
         if (!response.ok) return {failed: true};
-        return {body: await response.text()};
+        return {body: await response.text(), identity: await identityRequest};
         """
         webView.callAsyncJavaScript(script, arguments: ["path": path], in: nil, in: .page) { [weak self] result in
             guard let self, checking, generation == token else { return }
@@ -92,6 +106,10 @@ import UtterLeafCore
                 let value = try MinutesQuotaSnapshot.parse(Data(text.utf8))
                 snapshot = value; authentication = .authenticated; checking = false; errorCode = nil; deadline?.cancel()
                 if let host = webView.url?.host { onAuthenticatedHost?(host) }
+                if let fields = envelope["identity"] as? [String: Any],
+                   let identity = MinutesAccountIdentity(userName: fields["userName"] as? String, organization: fields["organization"] as? String) {
+                    onIdentity?(identity)
+                }
                 do {
                     try JSONEncoder().encode(value).write(to: file, options: .atomic)
                     try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)

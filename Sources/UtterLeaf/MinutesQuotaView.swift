@@ -17,20 +17,21 @@ struct MinutesQuotaView: View {
                 select: { id in do { try accounts.select(id); operationError = nil } catch { operationError = error.localizedDescription } },
                 add: { editing = MinutesProfileEdit(profile: nil) },
                 rename: { editing = MinutesProfileEdit(profile: accounts.profile) },
+                automatic: { do { try accounts.useAutomaticName(accounts.selected); operationError = nil } catch { operationError = error.localizedDescription } },
                 openLogin: { login = MinutesProfileLogin(id: accounts.selected) })
                 .id(accounts.selected)
         }.sheet(item: $editing, onDismiss: {
             if let id = pendingLogin, accounts.selected == id { login = MinutesProfileLogin(id: id) }
             pendingLogin = nil
         }) { request in
-            MinutesProfileEditor(initialName: request.profile?.name ?? suggestedName, adding: request.profile == nil) { name in
+            MinutesProfileEditor(initialName: request.profile?.displayName ?? suggestedName, adding: request.profile == nil) { name in
                 if let profile = request.profile { try accounts.rename(profile.id, name: name) }
                 else { pendingLogin = try accounts.add(name: name) }
                 operationError = nil
             }
         }.sheet(item: $login) { request in
             if request.id == accounts.selected {
-                MinutesLoginSheet(quota: accounts.active, name: accounts.profile.name, close: { login = nil })
+                MinutesLoginSheet(quota: accounts.active, name: accounts.profile.menuName(in: accounts.profiles), close: { login = nil })
             }
         }
     }
@@ -48,6 +49,7 @@ private struct MinutesQuotaCard: View {
     var select: (UUID) -> Void
     var add: () -> Void
     var rename: () -> Void
+    var automatic: () -> Void
     var openLogin: () -> Void
     var body: some View {
         TimelineView(.periodic(from: Date(timeIntervalSince1970: 0), by: 60)) { context in
@@ -56,7 +58,7 @@ private struct MinutesQuotaCard: View {
                     Label("飞书妙记 · 官方额度", systemImage: "cloud").font(LeafType.headline).foregroundStyle(LeafTheme.serviceBlue)
                     Spacer(minLength: 12)
                     MinutesQuotaActions(authentication: quota.authentication, checking: quota.checking, profile: profile, profiles: profiles,
-                                        refresh: { quota.refresh(force: true) }, login: openLogin, select: select, add: add, rename: rename)
+                                        refresh: { quota.refresh(force: true) }, login: openLogin, select: select, add: add, rename: rename, automatic: automatic)
                 }
                 if let value = quota.snapshot {
                     HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -188,6 +190,8 @@ struct MinutesQuotaActions: View {
     var select: (UUID) -> Void
     var add: () -> Void
     var rename: () -> Void
+    var automatic: () -> Void
+    private var accountName: String { profile.menuName(in: profiles) }
     private var status: String {
         if authentication == .authenticated { return "已登录" }
         if checking && authentication == .unverified { return "验证中…" }
@@ -197,22 +201,25 @@ struct MinutesQuotaActions: View {
         HStack(alignment: .center, spacing: 10) {
             CardHeaderButton(title: checking ? "查询中…" : "立即查询", busy: checking, tint: LeafTheme.serviceBlue, action: refresh)
                 .disabled(checking)
-            CardHeaderMenu(title: profile.name + " · " + status,
+            CardHeaderMenu(title: accountName + " · " + status,
                            symbol: authentication == .authenticated ? "checkmark.circle.fill" : "person.crop.circle",
                            busy: checking && authentication == .unverified, tint: LeafTheme.serviceBlue) {
                 ForEach(profiles) { entry in
                     Button { select(entry.id) } label: {
-                        if entry.id == profile.id { Label(entry.name, systemImage: "checkmark") }
-                        else { Text(entry.name) }
+                        if entry.id == profile.id { Label(entry.menuName(in: profiles), systemImage: "checkmark") }
+                        else { Text(entry.menuName(in: profiles)) }
                     }
                 }
                 Divider()
                 if authentication != .authenticated { Button("登录飞书…", action: login) }
                 Button("添加账号…", action: add)
                 Button("重命名当前账号…", action: rename)
+                if profile.identity != nil && !profile.usesAutomaticName {
+                    Button("使用飞书姓名与组织", action: automatic)
+                }
             }
-            .accessibilityLabel("切换飞书账号，当前 " + profile.name + "，" + status)
-            .help(profile.name + "：" + status + "。点击切换或管理账号；各账号官方额度与本地 CNY 预算分开，不合并计算。")
+            .accessibilityLabel("切换飞书账号，当前 " + accountName + "，" + status)
+            .help(accountName + "：" + status + "。点击切换或管理账号；各账号官方额度与本地 CNY 预算分开，不合并计算。")
         }
     }
 }

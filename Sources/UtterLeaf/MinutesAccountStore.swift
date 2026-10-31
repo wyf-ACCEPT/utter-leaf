@@ -46,6 +46,13 @@ import UtterLeafCore
             var next = manifest; next.profiles[index].host = host
             do { try persist(next); manifest = next } catch { self.error = "账号登录已完成，但本机配置保存失败。" }
         }
+        store.onIdentity = { [weak self, weak store] identity in
+            guard let self, let store, store === active, identity.valid,
+                  let index = manifest.profiles.firstIndex(where: { $0.id == store.sessionIdentifier }),
+                  manifest.profiles[index].identity != identity else { return }
+            var next = manifest; next.profiles[index].identity = identity
+            do { try persist(next); manifest = next } catch { self.error = "已读取账号名称，但本机配置保存失败。" }
+        }
     }
     func select(_ id: UUID) throws {
         guard id != selected else { return }
@@ -59,7 +66,8 @@ import UtterLeafCore
     }
     @discardableResult func add(name: String) throws -> UUID {
         let name = try validated(name)
-        var next = manifest; let profile = MinutesAccountProfile(name: name)
+        var next = manifest; var profile = MinutesAccountProfile(name: name)
+        profile.automaticName = MinutesAccountProfile.isPlaceholder(name)
         next.profiles.append(profile); next.selected = profile.id
         try persist(next)
         active.suspend()
@@ -72,6 +80,12 @@ import UtterLeafCore
         let name = try validated(name, excluding: id)
         guard let index = profiles.firstIndex(where: { $0.id == id }) else { throw Failure.storage }
         var next = manifest; next.profiles[index].name = name
+        next.profiles[index].automaticName = false
+        try persist(next); manifest = next; error = nil
+    }
+    func useAutomaticName(_ id: UUID) throws {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { throw Failure.storage }
+        var next = manifest; next.profiles[index].automaticName = true
         try persist(next); manifest = next; error = nil
     }
     private func validated(_ name: String, excluding id: UUID? = nil) throws -> String {
