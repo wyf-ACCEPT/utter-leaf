@@ -219,3 +219,6 @@ User request2026-10-31: failed automatic input returns text to an interactive fl
 
 
 User correction2026-10-31: prevent identical Feishu logins from appearing as separate accounts. Compare only validated one-way user/tenant fingerprints, never display names. Preserve original account selection and login data, archive duplicate local entries without deleting website data or quota caches, and explicitly notify “此账号已登录”. Same name with different verified identities remains separate; personal identity receives a personal label. The add/login sheet requires explicit current-identity confirmation and remains attached to the rejected candidate session until the user switches identity or closes it. Late inactive callbacks cannot modify another profile, persistence failure cannot accept an untracked identity, and archived records cannot shift rename indexes.
+
+
+Recovery capsule refinement (2026-10-31): first click copies the full transcript and keeps the capsule with 已复制. Clicking 已复制 again dismisses only the capsule without rewriting the clipboard or removing the retained draft. Failed copying remains retryable; editing invalidates the copied state. Main-window Copy continues to copy normally. Tooltip and accessibility labels explicitly describe the second-click dismissal.
