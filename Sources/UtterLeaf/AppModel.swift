@@ -270,6 +270,11 @@ import UtterLeafCore
         persistDraft(status: draftWasCopied ? "copied" : "saved")
         showsPillRecovery = false; onPhase?()
     }
+    func activatePillCopy() {
+        guard phase == .preview, showsPillRecovery else { return }
+        if draftWasCopied { dismissPillRecovery() }
+        else { copy() }
+    }
     func copy() {
         guard !draft.isEmpty, !busy, !inserting else { return }
         guard writeClipboard(draft) else {

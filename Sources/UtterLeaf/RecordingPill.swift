@@ -32,14 +32,14 @@ struct RecordingPill: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(model.pillRecoveryPreview).font(.system(size: LeafType.scaled(13), weight: .medium))
                     .foregroundStyle(LeafTheme.ink).lineLimit(1).truncationMode(.tail)
-                Text(model.copyFailed ? "复制未完成，请重试" : model.draftWasCopied ? "已复制，可回原应用粘贴" : "未能自动输入，文字已保留")
+                Text(model.copyFailed ? "复制未完成，请重试" : model.draftWasCopied ? "已复制，再点一次收起" : "未能自动输入，文字已保留")
                     .font(.system(size: LeafType.scaled(10))).foregroundStyle(model.copyFailed ? .orange : LeafTheme.muted).lineLimit(1)
             }.frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-            Button(action: model.copy) {
+            Button(action: model.activatePillCopy) {
                 Text(model.draftWasCopied ? "已复制" : "复制").font(.system(size: 13, weight: .semibold))
                     .frame(width: 60, height: 32).background(LeafTheme.leaf.opacity(0.14), in: Capsule())
-            }.buttonStyle(.plain).handCursor().help("复制整段文字")
-                .accessibilityLabel(model.draftWasCopied ? "已复制完整文字，可再次复制" : "复制完整转录文字")
+            }.buttonStyle(.plain).handCursor().help(model.draftWasCopied ? "收起胶囊，文字仍保留" : "复制整段文字")
+                .accessibilityLabel(model.draftWasCopied ? "已复制，点击收起胶囊" : "复制完整转录文字")
             Button(action: model.dismissPillRecovery) {
                 Image(systemName: "xmark").font(.system(size: 12, weight: .medium)).frame(width: 24, height: 32)
             }.buttonStyle(.plain).handCursor().help("关闭胶囊，保留待输入文字")
