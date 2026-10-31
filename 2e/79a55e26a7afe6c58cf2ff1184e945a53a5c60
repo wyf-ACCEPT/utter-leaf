@@ -1,0 +1,43 @@
+Sources/UtterLeaf/WindowInteraction.swift
+  s_299dc04098b816::t_73c1379d63972d 4,84-86
+  s_299dc04098b816::t_3afbf52bdd07f7 87
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_73c1379d63972d 10,13-18,34,56,59-62,227,229,231-232,267-272,275-276,278,284,307,318,327
+Tests/UtterLeafCoreTests/PillRecoveryTests.swift
+  s_299dc04098b816::t_420a189130817f 65
+  s_299dc04098b816::t_4eee3262e1f07e 1-64,66-76
+Sources/UtterLeaf/PillPresentation.swift
+  s_299dc04098b816::t_73c1379d63972d 6,8,13,18,50
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_73c1379d63972d 94,139-143
+Tests/UtterLeafCoreTests/VocabularyAndWaveformTests.swift
+  s_299dc04098b816::t_4eee3262e1f07e 134-135
+Sources/UtterLeaf/RecordingPill.swift
+  s_299dc04098b816::t_420a189130817f 18-19,37
+  s_299dc04098b816::t_4eee3262e1f07e 45
+  s_299dc04098b816::t_73c1379d63972d 14-17,20-36,38-44,46-49,81
+Tests/UtterLeafCoreTests/PillPresentationTests.swift
+  s_299dc04098b816::t_4eee3262e1f07e 5-17
+DESIGN.md
+  s_299dc04098b816::t_1a2e3cf8a290aa 210-211
+README.md
+  s_299dc04098b816::t_affdade0801788 24,275-278
+UX-CONTRACT.md
+  s_299dc04098b816::t_d16be4f8893f0b 217-218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2e79a55e26a7afe6c58cf2ff1184e945a53a5c60",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
