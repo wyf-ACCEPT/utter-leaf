@@ -1,0 +1,27 @@
+DESIGN.md
+  s_299dc04098b816::t_ab083471ed1476 215-217
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_36bafc99214d85 273-277
+Sources/UtterLeaf/RecordingPill.swift
+  s_299dc04098b816::t_034c1006889cf8 35,38,41-42
+Tests/UtterLeafCoreTests/PillRecoveryTests.swift
+  s_299dc04098b816::t_bfab18d27ef468 20,23-24,37,39,43-44
+UX-CONTRACT.md
+  s_299dc04098b816::t_937dcc549f0b08 222-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "31c7e37d86cecd67c1fd1994e8d83b44b9f049a7",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
