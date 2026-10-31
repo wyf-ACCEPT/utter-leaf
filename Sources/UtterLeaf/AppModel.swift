@@ -7,7 +7,7 @@ import UtterLeafCore
     @Published var promptEditorDraft: String?
     @Published var phase: Phase = .idle
     @Published var partial = ""
-    @Published var draft = "" { didSet { if oldValue != draft { copiedDraft = nil; copyFailed = false } } }
+    @Published var draft = "" { didSet { if oldValue != draft { copiedDraft = nil; copyFailed = false; cancelPillCopyDismissal() } } }
     @Published private var copiedDraft: String?
     var draftWasCopied: Bool { !draft.isEmpty && copiedDraft == draft }
     @Published private(set) var copyFailed = false
@@ -49,6 +49,8 @@ import UtterLeafCore
     private var upload: Task<Void, Error>?
     private var operation: Task<Void, Never>?
     private var watchdog: Task<Void, Never>?
+    private var pillCopyDismissal: Task<Void, Never>?
+    private var pillCopyDismissalToken = UUID()
     var showWindow: (() -> Void)?
     var onPhase: (() -> Void)?
     var busy: Bool { [.starting, .recording, .transcribing, .cleaning, .inserting].contains(phase) }
@@ -71,7 +73,10 @@ import UtterLeafCore
         }
         return try String(contentsOf: url, encoding: .utf8)
     }
-    func changePhase(_ value: Phase) { phase = value; onPhase?() }
+    func changePhase(_ value: Phase) {
+        if value != .preview { cancelPillCopyDismissal() }
+        phase = value; onPhase?()
+    }
     func toggle() {
         if phase == .recording { stop() }
         else if !busy { start() }
@@ -225,6 +230,7 @@ import UtterLeafCore
     }
     func useRaw() { guard !busy, !raw.isEmpty else { return }; setPreview(raw) }
     private func setPreview(_ text: String, recoverInPill: Bool = false) {
+        cancelPillCopyDismissal(); copiedDraft = nil; copyFailed = false
         pillOutcome = .retained
         showsPillRecovery = recoverInPill && !text.isEmpty
         draft = text; persistDraft(status: "preview")
@@ -267,16 +273,31 @@ import UtterLeafCore
     func discard() { showsPillRecovery = false; draft = ""; raw = ""; target = nil; job = nil; message = ""; changePhase(.idle) }
     func dismissPillRecovery() {
         guard phase == .preview, showsPillRecovery else { return }
+        cancelPillCopyDismissal()
         persistDraft(status: draftWasCopied ? "copied" : "saved")
         showsPillRecovery = false; onPhase?()
     }
     func activatePillCopy() {
         guard phase == .preview, showsPillRecovery else { return }
-        if draftWasCopied { dismissPillRecovery() }
-        else { copy() }
+        guard !draftWasCopied else { return }
+        copy()
+    }
+    private func cancelPillCopyDismissal() {
+        pillCopyDismissal?.cancel(); pillCopyDismissal = nil; pillCopyDismissalToken = UUID()
+    }
+    private func schedulePillCopyDismissal() {
+        guard phase == .preview, showsPillRecovery else { return }
+        let token = pillCopyDismissalToken
+        pillCopyDismissal = Task { [weak self] in
+            do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
+            guard let self, pillCopyDismissalToken == token, phase == .preview,
+                  showsPillRecovery, draftWasCopied else { return }
+            dismissPillRecovery()
+        }
     }
     func copy() {
         guard !draft.isEmpty, !busy, !inserting else { return }
+        cancelPillCopyDismissal()
         guard writeClipboard(draft) else {
             copyFailed = true; copiedDraft = nil; message = "复制未完成，请重试。"; return
         }
@@ -284,6 +305,7 @@ import UtterLeafCore
         persistDraft(status: "copied")
         copiedDraft = draft
         message = "已复制到剪贴板，预览仍可继续编辑。"
+        schedulePillCopyDismissal()
     }
     func preservePendingDraft() {
         showsPillRecovery = false

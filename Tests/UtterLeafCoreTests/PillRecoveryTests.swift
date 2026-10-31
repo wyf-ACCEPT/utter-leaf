@@ -22,6 +22,9 @@ final class PillRecoveryTests: XCTestCase {
         XCTAssertTrue(model.draftWasCopied); XCTAssertTrue(model.showsPillRecovery)
         model.activatePillCopy()
         XCTAssertEqual(copied, [text])
+        try await Task.sleep(for: .milliseconds(250))
+        XCTAssertTrue(model.showsPillRecovery)
+        try await Task.sleep(for: .milliseconds(400))
         XCTAssertFalse(model.showsPillRecovery); XCTAssertEqual(model.draft, text)
         XCTAssertEqual(opened, 0)
         model.preservePendingDraft()
@@ -36,6 +39,8 @@ final class PillRecoveryTests: XCTestCase {
         await model.deliver("Synthetic retained draft", automatic: true)
         model.activatePillCopy(); XCTAssertTrue(model.copyFailed); XCTAssertFalse(model.draftWasCopied)
         XCTAssertEqual(model.draft, "Synthetic retained draft"); XCTAssertTrue(model.showsPillRecovery)
+        try await Task.sleep(for: .milliseconds(650))
+        XCTAssertTrue(model.showsPillRecovery)
         accepts = true; model.activatePillCopy()
         XCTAssertFalse(model.copyFailed); XCTAssertTrue(model.draftWasCopied)
         model.draft += " edited"
@@ -44,6 +49,24 @@ final class PillRecoveryTests: XCTestCase {
         XCTAssertTrue(model.draftWasCopied); XCTAssertTrue(model.showsPillRecovery)
         await model.deliver("Explicit manual preview", automatic: false)
         XCTAssertFalse(model.showsPillRecovery); XCTAssertEqual(opened, 1)
+    }
+    @MainActor func testOldCopyTimerCannotDismissNewIdenticalResult() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = AppModel(store: LocalStore(root: root), captureTarget: { nil }, clipboardWriter: { _ in true })
+        await model.deliver("Synthetic repeated result", automatic: true)
+        model.activatePillCopy()
+        try await Task.sleep(for: .milliseconds(250))
+        await model.deliver("Synthetic repeated result", automatic: true)
+        XCTAssertFalse(model.draftWasCopied)
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertTrue(model.showsPillRecovery)
+        model.draft += " edited"
+        model.activatePillCopy()
+        model.draft += " again"
+        try await Task.sleep(for: .milliseconds(650))
+        XCTAssertTrue(model.showsPillRecovery)
+        XCTAssertFalse(model.draftWasCopied)
     }
     @MainActor func testRecoveryPanelRendersAndCannotTakeKeyboardFocus() async throws {
         guard ProcessInfo.processInfo.environment["UTTERLEAF_NATIVE_PANEL_TEST"] == "1" else { throw XCTSkip("Requires native panel rendering") }
