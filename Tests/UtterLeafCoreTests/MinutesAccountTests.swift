@@ -3,6 +3,47 @@ import UtterLeafCore
 @testable import UtterLeaf
 
 final class MinutesAccountTests: XCTestCase {
+    func testIdentityDisplayUsesOnlyValidatedNameAndOrganization() throws {
+        let identity = try XCTUnwrap(MinutesAccountIdentity(userName: " Alex ", organization: "Example Studio"))
+        XCTAssertEqual(identity.displayName, "Alex · Example Studio")
+        XCTAssertTrue(identity.valid)
+        XCTAssertEqual(MinutesAccountIdentity(userName: "Alex", organization: nil)?.displayName, "Alex")
+        XCTAssertEqual(MinutesAccountIdentity(userName: nil, organization: "Example Studio")?.displayName, "Example Studio")
+        XCTAssertEqual(MinutesAccountIdentity(userName: "Alex", organization: "alex")?.displayName, "Alex")
+        XCTAssertNil(MinutesAccountIdentity(userName: "\n", organization: nil))
+        XCTAssertNil(MinutesAccountIdentity(userName: String(repeating: "x", count: 121), organization: nil))
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(identity)) as? [String: Any])
+        XCTAssertEqual(Set(fields.keys), ["userName", "organization"])
+        var first = MinutesAccountProfile(name: "默认账号"); first.identity = identity
+        var second = MinutesAccountProfile(name: "账号 2"); second.identity = identity
+        XCTAssertEqual(first.displayName, identity.displayName)
+        XCTAssertEqual(second.displayName, identity.displayName)
+        XCTAssertNotEqual(first.menuName(in: [first, second]), second.menuName(in: [first, second]))
+    }
+    @MainActor func testAutomaticNamesRespectManualAliasesAndIgnoreInactiveCallbacks() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let accounts = MinutesAccountStore(root: root, networkEnabled: false)
+        let original = accounts.active
+        let identity = try XCTUnwrap(MinutesAccountIdentity(userName: "Alex", organization: "Example Studio"))
+        original.onIdentity?(identity)
+        XCTAssertEqual(accounts.profile.displayName, "Alex · Example Studio")
+        try accounts.rename(accounts.selected, name: "我的工作账号")
+        original.onIdentity?(MinutesAccountIdentity(userName: "Alex", organization: "Other Studio")!)
+        XCTAssertEqual(accounts.profile.displayName, "我的工作账号")
+        try accounts.useAutomaticName(accounts.selected)
+        XCTAssertEqual(accounts.profile.displayName, "Alex · Other Studio")
+        let second = try accounts.add(name: "账号 2")
+        XCTAssertTrue(accounts.profile.usesAutomaticName)
+        original.onIdentity?(MinutesAccountIdentity(userName: "Wrong", organization: "Wrong")!)
+        XCTAssertNil(accounts.profile.identity)
+        accounts.active.onIdentity?(MinutesAccountIdentity(userName: "Sam", organization: "Personal")!)
+        let restored = MinutesAccountStore(root: root, networkEnabled: false)
+        XCTAssertEqual(restored.selected, second)
+        XCTAssertEqual(restored.profile.displayName, "Sam · Personal")
+        try restored.select(MinutesAccountProfile.originalID)
+        XCTAssertEqual(restored.profile.displayName, "Alex · Other Studio")
+    }
     private func snapshot(_ minutes: Int) throws -> Data {
         let data = try JSONSerialization.data(withJSONObject: ["code": 0, "data": ["display_quota": ["remaining_asr_quota": minutes]]])
         return try JSONEncoder().encode(MinutesQuotaSnapshot.parse(data))

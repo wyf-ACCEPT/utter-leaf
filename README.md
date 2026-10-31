@@ -21,7 +21,7 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 **Working personal development build — October 29, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **146 tests** (latest run: 142 passed, 4 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **148 tests** (latest run: 144 passed, 4 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -268,3 +268,7 @@ Mac 用量页现有独立的蓝色“飞书妙记 · 官方额度”卡片，显
 The Minutes quota card supports multiple named local login profiles. Use the account menu under its heading to add, rename or switch accounts. Each profile keeps an isolated website session and quota cache; switching does not sign out other profiles or combine balances. The original login is preserved. This remains a read-only quota feature; meeting transcription routing is unchanged.
 
 妙记额度卡片的账号菜单支持添加、重命名和随时切换账号。每个账号分别保留登录与额度缓存，原有登录不丢失；各账号额度不相加、不自动轮换，账号列表只保存在本机。
+
+Feishu account labels can automatically use the verified personal name and organization from the current-user endpoint. Only those display fields are kept locally; custom aliases remain available and are not overwritten. Generated legacy labels update on each account's next successful refresh.
+
+飞书账号占位名称会在刷新时自动使用官方姓名与组织；手动别名保留，可在菜单恢复自动名称。不保存手机号、邮箱或会话字段。

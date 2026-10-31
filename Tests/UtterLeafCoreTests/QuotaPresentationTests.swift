@@ -56,7 +56,7 @@ final class QuotaPresentationTests: XCTestCase {
                 HStack {
                     Text(states[index].0).font(.system(size: 14)).foregroundStyle(LeafTheme.muted)
                     Spacer()
-                    MinutesQuotaActions(authentication: states[index].1, checking: states[index].2, profile: store.minutesAccounts.profile, profiles: store.minutesAccounts.profiles, refresh: {}, login: {}, select: { _ in }, add: {}, rename: {})
+                    MinutesQuotaActions(authentication: states[index].1, checking: states[index].2, profile: store.minutesAccounts.profile, profiles: store.minutesAccounts.profiles, refresh: {}, login: {}, select: { _ in }, add: {}, rename: {}, automatic: {})
                 }
             }
             Divider()
