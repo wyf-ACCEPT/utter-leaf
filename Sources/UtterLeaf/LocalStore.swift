@@ -199,6 +199,37 @@ struct LocalDatabase: Codable {
         try vocabularyCloud.delete(id)
         database.preferences.vocabulary = vocabularyCloud.entries; save()
     }
+    private func cancelledAudioURL(_ id: UUID) -> URL {
+        root.appendingPathComponent("cancelled-recordings", isDirectory: true).appendingPathComponent(id.uuidString.lowercased() + ".wav")
+    }
+    func hasCancelledAudio(_ id: UUID) -> Bool { FileManager.default.fileExists(atPath: cancelledAudioURL(id).path) }
+    func saveCancelledAudio(_ data: Data, job: HistoryJob) throws {
+        guard writable else { throw AppFailure("本地记录不可写，请先恢复存储。", code: "cancelled_audio_storage") }
+        guard !data.isEmpty, data.count % 2 == 0, data.count <= RecordingLimit.maximumPCMBytes else {
+            throw AppFailure("录音数据无效，未覆盖已有音频。", code: "cancelled_audio_invalid")
+        }
+        let url = cancelledAudioURL(job.id)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try DoubaoWire.wav(data).write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        var value = job; value.status = "audio_saved"; value.seconds = Double(data.count) / 32000
+        update(value)
+        let persisted = try JSONDecoder().decode(LocalDatabase.self, from: Data(contentsOf: root.appendingPathComponent("ledger.json")))
+        guard persisted.jobs.contains(where: { $0.id == job.id && $0.status == "audio_saved" && $0.seconds == value.seconds }) else {
+            throw AppFailure("录音索引未能保存，请重试。", code: "cancelled_audio_storage")
+        }
+    }
+    func loadCancelledAudio(_ id: UUID) throws -> Data {
+        let url = cancelledAudioURL(id)
+        let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        guard size > 44, size <= RecordingLimit.maximumPCMBytes + 44 else { throw AppFailure("录音文件无效。", code: "cancelled_audio_invalid") }
+        let wav = try Data(contentsOf: url), pcm = Data(wav.dropFirst(44))
+        guard pcm.count % 2 == 0, wav.prefix(44) == DoubaoWire.wav(pcm).prefix(44) else { throw AppFailure("录音格式无效。", code: "cancelled_audio_invalid") }
+        return pcm
+    }
+    func deleteCancelledAudio(_ id: UUID) throws {
+        try FileManager.default.removeItem(at: cancelledAudioURL(id)); objectWillChange.send()
+    }
     func clearText() {
         historyCloud.eraseAll()
         for i in database.jobs.indices where database.jobs[i].kind != "meeting" { database.jobs[i].rawText = nil; database.jobs[i].finalText = nil }

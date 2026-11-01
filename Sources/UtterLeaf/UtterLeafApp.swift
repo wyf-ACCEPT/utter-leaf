@@ -66,7 +66,7 @@ import UtterLeafCore
                 guard let model = self?.model else { return false }
                 return model.busy && !model.inserting
             }
-            hotkey.cancel = { [weak self] in self?.model.abort() }
+            hotkey.cancel = { [weak self] in self?.model.abort(preserveRecording: true) }
             hotkey.onAvailabilityChange = { [weak self] in self?.model.hotkeyRegistered = $0 }
             model.hotkeyRegistered = hotkey.register()
         }
@@ -124,6 +124,7 @@ import UtterLeafCore
     @objc func toggleRecording() { model.toggle() }
     @objc func quit() { model.abort(); NSApp.terminate(nil) }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if model.hasUnsavedRecording { model.showWindow?(); return .terminateCancel }
         pill.closeImmediately(); meetingCaptions.close(); model.meetings.shutdown(); model.store.billingSync.stop(); model.store.usageCloud.stop(); model.store.historyCloud.stop(); model.store.vocabularyCloud.stop(); hotkey.unregister(); model.abort(); return .terminateNow
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { showMain(); return true }
