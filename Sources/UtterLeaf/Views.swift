@@ -158,7 +158,7 @@ struct RootView: View {
                     if let error = store.storageError { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
                     switch model.route {
                     case "会议": MeetingsView(model: model.meetings, meetings: model.meetings.store)
-                    case "听写历史": HistoryView(store: store)
+                    case "听写历史": HistoryView(store: store, model: model)
                     case "词汇表": VocabularyView(store: store)
                     case "用量与费用": UsageView(store: store)
                     case "模型与设置": SettingsView(model: model, store: store)
@@ -222,7 +222,8 @@ struct DictationView: View {
                             Label(model.phase == .recording ? "结束录音" : "开始录音", systemImage: model.phase == .recording ? "stop.fill" : "mic.fill").frame(width: 112)
                         }.buttonStyle(PrimaryStyle()).disabled(model.inserting)
                     }
-                    if model.busy { Button("取消", action: { model.abort() }).buttonStyle(.bordered).handCursor().keyboardShortcut(.cancelAction).disabled(model.inserting) }
+                    if model.busy { Button("取消", action: { model.abort(preserveRecording: true) }).buttonStyle(.bordered).handCursor().keyboardShortcut(.cancelAction).disabled(model.inserting) }
+                    if model.hasUnsavedRecording { Button("重试保存录音", action: model.retrySaveCancelledRecording).buttonStyle(.bordered) }
                 }.frame(height: 44)
                 Text(store.database.preferences.pipeline?.title ?? "尚未选择 ASR · 前往模型与设置")
                     .font(.system(size: LeafType.scaled(12))).foregroundStyle(LeafTheme.muted)
@@ -271,7 +272,7 @@ struct DictationView: View {
                 }
             }
         }
-        Text("音频与文字会发送至你选择的 API。录音仅存内存；本地正文可在设置中清除。")
+        Text("音频与文字会发送至你选择的 API。取消的录音保存在本机，可从听写历史转录或删除；本地正文可在设置中清除。")
             .font(.system(size: LeafType.scaled(11))).foregroundStyle(LeafTheme.muted)
         .confirmationDialog("放弃当前预览？已保存的听写历史仍会保留。", isPresented: $confirmDiscard) {
             Button("放弃预览", role: .destructive, action: model.discard)
@@ -301,6 +302,9 @@ struct DictationView: View {
 
 struct HistoryView: View {
     @ObservedObject var store: LocalStore
+    @ObservedObject var model: AppModel
+    @State private var audioToDelete: UUID?
+    @State private var audioError: String?
     @State private var query = ""
     @State private var limit = 30
     @State private var expanded: UUID?
@@ -318,6 +322,7 @@ struct HistoryView: View {
             if !query.isEmpty { Button { query = ""; limit = 30 } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel("清除搜索") }
             Text("\(rows.count) 条").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.onChange(of: query) { _, _ in limit = 30 }
+        if let audioError { Text(audioError).foregroundStyle(.orange) }
         if rows.isEmpty { Surface { Label(query.isEmpty ? "还没有录音记录。开始一次听写，文字会保存在这里。" : "没有匹配的记录，试试其他关键词。", systemImage: "text.bubble").foregroundStyle(LeafTheme.muted) } }
         ForEach(Array(rows.prefix(limit))) { job in
             Surface {
@@ -325,15 +330,19 @@ struct HistoryView: View {
                     Text(job.created.formatted(date: .abbreviated, time: .shortened)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     Text(store.historyCloud.cache.rows[job.id.uuidString.lowercased()]?.device ?? "Mac").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     Spacer()
-                    Text(job.inserted ? "已输入" : job.status == "paste_dispatched" ? "已请求粘贴" : job.status).font(LeafType.caption).foregroundStyle(LeafTheme.leaf)
+                    Text(job.inserted ? "已输入" : job.status == "paste_dispatched" ? "已请求粘贴" : job.status == "audio_saved" ? "录音已保存 · 待转录" : job.status).font(LeafType.caption).foregroundStyle(LeafTheme.leaf)
                     Button { expanded = expanded == job.id ? nil : job.id } label: { Image(systemName: expanded == job.id ? "chevron.up" : "chevron.down") }.accessibilityLabel("展开或收起记录")
                 }
-                Text(job.finalText ?? job.rawText ?? "正文未保留，调用用量仍可查看。")
+                Text(job.finalText ?? job.rawText ?? (store.hasCancelledAudio(job.id) ? "已取消录音，音频仅保存在本机。选择转录时才会发送给豆包。" : "正文未保留，调用用量仍可查看。"))
                     .font(.system(size: LeafType.scaled(15))).lineSpacing(5).lineLimit(expanded == job.id ? nil : 3).textSelection(.enabled)
                 HStack {
                     Text(job.pipeline.title).font(LeafType.caption)
                     Text("· \(Int(job.seconds)) 秒 · \(job.finalCharacters) 字符").font(LeafType.caption)
                     Spacer()
+                    if store.hasCancelledAudio(job.id) {
+                        Button("转录录音") { model.transcribeSavedRecording(job) }.disabled(model.busy || model.inserting || model.hasUnsavedRecording || model.meetings.usesMicrophone)
+                        Button("删除录音") { audioToDelete = job.id }.disabled(model.busy)
+                    }
                     if let text = job.finalText { Button("复制") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(text, forType: .string) } }
                 }.foregroundStyle(LeafTheme.muted)
                 if expanded == job.id {
@@ -345,6 +354,12 @@ struct HistoryView: View {
             }
         }
         if rows.count > limit { Button("加载更多") { limit += 30 }.buttonStyle(.bordered).handCursor() }
+        Color.clear.frame(height: 0).confirmationDialog("删除这条本机录音？文字和用量记录仍保留。", isPresented: Binding(get: { audioToDelete != nil }, set: { if !$0 { audioToDelete = nil } })) {
+            Button("删除录音", role: .destructive) {
+                if let id = audioToDelete { do { try store.deleteCancelledAudio(id); audioError = nil } catch { audioError = "录音删除失败，请重试。" } }
+                audioToDelete = nil
+            }
+        }
     }
 }
 

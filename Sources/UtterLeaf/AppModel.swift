@@ -6,6 +6,7 @@ import UtterLeafCore
     enum Phase: String { case idle, starting, recording, transcribing, cleaning, inserting, preview, error }
     @Published var promptEditorDraft: String?
     @Published var phase: Phase = .idle
+    @Published private(set) var hasUnsavedRecording = false
     @Published var partial = ""
     @Published var draft = "" { didSet { if oldValue != draft { copiedDraft = nil; copyFailed = false; cancelPillCopyDismissal() } } }
     @Published private var copiedDraft: String?
@@ -31,6 +32,7 @@ import UtterLeafCore
     }()
     let store: LocalStore
     private let captureTarget: (@MainActor () -> (any DictationTarget)?)?
+    private let fileTranscriber: ((Data, UUID) async throws -> String)?
     private let writeClipboard: (String) -> Bool
     private var jobAutomatic = true
     private var activeVocabulary: [VocabularyEntry] = []
@@ -55,9 +57,10 @@ import UtterLeafCore
     var onPhase: (() -> Void)?
     var busy: Bool { [.starting, .recording, .transcribing, .cleaning, .inserting].contains(phase) }
     var targetName: String { target?.displayName ?? "未捕获输入框" }
-    init(store: LocalStore? = nil, captureTarget: (@MainActor () -> (any DictationTarget)?)? = nil, clipboardWriter: ((String) -> Bool)? = nil) {
+    init(store: LocalStore? = nil, captureTarget: (@MainActor () -> (any DictationTarget)?)? = nil, clipboardWriter: ((String) -> Bool)? = nil, fileTranscriber: ((Data, UUID) async throws -> String)? = nil) {
         self.store = store ?? LocalStore()
         self.captureTarget = captureTarget
+        self.fileTranscriber = fileTranscriber
         writeClipboard = clipboardWriter ?? { text in
             NSPasteboard.general.clearContents()
             return NSPasteboard.general.setString(text, forType: .string)
@@ -82,6 +85,7 @@ import UtterLeafCore
         else if !busy { start() }
     }
     func start() {
+        guard !hasUnsavedRecording else { message = "请先重试保存上次录音。"; showWindow?(); return }
         guard !meetings.usesMicrophone else { message = "会议正在录音，请先结束会议录音。"; return }
         guard !busy, !inserting else { return }
         guard let pipeline = store.database.preferences.pipeline else {
@@ -259,17 +263,57 @@ import UtterLeafCore
         changePhase(quiet ? .idle : .error)
         if !quiet { showWindow?() }
     }
-    func abort(message: String? = nil) {
+    func abort(message: String? = nil, preserveRecording: Bool = false) {
         guard !inserting else { return }
         if !busy { if !draft.isEmpty { persistDraft(status: "saved") }; return }
         elapsed = max(elapsed, Double(pcm.count) / 32000)
+        let retainAudio = preserveRecording && phase == .recording && !pcm.isEmpty
         sounds.stop()
         activeToken = UUID(); operation?.cancel(); upload?.cancel(); watchdog?.cancel()
-        mic.stop(); mic.onChunk = nil; continuation?.finish(); api.cancel(); pcm = Data(); chunkBuffer = Data()
+        mic.stop(); mic.onChunk = nil; continuation?.finish(); api.cancel(); chunkBuffer = Data()
+        if retainAudio {
+            hasUnsavedRecording = true; retrySaveCancelledRecording(); return
+        }
+        pcm = Data()
         if var job { job.status = "cancelled"; job.seconds = elapsed; self.job = job; store.update(job) }
         pillOutcome = message == nil ? .cancelled : .failed
         self.message = message ?? "已取消。已发送给供应商的内容可能产生费用。"
         changePhase(message == nil ? .idle : .error)
+    }
+    func retrySaveCancelledRecording() {
+        guard hasUnsavedRecording, let job else { return }
+        do {
+            try store.saveCancelledAudio(pcm, job: job)
+            self.job = store.database.jobs.first { $0.id == job.id }
+            pcm = Data(); hasUnsavedRecording = false; pillOutcome = .retained
+            message = "录音已保存在本机，可在听写历史中选择转录。"; changePhase(.idle)
+        } catch {
+            message = "录音保存失败，音频暂留内存，请重试保存。"; changePhase(.error); showWindow?()
+        }
+    }
+    func transcribeSavedRecording(_ original: HistoryJob) {
+        guard !busy, !inserting, !hasUnsavedRecording, !meetings.usesMicrophone else { return }
+        do {
+            let audio = try store.loadCancelledAudio(original.id)
+            preservePendingDraft(); target = nil; jobAutomatic = false
+            activeToken = UUID(); let token = activeToken
+            var current = original; current.pipeline = .file; current.status = "processing"; job = current; store.update(current)
+            elapsed = current.seconds; activeVocabulary = VocabularyContext.active(store.vocabulary)
+            let provider = Providers(); api = provider; provider.onCall = { [weak self] in self?.store.update($0) }
+            changePhase(.transcribing)
+            operation = Task {
+                do {
+                    let text: String
+                    if let fileTranscriber = self.fileTranscriber { text = try await fileTranscriber(audio, original.id) }
+                    else { text = try await provider.fileASR(pcm: audio, job: original.id, price: .asr(.file, stream: self.store.database.preferences.streamPrice, file: self.store.database.preferences.filePrice)) }
+                    try Task.checkCancellation(); guard self.activeToken == token else { return }
+                    self.raw = text
+                    if var job = self.job { job.rawText = text; job.rawCharacters = TextEnvelope.characters(text); self.job = job; self.store.update(job) }
+                    if self.store.database.preferences.cleanup { try await self.clean(token: token, automatic: false) }
+                    else { await self.deliver(text, automatic: false, token: token) }
+                } catch { if self.activeToken == token { self.fail(error) } }
+            }
+        } catch { message = "无法读取本机录音，请检查文件是否仍存在。"; showWindow?() }
     }
     func discard() { showsPillRecovery = false; draft = ""; raw = ""; target = nil; job = nil; message = ""; changePhase(.idle) }
     func dismissPillRecovery() {
