@@ -215,3 +215,5 @@ Feishu identity deduplication (2026-10-31): account labels alone never establish
 
 
 Recovery capsule refinement (2026-10-31, latest user correction): successful copy shows 已复制 for500ms then automatically dismisses only the capsule, preserving the retained draft. No second click is needed; repeated confirmation clicks do not rewrite the clipboard or extend the delay. Failed copying stays retryable. Editing, new results (including identical text), phase changes and manual dismissal invalidate the pending timer. Main-window Copy retains its normal behavior. Tooltip, subtitle and accessibility labels describe automatic dismissal.
+
+Recovery timeout (2026-11-01): uncopied recovery capsules dismiss after5seconds without touching the clipboard or deleting retained text. Successful copy replaces that deadline with500ms. New results and phase changes invalidate old deadlines.
