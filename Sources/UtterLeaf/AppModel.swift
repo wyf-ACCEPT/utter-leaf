@@ -235,6 +235,7 @@ import UtterLeafCore
         showsPillRecovery = recoverInPill && !text.isEmpty
         draft = text; persistDraft(status: "preview")
         changePhase(.preview); route = "听写"
+        if showsPillRecovery { schedulePillCopyDismissal(after: .seconds(5), requiresCopy: false) }
         if !showsPillRecovery { showWindow?() }
     }
     /// Completes one dictation without opening the app on successful automatic insertion.
@@ -285,13 +286,13 @@ import UtterLeafCore
     private func cancelPillCopyDismissal() {
         pillCopyDismissal?.cancel(); pillCopyDismissal = nil; pillCopyDismissalToken = UUID()
     }
-    private func schedulePillCopyDismissal() {
+    private func schedulePillCopyDismissal(after delay: Duration = .milliseconds(500), requiresCopy: Bool = true) {
         guard phase == .preview, showsPillRecovery else { return }
         let token = pillCopyDismissalToken
         pillCopyDismissal = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
+            do { try await Task.sleep(for: delay) } catch { return }
             guard let self, pillCopyDismissalToken == token, phase == .preview,
-                  showsPillRecovery, draftWasCopied else { return }
+                  showsPillRecovery, !requiresCopy || draftWasCopied else { return }
             dismissPillRecovery()
         }
     }

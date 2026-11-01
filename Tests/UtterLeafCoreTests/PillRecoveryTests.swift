@@ -68,6 +68,19 @@ final class PillRecoveryTests: XCTestCase {
         XCTAssertTrue(model.showsPillRecovery)
         XCTAssertFalse(model.draftWasCopied)
     }
+    @MainActor func testUncopiedRecoveryExpiresWithoutLosingText() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        var writes = 0
+        let model = AppModel(store: LocalStore(root: root), captureTarget: { nil }, clipboardWriter: { _ in writes += 1; return true })
+        await model.deliver("Retained synthetic result", automatic: true)
+        try await Task.sleep(for: .milliseconds(4500))
+        XCTAssertTrue(model.showsPillRecovery)
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertFalse(model.showsPillRecovery)
+        XCTAssertEqual(model.draft, "Retained synthetic result")
+        XCTAssertEqual(writes, 0)
+    }
     @MainActor func testRecoveryPanelRendersAndCannotTakeKeyboardFocus() async throws {
         guard ProcessInfo.processInfo.environment["UTTERLEAF_NATIVE_PANEL_TEST"] == "1" else { throw XCTSkip("Requires native panel rendering") }
         _ = NSApplication.shared
