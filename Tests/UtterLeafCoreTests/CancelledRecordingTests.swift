@@ -42,6 +42,21 @@ final class CancelledRecordingTests: XCTestCase {
         try store.saveCancelledAudio(audio, job: job)
         XCTAssertEqual(LocalStore(root: root).historyJobs.first?.status, "audio_saved")
     }
+    @MainActor func testStagedFileDictationCanBeRecoveredAndDoesNotDeleteCancelledRecording() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = LocalStore(root: root), job = HistoryJob(pipeline: .file)
+        let audio = Data(repeating: 1, count: 3200)
+        _ = try store.stageFileAudio(audio, id: job.id)
+        XCTAssertTrue(store.hasCancelledAudio(job.id))
+        XCTAssertEqual(try LocalStore(root: root).loadCancelledAudio(job.id), audio)
+        store.removeStagedFileAudio(job.id)
+        XCTAssertFalse(store.hasCancelledAudio(job.id))
+        try store.saveCancelledAudio(audio, job: job)
+        _ = try store.stageFileAudio(audio, id: job.id)
+        store.removeStagedFileAudio(job.id)
+        XCTAssertEqual(try store.loadCancelledAudio(job.id), audio)
+    }
     @MainActor func testInvalidAudioCannotReplaceSavedRecording() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

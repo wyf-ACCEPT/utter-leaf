@@ -21,7 +21,7 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 **Working personal development build — November 3, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **171 tests** (latest run: 166 passed, 5 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **172 tests** (latest run: 167 passed, 5 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
@@ -69,7 +69,7 @@ Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. 
 
 **Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text, active vocabulary and enabled bounded recent-dictation context are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend. Private iCloud shares usage/budgets and, in a separate history snapshot, dictation text between your Mac and iPhone. Audio, meeting content and provider keys stay on their original device.
 
-Normal short-dictation audio stays in memory; Esc-cancelled recordings are kept locally for deferred transcription/deletion. Meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
+Streaming short-dictation audio stays in memory; file-mode audio is staged locally and removed after successful ASR, or kept for retry after failure; Esc-cancelled recordings are kept locally for deferred transcription/deletion. Meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
 
 ```text
 ~/Library/Application Support/UtterLeaf/ledger.json
@@ -171,7 +171,7 @@ open .local/UtterLeaf.app
 
 **本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字、生效词汇表和已启用的有限连续听写上下文发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端。Mac 与 iPhone 通过私有 iCloud 同步用量、预算与听写正文；录音、会议正文和 API Key 留在原设备。
 
-正常短听写录音仅存内存；Esc 取消的录音保存在本机，供后续转录或删除；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
+流式短听写录音仅存内存；文件模式暂存本机音频，识别成功后删除暂存，失败时保留供历史重试；Esc 取消的录音保存在本机，供后续转录或删除；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
 
 凭证、私人录音、历史账本、构建产物和个人交接资料均被 Git 排除。仓库中的 `App/Sounds/` WAV 是原创界面提示音，不是用户录音。
 

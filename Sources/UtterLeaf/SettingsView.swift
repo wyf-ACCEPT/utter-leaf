@@ -79,7 +79,7 @@ struct SettingsView: View {
         }
         Surface(title: "听写历史与隐私") {
             LeafSegments(title: "正文保留", selection: binding(\.retention), items: [LeafSegment("both", "原始 + 最终稿"), LeafSegment("final", "仅最终稿"), LeafSegment("none", "仅用量")])
-            Text("当前设置应用于新记录。已有正文保留至手动清除。音频不落盘，最长录音 5 分钟。用量与听写历史同步到个人私有 iCloud；录音、密钥和会议正文不参与同步。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("当前设置应用于新记录。已有正文保留至手动清除。流式短听写音频仅存内存，最长录音 5 分钟；取消录音会保存本机，文件模式失败的音频也保留供重试，均可在历史删除。用量与听写历史同步到个人私有 iCloud；录音、密钥和会议正文不参与同步。系统和供应商各自的保留政策仍适用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             Button("清除全部听写正文…", role: .destructive) { confirmClear = true }.disabled(model.busy || model.inserting)
         }
         BillingSyncView(store: store)
@@ -111,7 +111,7 @@ struct SettingsView: View {
                     Button("载入到编辑器") { promptText = rollbackVersion }.disabled(rollbackVersion.isEmpty)
                 }
             }
-            Text("JSON transcript 数据封装与阿拉伯数字偏好由程序固定添加（如 session one → session 1、队名 G two → G2）。每次调用记录实际 Prompt 的 SHA-256；保存新版本会保留上一版供回滚。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("JSON 数据封装、阿拉伯数字偏好和启用时的上下文边界由程序固定添加；历史参考内容不会写入 system prompt 编辑器。每次调用记录实际 Prompt 的 SHA-256；保存新版本会保留上一版供回滚。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.disabled(model.busy)
         if !feedback.isEmpty { Text(feedback).font(LeafType.caption).foregroundStyle(LeafTheme.leaf) }
         }
