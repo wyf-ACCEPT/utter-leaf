@@ -68,10 +68,35 @@ extension DictationTarget { var diagnosticID: String? { nil } }
     let element: AXUIElement
     let selection: CFTypeRef?
     let selectionSupported: Bool
+    private var terminalWindow: AXUIElement?
+    private var terminalInputChanged = false
+    private var inputMonitor: Any?
+    private var appMonitor: NSObjectProtocol?
     var displayName: String { app.localizedName ?? "原应用" }
     var diagnosticID: String? { app.bundleIdentifier }
-    init(app: NSRunningApplication, element: AXUIElement, selection: CFTypeRef) {
-        self.app = app; self.element = element; self.selection = selection; selectionSupported = true
+    init(app: NSRunningApplication, element: AXUIElement, selection: CFTypeRef?) {
+        self.app = app; self.element = element; self.selection = selection; selectionSupported = selection != nil
+    }
+    /// Opaque terminal surfaces cannot expose a text range. Only explicitly supported hosts use this path.
+    convenience init(app: NSRunningApplication, terminalElement: AXUIElement, window: AXUIElement) {
+        self.init(app: app, element: terminalElement, selection: nil)
+        terminalWindow = window
+        inputMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel]) { [weak self] _ in
+            Task { @MainActor in self?.terminalInputChanged = true }
+        }
+        appMonitor = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let activated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            Task { @MainActor in
+                guard let self else { return }
+                if activated.processIdentifier != app.processIdentifier && activated.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                    self.terminalInputChanged = true
+                }
+            }
+        }
+    }
+    deinit {
+        if let inputMonitor { NSEvent.removeMonitor(inputMonitor) }
+        if let appMonitor { NSWorkspace.shared.notificationCenter.removeObserver(appMonitor) }
     }
     static func prepareCapture() -> TargetCapture {
         let app = NSWorkspace.shared.frontmostApplication
@@ -110,6 +135,9 @@ extension DictationTarget { var diagnosticID: String? { nil } }
             var selection: CFTypeRef?
             let rangeResult = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selection)
             guard rangeResult == .success, let selection, CFGetTypeID(selection) == AXValueGetTypeID() else {
+                if app.bundleIdentifier == "dev.herdr.app", rangeResult == .attributeUnsupported, let window {
+                    return .captured(InputTarget(app: app, terminalElement: element, window: window))
+                }
                 return .unavailable("capture_selection_ax_\(rangeResult.rawValue)", retry: true)
             }
             return .captured(InputTarget(app: app, element: element, selection: selection))
@@ -117,6 +145,19 @@ extension DictationTarget { var diagnosticID: String? { nil } }
     }
     private func validate() throws {
         guard AXIsProcessTrusted(), !app.isTerminated else { throw AppFailure("原应用不可用或辅助功能未授权。文字已保留，可复制后手动粘贴。", code: "target_unavailable") }
+        if let terminalWindow {
+            let application = AXUIElementCreateApplication(app.processIdentifier)
+            var currentWindow: CFTypeRef?, focused: CFTypeRef?
+            AXUIElementCopyAttributeValue(application, kAXFocusedWindowAttribute as CFString, &currentWindow)
+            AXUIElementCopyAttributeValue(application, kAXFocusedUIElementAttribute as CFString, &focused)
+            guard TerminalReturnPolicy.allows(inputChanged: terminalInputChanged,
+                sameWindow: currentWindow.map { CFEqual($0, terminalWindow) } ?? false,
+                sameElement: focused.map { CFEqual($0, element) } ?? false,
+                foregroundMatches: NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier) else {
+                throw AppFailure("终端焦点或窗口已变化，文字已保留，请复制后粘贴。", code: "terminal_context_changed")
+            }
+            return
+        }
         guard selectionSupported else { throw AppFailure("无法验证原输入框的光标位置。文字已保留，可复制后手动粘贴。", code: "target_selection_unsupported") }
         guard NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier else {
             throw AppFailure("当前应用已变化，已停止自动输入。文字已保留。", code: "target_focus_changed")
@@ -167,13 +208,18 @@ extension DictationTarget { var diagnosticID: String? { nil } }
     }
     func insert(_ text: String, allowActivation: Bool) async throws -> InsertionMethod {
         try Task.checkCancellation()
-        if allowActivation && NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processIdentifier {
+        if terminalWindow != nil && !TerminalReturnPolicy.acceptsText(text) {
+            throw AppFailure("多行或控制字符可能被终端执行，文字已保留，请确认后手动粘贴。", code: "terminal_control_text")
+        }
+        let foreground = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let mayReturnFromOwnApp = terminalWindow != nil && foreground == ProcessInfo.processInfo.processIdentifier
+        if (allowActivation || mayReturnFromOwnApp) && foreground != app.processIdentifier {
             app.activate(); try await Task.sleep(for: .milliseconds(180))
         }
         try validate()
         let before = readText(), range = readRange()
         // Web/Electron composers require real paste/input events; an AX success can be a no-op.
-        if !InsertionVerification.prefersKeyboardPaste(bundleID: app.bundleIdentifier) {
+        if terminalWindow == nil && !InsertionVerification.prefersKeyboardPaste(bundleID: app.bundleIdentifier) {
             var writable = DarwinBoolean(false)
             if AXUIElementIsAttributeSettable(element, kAXSelectedTextAttribute as CFString, &writable) == .success && writable.boolValue {
                 let result = AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, text as CFTypeRef)
