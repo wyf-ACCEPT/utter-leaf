@@ -4,6 +4,7 @@ import AVFoundation
 import UtterLeafCore
 
 struct SettingsView: View {
+    @State private var contextCleared = false
     @ObservedObject var model: AppModel
     @ObservedObject var store: LocalStore
     @State private var promptText = ""
@@ -36,6 +37,22 @@ struct SettingsView: View {
             Toggle("使用 DeepSeek Flash 整理文字", isOn: binding(\.cleanup))
             Text("不提供工具调用。口述中的问题和命令始终作为录音数据整理。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.disabled(model.busy)
+        Surface(title: "连续听写上下文") {
+            Toggle("参考最近听写的术语与话题", isOn: Binding(get: { store.database.preferences.dictationContext?.enabled ?? true }, set: { value in
+                var preferences = store.database.preferences.dictationContext ?? .init(); preferences.enabled = value
+                store.database.preferences.dictationContext = preferences; store.save()
+            }))
+            LeafSegments(title: "最多保留", selection: Binding(get: { store.database.preferences.dictationContext?.limit ?? 300 }, set: { value in
+                var preferences = store.database.preferences.dictationContext ?? .init(); preferences.limit = value
+                store.database.preferences.dictationContext = preferences; store.save()
+            }), items: [LeafSegment(300, "300 字"), LeafSegment(500, "500 字")])
+            Text("仅参考同一 App 最近 5 分钟内、最多 3 次已输入或已复制的听写；不读取聊天记录。只整理当前这一句，参考内容会随请求发送给 DeepSeek。未保留正文时不会生成上下文。")
+                .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Button(contextCleared ? "已清除上下文" : "清除当前上下文") {
+                var preferences = store.database.preferences.dictationContext ?? .init(); preferences.cleared = Date()
+                store.database.preferences.dictationContext = preferences; store.save(); contextCleared = true
+            }.buttonStyle(.bordered)
+        }.disabled(model.busy || model.inserting)
         Surface(title: "文字输入") {
             LeafSegments(title: "录音结束后", selection: Binding(get: { store.database.preferences.insertionMode ?? "automatic" }, set: { store.database.preferences.insertionMode = $0; store.save() }), items: [LeafSegment("automatic", "自动输入到原应用"), LeafSegment("preview", "先在 App 内预览")])
             Text("默认自动输入。原应用、输入框与光标保持一致时，整理完成后直接插入；焦点变化或输入失败时保留文字供处理。不会自动发送消息。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)

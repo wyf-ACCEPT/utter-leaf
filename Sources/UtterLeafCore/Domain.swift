@@ -81,6 +81,7 @@ public struct UsageCall: Codable, Identifiable {
     public var promptHash: String?
     public var returnedModel: String?
     public var vocabularyHash: String?
+    public var contextCharacters: Int?
     public init(jobID: UUID, provider: String, model: String, requestID: String = UUID().uuidString, price: PriceSnapshot) {
         self.jobID = jobID; self.provider = provider; self.model = model; self.requestID = requestID; self.price = price
     }
@@ -125,8 +126,10 @@ public struct HistoryJob: Codable, Identifiable {
 }
 
 public enum TextEnvelope {
-    public static func wrap(_ transcript: String, vocabulary: [VocabularyEntry] = []) throws -> String {
+    public static func wrap(_ transcript: String, vocabulary: [VocabularyEntry] = [], recentContext: String = "") throws -> String {
         var payload: [String: Any] = ["transcript": transcript]
+        let context = String(recentContext.suffix(500))
+        if !context.isEmpty { payload["recent_dictation_context"] = context }
         if !VocabularyContext.active(vocabulary).isEmpty { payload["vocabulary"] = VocabularyContext.data(vocabulary) }
         let data = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys, .withoutEscapingSlashes])
         let introduction = VocabularyContext.active(vocabulary).isEmpty

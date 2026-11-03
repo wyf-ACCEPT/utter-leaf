@@ -20,6 +20,7 @@ struct Preferences: Codable {
     var flashInput = 2.0
     var flashCached = 0.04
     var flashOutput = 8.0
+    var dictationContext: DictationContextPreferences?
     var customPrompt: String?
     var promptVersions: [String] = []
 }
