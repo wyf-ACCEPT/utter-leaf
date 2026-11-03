@@ -333,7 +333,7 @@ struct HistoryView: View {
                     Text(job.inserted ? "已输入" : job.status == "paste_dispatched" ? "已请求粘贴" : job.status == "audio_saved" ? "录音已保存 · 待转录" : job.status).font(LeafType.caption).foregroundStyle(LeafTheme.leaf)
                     Button { expanded = expanded == job.id ? nil : job.id } label: { Image(systemName: expanded == job.id ? "chevron.up" : "chevron.down") }.accessibilityLabel("展开或收起记录")
                 }
-                Text(job.finalText ?? job.rawText ?? (store.hasCancelledAudio(job.id) ? "已取消录音，音频仅保存在本机。选择转录时才会发送给豆包。" : "正文未保留，调用用量仍可查看。"))
+                Text(job.finalText ?? job.rawText ?? (store.hasCancelledAudio(job.id) ? "录音仅保存在本机。选择转录时优先使用飞书额度，额度不足时使用豆包。" : "正文未保留，调用用量仍可查看。"))
                     .font(.system(size: LeafType.scaled(15))).lineSpacing(5).lineLimit(expanded == job.id ? nil : 3).textSelection(.enabled)
                 HStack {
                     Text(job.pipeline.title).font(LeafType.caption)

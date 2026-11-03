@@ -198,8 +198,16 @@ import UtterLeafCore
                 guard let current = self.job else { return }
                 let text: String
                 if current.pipeline == .file {
-                    text = try await api.fileASR(pcm: self.pcm, job: current.id,
-                        price: .asr(.file, stream: self.store.database.preferences.streamPrice, file: self.store.database.preferences.filePrice))
+                    let file = try self.store.stageFileAudio(self.pcm, id: current.id)
+                    let router = FileASRRouter(root: self.store.root, accounts: self.store.minutesAccounts, onCall: { [weak self] in self?.store.update($0) })
+                    let result = try await router.transcribe(audio: file, seconds: self.elapsed, id: current.id, progress: { title, _ in self.message = title })
+                    switch result {
+                    case .transcript(let segments): text = segments.map(\.text).joined(separator: "\n")
+                    case .useDoubao:
+                        text = try await api.fileASR(pcm: self.pcm, job: current.id,
+                            price: .asr(.file, stream: self.store.database.preferences.streamPrice, file: self.store.database.preferences.filePrice))
+                    }
+                    self.store.removeStagedFileAudio(current.id)
                 } else {
                     try await self.upload?.value
                     text = try await api.endStream()
@@ -309,8 +317,7 @@ import UtterLeafCore
                     else {
                         let router = FileASRRouter(root: self.store.root, accounts: self.store.minutesAccounts, onCall: { [weak self] in self?.store.update($0) })
                         // Retained recordings already have a validated local WAV container.
-                        let folder = self.store.root.appendingPathComponent("cancelled-recordings")
-                        let file = folder.appendingPathComponent(original.id.uuidString.lowercased() + ".wav")
+                        let file = self.store.recordingAudio(original.id)
                         let result = try await router.transcribe(audio: file, seconds: Double(audio.count) / 32000, id: original.id, progress: { title, _ in self.message = title })
                         switch result {
                         case .transcript(let segments): text = segments.map(\.text).joined(separator: "\n")
@@ -318,6 +325,7 @@ import UtterLeafCore
                         }
                     }
                     try Task.checkCancellation(); guard self.activeToken == token else { return }
+                    self.store.removeStagedFileAudio(original.id)
                     self.raw = text
                     if var job = self.job { job.rawText = text; job.rawCharacters = TextEnvelope.characters(text); self.job = job; self.store.update(job) }
                     if self.store.database.preferences.cleanup { try await self.clean(token: token, automatic: false) }

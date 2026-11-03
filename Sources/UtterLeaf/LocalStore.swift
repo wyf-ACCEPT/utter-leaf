@@ -203,7 +203,23 @@ struct LocalDatabase: Codable {
     private func cancelledAudioURL(_ id: UUID) -> URL {
         root.appendingPathComponent("cancelled-recordings", isDirectory: true).appendingPathComponent(id.uuidString.lowercased() + ".wav")
     }
-    func hasCancelledAudio(_ id: UUID) -> Bool { FileManager.default.fileExists(atPath: cancelledAudioURL(id).path) }
+    func recordingAudio(_ id: UUID) -> URL {
+        let cancelled = cancelledAudioURL(id)
+        if FileManager.default.fileExists(atPath: cancelled.path) { return cancelled }
+        return root.appendingPathComponent("file-transcriptions").appendingPathComponent(id.uuidString.lowercased()).appendingPathComponent("source.wav")
+    }
+    func stageFileAudio(_ data: Data, id: UUID) throws -> URL {
+        let file = root.appendingPathComponent("file-transcriptions").appendingPathComponent(id.uuidString.lowercased()).appendingPathComponent("source.wav")
+        try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try DoubaoWire.wav(data).write(to: file, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+        return file
+    }
+    func removeStagedFileAudio(_ id: UUID) {
+        let file = root.appendingPathComponent("file-transcriptions").appendingPathComponent(id.uuidString.lowercased()).appendingPathComponent("source.wav")
+        try? FileManager.default.removeItem(at: file)
+    }
+    func hasCancelledAudio(_ id: UUID) -> Bool { FileManager.default.fileExists(atPath: recordingAudio(id).path) }
     func saveCancelledAudio(_ data: Data, job: HistoryJob) throws {
         guard writable else { throw AppFailure("本地记录不可写，请先恢复存储。", code: "cancelled_audio_storage") }
         guard !data.isEmpty, data.count % 2 == 0, data.count <= RecordingLimit.maximumPCMBytes else {
@@ -221,7 +237,7 @@ struct LocalDatabase: Codable {
         }
     }
     func loadCancelledAudio(_ id: UUID) throws -> Data {
-        let url = cancelledAudioURL(id)
+        let url = recordingAudio(id)
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 44, size <= RecordingLimit.maximumPCMBytes + 44 else { throw AppFailure("录音文件无效。", code: "cancelled_audio_invalid") }
         let wav = try Data(contentsOf: url), pcm = Data(wav.dropFirst(44))
@@ -229,7 +245,7 @@ struct LocalDatabase: Codable {
         return pcm
     }
     func deleteCancelledAudio(_ id: UUID) throws {
-        try FileManager.default.removeItem(at: cancelledAudioURL(id)); objectWillChange.send()
+        try FileManager.default.removeItem(at: recordingAudio(id)); objectWillChange.send()
     }
     func clearText() {
         historyCloud.eraseAll()
