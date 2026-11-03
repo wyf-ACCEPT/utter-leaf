@@ -52,6 +52,7 @@ struct MeetingsView: View {
                 }
             }
             if let error = meetings.error { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
+            if !model.fileRoutingNote.isEmpty { Label(model.fileRoutingNote, systemImage: "info.circle").font(LeafType.caption).foregroundStyle(LeafTheme.muted) }
             if !model.message.isEmpty { Label(model.message, systemImage: "info.circle").font(LeafType.caption).foregroundStyle(LeafTheme.muted).textSelection(.enabled) }
             if model.busy {
                 MeetingProcessingView(work: model.progress ?? MeetingWorkProgress(.preparing), canStop: model.canStopWaiting, stop: model.stopWaiting)
@@ -278,7 +279,7 @@ struct MeetingsView: View {
         switch next {
         case .transcribe:
             heading = model.busy ? "正在准备原始转录" : "先获得完整的原始转录"
-            detail = model.busy ? "音频正在保存、提交或由豆包处理，完成后继续整理。" : "使用整场录音识别文字与说话人，再继续整理表达。"
+            detail = model.busy ? "音频正在保存、提交或由供应商处理，完成后继续整理。" : "使用整场录音识别文字与说话人，再继续整理表达。"
         case .clean:
             heading = "原始转录已就绪，下一步整理表达"
             detail = "去掉口吃、修正标点与拼写，保留原意和说话人；原始转录始终保留。"

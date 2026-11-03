@@ -7,7 +7,7 @@ import UtterLeafCore
     var body: some Scene { Settings { EmptyView() } }
 }
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
-    let model = AppModel(store: ProcessInfo.processInfo.arguments.contains("--provider-smoke")
+    let model = AppModel(store: (ProcessInfo.processInfo.arguments.contains("--provider-smoke") || ProcessInfo.processInfo.arguments.contains("--minutes-file-probe"))
         ? LocalStore(root: FileManager.default.temporaryDirectory.appendingPathComponent("utterleaf-smoke-" + UUID().uuidString)) : nil)
     let hotkey = GlobalHotKey()
     let pill = PillPresentation()
@@ -16,6 +16,66 @@ import UtterLeafCore
     var panel: NSPanel!
     var item: NSStatusItem!
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if ProcessInfo.processInfo.arguments.contains("--minutes-file-probe") {
+            NSApp.setActivationPolicy(.prohibited)
+            Task {
+                do {
+                    let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("UtterLeaf")
+                    let manifest = try JSONDecoder().decode(MinutesAccountsManifest.self, from: Data(contentsOf: root.appendingPathComponent("minutes-accounts-v1.json")))
+                    guard let profile = manifest.profiles.first(where: { $0.id == manifest.selected }) else { exit(2) }
+                    let session = MinutesFileSession(profile: profile); try await session.load()
+                    let key = UUID()
+                    let quota = try await session.run("quota", key: key)
+                    print("Minutes quota probe: remaining=\(quota["remaining"] ?? "unknown")")
+                    if ProcessInfo.processInfo.arguments.contains("--resume-synthetic") {
+                        let file = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".local/verification/minutes-file-probe-checkpoint.json")
+                        let checkpoint = try JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: String]
+                        guard let object = checkpoint?["objectToken"], let keyString = checkpoint?["key"], let key = UUID(uuidString: keyString) else { exit(3) }
+                        for _ in 0..<72 {
+                            let status = try await session.run("status", key: key, arguments: ["objectToken": object])
+                            let complete = MinutesFileResult.isComplete(status)
+                            print("Minutes original task complete: \(complete)"); fflush(stdout)
+                            if complete {
+                                let result = try await session.run("result", key: key, arguments: ["objectToken": object])
+                                let rows = try MinutesFileResult.segments(result)
+                                print("Minutes original result: segments=\(rows.count), speakers=\(Set(rows.map(\.speaker)).count)")
+                                exit(0)
+                            }
+                            try await Task.sleep(for: .seconds(5))
+                        }
+                        print("Minutes original task remains pending"); exit(4)
+                    }
+                    if let flag = ProcessInfo.processInfo.arguments.firstIndex(of: "--synthetic-wav"), ProcessInfo.processInfo.arguments.count > flag + 1 {
+                        let audio = URL(fileURLWithPath: ProcessInfo.processInfo.arguments[flag + 1]).standardizedFileURL
+                        guard audio.path.contains("/.local/verification/minutes-rea/audio/"), (try audio.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) < 1_000_000 else { exit(3) }
+                        let token = try await session.upload(audio: audio, seconds: 20, key: key, prepared: { object in
+                            let checkpoint = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".local/verification/minutes-file-probe-checkpoint.json")
+                            try JSONSerialization.data(withJSONObject: ["key": key.uuidString, "objectToken": object]).write(to: checkpoint, options: .atomic)
+                            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: checkpoint.path)
+                            print("Minutes prepare: checkpoint saved")
+                        }, progress: { print("Minutes upload: \($0)%") })
+                        for _ in 0..<36 {
+                            let status = try await session.run("status", key: key, arguments: ["objectToken": token])
+                            print("Minutes task complete: \(MinutesFileResult.isComplete(status))")
+                            if MinutesFileResult.isComplete(status) {
+                                let result = try await session.run("result", key: key, arguments: ["objectToken": token])
+                                let rows = try MinutesFileResult.segments(result)
+                                print("Minutes result: segments=\(rows.count), speakerIDs=\(Set(rows.map(\.speaker)).count)"); exit(0)
+                            }
+                            try await Task.sleep(for: .seconds(5))
+                        }
+                        print("Minutes synthetic task remains pending"); exit(4)
+                    }
+                    exit(0)
+                } catch {
+                    print("Minutes probe failed: \((error as? AppFailure)?.code ?? "web_bridge")")
+                    let ns = error as NSError
+                    print("Bridge error category: \(ns.domain) / \(ns.code)")
+                    exit(1)
+                }
+            }
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("--usage-sync-check") || ProcessInfo.processInfo.arguments.contains("--history-sync-check") || ProcessInfo.processInfo.arguments.contains("--vocabulary-sync-check") {
             NSApp.setActivationPolicy(.prohibited)
             let path = model.store.root.appendingPathComponent("ledger.json")

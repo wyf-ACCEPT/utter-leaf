@@ -7,10 +7,12 @@ import UtterLeafCore
     let store: MeetingStore
     private let ledger: LocalStore
     private let api: MeetingAPI
+    private let fileTranscriber: ((URL, Double, UUID) async throws -> FileASRRouter.Result)?
     private let recorder = MeetingRecorder()
     @Published var selected: UUID?
     @Published var active: MeetingRecord?
     @Published var message = ""
+    @Published var fileRoutingNote = ""
     @Published var elapsed = 0.0
     @Published var audioExporting = false
     private var exportTask: Task<Void, Never>?
@@ -45,7 +47,8 @@ import UtterLeafCore
     var canStopWaiting: Bool { ["importing", "transcribing", "summarizing"].contains(current?.state ?? "") }
     var blocksDictation: Bool { recording || busy }
     var current: MeetingRecord? { active ?? store.index.meetings.first { $0.id == selected } }
-    init(ledger: LocalStore, api: MeetingAPI? = nil) {
+    init(ledger: LocalStore, api: MeetingAPI? = nil, fileTranscriber: ((URL, Double, UUID) async throws -> FileASRRouter.Result)? = nil) {
+        self.fileTranscriber = fileTranscriber
         self.api = api ?? MeetingAPI()
         self.ledger = ledger; store = MeetingStore(root: ledger.root)
         self.api.onCall = { [weak ledger] in ledger?.update($0) }
@@ -60,7 +63,7 @@ import UtterLeafCore
             message = "音频设备或系统采集已断开，正在保留已录内容。"; stop()
         }
     }
-    func select(_ id: UUID) { guard !recording, !busy else { return }; flushDraft(); stopPlayback(); selected = id; active = nil; liveSegments = [:]; message = "" }
+    func select(_ id: UUID) { guard !recording, !busy else { return }; flushDraft(); stopPlayback(); selected = id; active = nil; liveSegments = [:]; message = ""; fileRoutingNote = "" }
     private func syncUsage(_ value: MeetingRecord) {
         var metadata = ledger.database.jobs.first { $0.id == value.id } ?? HistoryJob(id: value.id, pipeline: .file)
         metadata.kind = "meeting"; metadata.created = value.created; metadata.seconds = value.seconds
@@ -96,7 +99,7 @@ import UtterLeafCore
     func chooseRecordingFile() {
         guard !blocksDictation, dictationBusy?() != true, let window = presentationWindow() else { return }
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.audio]; panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false; panel.message = "选择手表或录音设备导出的音频。文件会保存在本机，并提交豆包整场转录。"
+        panel.canChooseDirectories = false; panel.message = "选择手表或录音设备导出的音频。文件会保存在本机，优先使用飞书妙记额度；额度不足时使用豆包。"
         panel.beginSheetModal(for: window) { [weak self] response in
             guard let self, response == .OK, let source = panel.url else { return }
             self.importRecording(source)
@@ -240,6 +243,41 @@ import UtterLeafCore
         guard let value = current, !blocksDictation else { return }
         guard ledger.storageError == nil else { message = "用量账本不可写，已停止发送会议音频。"; return }
         guard value.seconds >= 1 else { message = "会议音频太短，请保留至少一秒有效录音。"; return }
+        if value.requestID == nil { transcribeWithMinutes(value); return }
+        fileRoutingNote = "继续核对已提交的豆包任务，不会重复上传飞书。"
+        transcribeWithDoubao()
+    }
+    private func transcribeWithMinutes(_ value: MeetingRecord) {
+        fileRoutingNote = "文件转录优先飞书；任务固定使用提交时的账号。"
+        busy = true; edit { $0.state = "transcribing" }; progress = MeetingWorkProgress(.preparing)
+        operation = Task {
+            do {
+                let router = FileASRRouter(root: ledger.root, accounts: ledger.minutesAccounts, onCall: { [weak self] in self?.ledger.update($0) })
+                let result: FileASRRouter.Result
+                if let fileTranscriber { result = try await fileTranscriber(store.audio(value.id), value.seconds, value.id) }
+                else {
+                    result = try await router.transcribe(audio: store.audio(value.id), seconds: value.seconds, id: value.id) { [weak self] title, percent in
+                        self?.message = title
+                        self?.progress = MeetingWorkProgress(percent == nil ? .recognizing : .uploading, completed: percent ?? 0, total: percent == nil ? 0 : 100)
+                    }
+                }
+                switch result {
+                case .useDoubao:
+                    busy = false; fileRoutingNote = "飞书剩余额度不足以完成整段录音，已改用豆包。"; transcribeWithDoubao()
+                case .transcript(let segments):
+                    edit { $0.segments = segments; $0.state = "transcribed"; $0.failureCode = nil }
+                    busy = false; message = "飞书整场转录已完成。"; ledger.minutesAccounts.active.refresh(force: true)
+                    if current?.nameCandidates == nil { suggestNames() }
+                }
+            } catch {
+                busy = false
+                if error is CancellationError { edit { $0.state = "pending" }; message = "已停止本地等待，飞书原任务保留；下次继续核对。" }
+                else { fail(error) }
+            }
+        }
+    }
+    private func transcribeWithDoubao() {
+        guard let value = current else { return }
         busy = true; edit { $0.state = "transcribing" }; message = value.requestID == nil ? "准备完整会议转录与说话人识别…" : "核对上次提交的会议任务，不重复提交。"
         progress = MeetingWorkProgress(.preparing)
         operation = Task {
