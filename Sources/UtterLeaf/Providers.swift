@@ -158,14 +158,16 @@ final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
             throw AppFailure("文件识别等待超时；服务端可能仍在处理并计费。", code: "file_timeout")
         } catch { finishCall(error: error); throw error }
     }
-    func cleanup(text: String, prompt: String, job: UUID, price: PriceSnapshot, vocabulary: [VocabularyEntry] = []) async throws -> String {
+    func cleanup(text: String, prompt: String, job: UUID, price: PriceSnapshot, vocabulary: [VocabularyEntry] = [], recentContext: String = "") async throws -> String {
         let secret = try Credentials.load("DEEPSEEK_API_KEY")
         var call = UsageCall(jobID: job, provider: "DeepSeek", model: "deepseek-flash", price: price)
-        let effectivePrompt = CleanupPrompt.compose(prompt, entries: vocabulary)
+        let context = String(recentContext.suffix(500))
+        call.contextCharacters = context.count
+        let effectivePrompt = CleanupPrompt.compose(prompt, entries: vocabulary, usesRecentContext: !context.isEmpty)
         call.promptHash = TextEnvelope.hash(effectivePrompt); call.vocabularyHash = VocabularyContext.hash(vocabulary); record(call)
         do {
             let body: [String: Any] = ["model": "deepseek-flash", "thinking": ["type": "disabled"], "max_tokens": 8192,
-                "messages": [["role": "system", "content": effectivePrompt], ["role": "user", "content": try TextEnvelope.wrap(text, vocabulary: vocabulary)]]]
+                "messages": [["role": "system", "content": effectivePrompt], ["role": "user", "content": try TextEnvelope.wrap(text, vocabulary: vocabulary, recentContext: context)]]]
             let (json, _) = try await post(URL(string: "https://api.deepseek.com/chat/completions")!, body: body,
                                          headers: ["Authorization": "Bearer " + secret])
             if var updated = currentCall {

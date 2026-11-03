@@ -19,16 +19,18 @@ A Flutter dictation app and native keyboard extension are being developed in [`m
 
 ## Status
 
-**Working personal development build — October 29, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
+**Working personal development build — November 3, 2026.** macOS dictation is implemented, with ongoing reliability work. This repository does not provide a notarized release or a hosted API service. An initial meeting-transcription workflow is now implemented; a personal Flutter iOS dictation app and native keyboard are now implemented in [`mobile/`](mobile/README.md), with physical-device acceptance in progress.
 
-The shared Swift suite contains **152 tests** (latest run: 147 passed, 5 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
+The shared Swift suite contains **171 tests** (latest run: 166 passed, 5 desktop-only checks skipped), including native view rendering and a real synthetic WAV → M4A conversion. Short synthetic API checks and real microphone/insertion trials have been performed. Intermittent Codex target-capture failures remain under investigation; the latest capture retry needs further user testing. A full five-minute live recording has not yet been validated. Tests and successful builds do not establish compatibility with every input field.
 
 ### Features
 
-- **Fn to start/stop; Esc to cancel** recording or pending processing. Fn combinations pass through. UtterLeaf never presses Return or sends your message.
+- **Fn to start/stop; Esc to cancel** recording or pending processing. Esc-cancelled recording audio is retained locally for explicit transcription from History. Fn combinations pass through. UtterLeaf never presses Return or sends your message.
 - **Up to five minutes per dictation.** The capsule shows a countdown during the last 30 seconds, then stops recording and processes the captured audio.
 - **Three selectable Doubao ASR routes:** streaming with results after recording, live streaming, and file transcription. No route is preselected on a fresh install.
 - **Optional DeepSeek Flash cleanup:** removes disfluencies, preserves meaning, converts spoken symbols, and favors digits in numbered English expressions such as `session one → session 1`. Transcript data is JSON-wrapped and treated as data, not executable instructions.
+- **Recent dictation context (Mac):** optional, enabled by default with300characters, adjustable to500. Only the previous3confirmed dictations in the same app within5minutes are used. Context is passive JSON user data, separate from stable system instructions; Settings can disable or clear it. No chat-history scraping or retrospective edits.
+- **Feishu-first meeting files:** imported audio, whole-session recordings and deferred cancelled recordings use the selected account's actual Minutes allowance before Doubao. Existing Doubao jobs resume unchanged. Login/network/uncertain-submission failures never trigger duplicate paid fallback. This personal website-session integration may need adaptation when the provider changes its client.
 - **Shared contextual vocabulary** for names, preferred spellings and commonly confused terms, synchronized privately between Mac and iPhone, rather than unconditional replacement.
 - **Guarded automatic insertion**, with an optional preview mode. If the target app, field or caret changes, the text is retained for recovery. Clipboard paste is used where appropriate; insertion is verified where the target exposes enough information.
 - **Cross-device dictation history** with configurable text retention, plus usage counts, CNY cost estimates, and fixed UTC weekly / rolling 30-day budget indicators split into dictation, meeting spend and remaining allowance. Detailed provider/model filters remain in a separate sheet. Budgets are reminders, not usage limits or provider balances.
@@ -65,9 +67,9 @@ Cloud voiceprint identities can be refreshed, enabled, renamed or soft-deleted. 
 
 ### Privacy and local data
 
-**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text and active vocabulary are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend. Private iCloud shares usage/budgets and, in a separate history snapshot, dictation text between your Mac and iPhone. Audio, meeting content and provider keys stay on their original device.
+**Local history does not mean offline transcription.** Audio is sent to the selected ASR API. When cleanup is enabled, text, active vocabulary and enabled bounded recent-dictation context are sent to DeepSeek. The app currently talks directly to providers using your personal credentials; it has no UtterLeaf backend. Private iCloud shares usage/budgets and, in a separate history snapshot, dictation text between your Mac and iPhone. Audio, meeting content and provider keys stay on their original device.
 
-Short-dictation audio stays in memory; meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
+Normal short-dictation audio stays in memory; Esc-cancelled recordings are kept locally for deferred transcription/deletion. Meeting recordings are retained under the local `meetings/` directory until explicitly deleted. Dictation history and shared API usage are stored at:
 
 ```text
 ~/Library/Application Support/UtterLeaf/ledger.json
@@ -121,15 +123,17 @@ UtterLeaf（言叶）是一款对标 Typeless 日常体验的 macOS 私人语音
 
 ### 当前状态
 
-**截至 2026-10-26，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，iOS 尚未实现。
+**截至 2026-11-03，已有可运行的个人开发版**，仍在打磨稳定性。本仓库尚不提供经过公证的正式安装包或托管 API 服务；会议转录首版已实现，自用 iOS 听写 App 与键盘也已实现；当前会议与连续上下文功能仍以 Mac 为主。
 
 共享 Swift 测试共 **134 项**（最近一次：131 项通过，3 项桌面专用检查跳过），包含原生界面与合成 WAV → M4A 转换验证。已做短合成内容 API 检查和真实麦克风、回填试用。Codex 偶发目标捕获失败仍在排查，最新重试修补等待进一步试用；完整五分钟实录尚未验证。测试和构建通过不代表兼容所有输入框。
 
 ### 已有功能
 
-- **Fn 开始/结束，Esc 取消**录音或尚未完成的处理；Fn 组合键正常传递，不自动按回车或发送消息。
+- **Fn 开始/结束，Esc 取消**录音或尚未完成的处理；取消录音保存本机音频，可从历史记录选择转录或删除；Fn 组合键正常传递，不自动按回车或发送消息。
 - **单次最长 5 分钟**，最后 30 秒在胶囊内倒计时，到时自动结束并继续处理。
 - **三条可选豆包管线**：流式结束后返回、实时流式、文件转写；新安装不预选管线。
+- **连续听写上下文（Mac）**：默认开启、最多300字符，可调至500或关闭/清除。仅参考同一 App 最近5分钟内、最多3次已输入/已复制听写，不读取聊天记录，不回改旧文字。上下文作为被动 JSON 数据发送，保持 system 指令前缀稳定。
+- **会议文件优先飞书**：导入录音、整场会议录音与取消后的补转录优先当前账号的妙记额度；不足以完成整段才转豆包。已提交的豆包请求继续原任务，网络/登录/提交状态不明不触发重复收费回退。网页会话协议会随官网更新而变化。
 - **可选 DeepSeek Flash 整理**：去除口吃与赘词、保留原意、转换口述符号、规范编号数字。输入使用 JSON 数据封装，不执行录音里的命令。
 - **共享语境词汇表**：Mac 与 iPhone 通过私有 iCloud 同步专有名称、易错拼写及说明，不做无条件全文替换。
 - **自动回填及可选预览**：核对原应用、输入框和光标；发生变化时保留稿件供恢复。必要时使用剪贴板粘贴，并在接口允许时读取确认结果。
@@ -165,9 +169,9 @@ open .local/UtterLeaf.app
 
 ### 隐私与本地数据
 
-**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字和生效词汇表发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端。Mac 与 iPhone 通过私有 iCloud 同步用量、预算与听写正文；录音、会议正文和 API Key 留在原设备。
+**本地保存历史不等于离线识别。**音频发送至所选 ASR API；启用整理后，文字、生效词汇表和已启用的有限连续听写上下文发送至 DeepSeek。当前直接使用个人凭证连接供应商，没有 UtterLeaf 服务端。Mac 与 iPhone 通过私有 iCloud 同步用量、预算与听写正文；录音、会议正文和 API Key 留在原设备。
 
-短听写录音仅存内存；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
+正常短听写录音仅存内存；Esc 取消的录音保存在本机，供后续转录或删除；会议录音在本机 `meetings/` 目录保留到手动删除。听写历史及共享 API 用量账本位于 `~/Library/Application Support/UtterLeaf/ledger.json`，目录/文件权限为 `700`/`600`。默认保留原始与最终稿直到手动清除，可改为仅最终稿或仅用量。清除正文仍保留计数与回执，不清除供应商记录或系统备份；文件权限不等于磁盘加密。
 
 凭证、私人录音、历史账本、构建产物和个人交接资料均被 Git 排除。仓库中的 `App/Sounds/` WAV 是原创界面提示音，不是用户录音。
 

@@ -218,12 +218,13 @@ import UtterLeafCore
         changePhase(.cleaning)
         var price = PriceSnapshot.flash
         let prefs = store.database.preferences
+        let recentContext = prefs.retention == "none" ? "" : RecentDictationContext.build(jobs: store.database.jobs, current: current, preferences: prefs.dictationContext ?? .init())
         price.inputPerMillion = prefs.flashInput; price.cachedPerMillion = prefs.flashCached; price.outputPerMillion = prefs.flashOutput
         if prefs.flashInput != 2 || prefs.flashCached != 0.04 || prefs.flashOutput != 8 {
             price.version = "user-" + ISO8601DateFormatter().string(from: Date()); price.note = "用户设置的 CNY / 百万 token 单价"
         }
-        if var job { job.promptHash = TextEnvelope.hash(CleanupPrompt.compose(prompt, entries: activeVocabulary)); job.vocabularyHash = VocabularyContext.hash(activeVocabulary); job.promptVersion = (prefs.customPrompt == nil ? "cleanup-v6-spoken-symbols" : "custom-" + String(TextEnvelope.hash(prompt).prefix(12))) + (activeVocabulary.isEmpty ? "" : "+vocabulary-v1") + "+arabic-digits-v1"; self.job = job; store.update(job) }
-        let cleaned = try await api.cleanup(text: raw, prompt: prompt, job: current.id, price: price, vocabulary: activeVocabulary)
+        if var job { job.promptHash = TextEnvelope.hash(CleanupPrompt.compose(prompt, entries: activeVocabulary, usesRecentContext: !recentContext.isEmpty)); job.vocabularyHash = VocabularyContext.hash(activeVocabulary); job.promptVersion = (prefs.customPrompt == nil ? "cleanup-v6-spoken-symbols" : "custom-" + String(TextEnvelope.hash(prompt).prefix(12))) + (activeVocabulary.isEmpty ? "" : "+vocabulary-v1") + "+arabic-digits-v1" + (recentContext.isEmpty ? "" : "+recent-context-v1"); self.job = job; store.update(job) }
+        let cleaned = try await api.cleanup(text: raw, prompt: prompt, job: current.id, price: price, vocabulary: activeVocabulary, recentContext: recentContext)
         try Task.checkCancellation(); guard activeToken == token else { return }
         await deliver(cleaned, automatic: automatic ?? jobAutomatic, token: token)
     }
