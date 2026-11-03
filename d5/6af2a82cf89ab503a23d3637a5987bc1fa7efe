@@ -1,0 +1,68 @@
+Sources/UtterLeaf/MinutesFileSession.swift
+  s_299dc04098b816::t_1c7c067f44df09 5-10
+  s_299dc04098b816::t_b197106cdc4476 40-62
+  s_299dc04098b816::t_df67448770ede1 1-4,11,13-23,25-39,63-70,73-75,84-87
+  s_299dc04098b816::t_1e2263564bbace 76-80
+  s_299dc04098b816::t_7908bcfc7f0589 81
+  s_299dc04098b816::t_9d335f1b8a797b 12,24,71-72,82-83,88-92
+App/MinutesFileBridge.js
+  s_299dc04098b816::t_df67448770ede1 1-5,27-33,35-46,48-49,51-80,82,84,96-109,111-118,120
+  s_299dc04098b816::t_b197106cdc4476 85,95
+  s_299dc04098b816::t_135f7664adc3a8 86
+  s_299dc04098b816::t_69c49ef1e62987 6-26
+  s_299dc04098b816::t_2013843e12c724 34,47,119
+  s_299dc04098b816::t_e42de5c9002e81 50,81,83,87-94,110
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_b197106cdc4476 10,19-50,56-58,64-78
+  s_299dc04098b816::t_a2863e084d3868 51-55,59-63
+Sources/UtterLeaf/FileASRRouter.swift
+  s_299dc04098b816::t_e1106fc86e1195 1-7,9-14,20-28,30-36,38-44,46-47,52-62,69-73,78-88,102-112
+  s_299dc04098b816::t_1c7c067f44df09 19,37,45
+  s_299dc04098b816::t_7908bcfc7f0589 29,63-68,90,97-98,100-101
+  s_299dc04098b816::t_deab1305eda75e 89,91-96,99
+  s_299dc04098b816::t_0287201ee014da 8,15,17-18,48-51,74-77
+  s_299dc04098b816::t_cbba9f80196fe9 16
+Sources/UtterLeafCore/MeetingWorkProgress.swift
+  s_299dc04098b816::t_e1106fc86e1195 19-20
+Sources/UtterLeaf/MeetingsView.swift
+  s_299dc04098b816::t_7908bcfc7f0589 55
+  s_299dc04098b816::t_0287201ee014da 282
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_0287201ee014da 309
+  s_299dc04098b816::t_e1106fc86e1195 308,310-312,315-318
+  s_299dc04098b816::t_7908bcfc7f0589 313-314
+Sources/UtterLeaf/MeetingProcessingView.swift
+  s_299dc04098b816::t_0287201ee014da 23
+scripts/build-app.sh
+  s_299dc04098b816::t_df67448770ede1 15
+Tests/UtterLeafCoreTests/FileASRRouterTests.swift
+  s_299dc04098b816::t_1c7c067f44df09 1-60,63-66
+  s_299dc04098b816::t_deab1305eda75e 61-62
+Sources/UtterLeaf/MeetingModel.swift
+  s_299dc04098b816::t_7908bcfc7f0589 15,247,251,266
+  s_299dc04098b816::t_e1106fc86e1195 102,246,248-250,252-254,260-265,267-268,270-280
+  s_299dc04098b816::t_0287201ee014da 255,269
+  s_299dc04098b816::t_9c1f01c7c06f59 10,50-51,66,256-259
+DESIGN.md
+  s_299dc04098b816::t_032e3f1efab45c 224-225
+Tests/UtterLeafCoreTests/MeetingImportTests.swift
+  s_299dc04098b816::t_3b718db31d4345 83,94-120
+UX-CONTRACT.md
+  s_299dc04098b816::t_cb5a63857d1361 231-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d56af2a82cf89ab503a23d3637a5987bc1fa7efe",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
