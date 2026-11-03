@@ -305,7 +305,17 @@ import UtterLeafCore
                 do {
                     let text: String
                     if let fileTranscriber = self.fileTranscriber { text = try await fileTranscriber(audio, original.id) }
-                    else { text = try await provider.fileASR(pcm: audio, job: original.id, price: .asr(.file, stream: self.store.database.preferences.streamPrice, file: self.store.database.preferences.filePrice)) }
+                    else {
+                        let router = FileASRRouter(root: self.store.root, accounts: self.store.minutesAccounts, onCall: { [weak self] in self?.store.update($0) })
+                        // Retained recordings already have a validated local WAV container.
+                        let folder = self.store.root.appendingPathComponent("cancelled-recordings")
+                        let file = folder.appendingPathComponent(original.id.uuidString.lowercased() + ".wav")
+                        let result = try await router.transcribe(audio: file, seconds: Double(audio.count) / 32000, id: original.id, progress: { title, _ in self.message = title })
+                        switch result {
+                        case .transcript(let segments): text = segments.map(\.text).joined(separator: "\n")
+                        case .useDoubao: text = try await provider.fileASR(pcm: audio, job: original.id, price: .asr(.file, stream: self.store.database.preferences.streamPrice, file: self.store.database.preferences.filePrice))
+                        }
+                    }
                     try Task.checkCancellation(); guard self.activeToken == token else { return }
                     self.raw = text
                     if var job = self.job { job.rawText = text; job.rawCharacters = TextEnvelope.characters(text); self.job = job; self.store.update(job) }

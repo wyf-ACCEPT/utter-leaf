@@ -80,7 +80,7 @@ final class MeetingImportTests: XCTestCase {
             } else { body = [:] }
             return (try JSONSerialization.data(withJSONObject: body), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: ["X-Api-Status-Code": "20000000"])!)
         }
-        let model = MeetingModel(ledger: ledger, api: api); model.importRecording(source)
+        let model = MeetingModel(ledger: ledger, api: api, fileTranscriber: { _, _, _ in .useDoubao }); model.importRecording(source)
         for _ in 0..<400 {
             if !model.busy && model.namingMeetingID == nil { break }
             try await Task.sleep(for: .milliseconds(10))
@@ -91,4 +91,31 @@ final class MeetingImportTests: XCTestCase {
         XCTAssertEqual(routes.filter { $0.hasSuffix("query") }.count, 1)
         XCTAssertFalse(ledger.database.calls.contains { $0.model.contains("live") || $0.model == "v2-realtime" })
     }
+    @MainActor func testImportDefaultsToMinutesAndNeverSubmitsDoubaoWhenItReturnsText() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("synthetic.wav"); try writeAudio(source, rate: 16000, channels: 1, seconds: 2)
+        let ledger = LocalStore(root: root)
+        var doubaoRequests = 0, minutesRequests = 0
+        let api = MeetingAPI(credentials: { _ in "synthetic" }) { request in
+            if request.url?.host != "api.deepseek.com" { doubaoRequests += 1 }
+            let body: [String: Any] = ["choices": [["finish_reason": "stop", "message": ["content": #"{"candidates":["first","second","third"]}"#]]]]
+            return (try JSONSerialization.data(withJSONObject: body), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: [:])!)
+        }
+        let model = MeetingModel(ledger: ledger, api: api, fileTranscriber: { _, _, _ in
+            minutesRequests += 1
+            return .transcript([MeetingUtterance(id: "f1", start: 0, end: 1.5, speaker: "p1", text: "Synthetic Minutes speech")])
+        })
+        model.importRecording(source)
+        for _ in 0..<400 {
+            if !model.busy && model.namingMeetingID == nil { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(minutesRequests, 1); XCTAssertEqual(doubaoRequests, 0)
+        XCTAssertEqual(model.current?.state, "transcribed")
+        XCTAssertEqual(model.current?.segments.first?.speaker, "p1")
+        XCTAssertFalse(model.recording); XCTAssertFalse(model.usesMicrophone)
+    }
+
 }

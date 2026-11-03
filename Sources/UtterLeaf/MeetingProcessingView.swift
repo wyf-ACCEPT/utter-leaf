@@ -20,7 +20,7 @@ struct MeetingProcessingView: View {
                     .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             } else {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text("已等待 \(MeetingCaptionPolicy.recordingTime(context.date.timeIntervalSince(work.started)))" + (work.stage == .queued || work.stage == .recognizing ? " · 豆包未提供识别百分比" : ""))
+                    Text("已等待 \(MeetingCaptionPolicy.recordingTime(context.date.timeIntervalSince(work.started)))" + (work.stage == .queued || work.stage == .recognizing ? " · 未提供可靠识别百分比" : ""))
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 }
             }
