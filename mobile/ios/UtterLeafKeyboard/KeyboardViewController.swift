@@ -226,8 +226,15 @@ private struct KeyboardSurface: View {
                         Label("开始说话", systemImage: "mic.fill")
                     }.disabled(!model.fullAccess || model.launching)
                 }
-            }.font(.title3.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75).frame(width: 200, height: 80)
+            }.font(.title3.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75).frame(maxWidth: 200).frame(height: 80)
                 .background(leaf.opacity(0.16), in: Capsule()).foregroundStyle(leaf)
+                .padding(.horizontal, 72)
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    editingKey("return", label: "换行") { controller.performReturn() }
+                        .disabled(!model.canReturn)
+                        .opacity(model.canReturn ? 1 : 0.35)
+                }
             ZStack {
                 Button { controller.performReturn() } label: {
                     Text(model.returnTitle).font(.system(size: 18, weight: .medium))
@@ -241,17 +248,21 @@ private struct KeyboardSurface: View {
                         Button { controller.advanceToNextInputMode() } label: { Image(systemName: "globe").frame(minWidth: 44, minHeight: 44) }.accessibilityLabel("切换输入法")
                     }
                     Spacer(minLength: 0)
-                    Button { controller.textDocumentProxy.deleteBackward() } label: {
-                        Image(systemName: "delete.left").font(.system(size: 28, weight: .medium))
-                            .frame(width: 64, height: 52)
-                            .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
-                            .contentShape(Rectangle())
-                    }.buttonStyle(.plain).accessibilityLabel("删除")
+                    editingKey("delete.left", label: "删除") { controller.textDocumentProxy.deleteBackward() }
                 }
             }.font(.title3).frame(height: 52)
 
         }.padding(18).foregroundStyle(.primary)
     }
+    private func editingKey(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).font(.system(size: 28, weight: .medium))
+                .frame(width: 64, height: 52)
+                .background(Color.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
+                .contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityLabel(label)
+    }
+
 }
 
 private struct KeyboardWave: View {
