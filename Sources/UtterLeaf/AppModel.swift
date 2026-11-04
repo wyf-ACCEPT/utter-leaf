@@ -93,8 +93,7 @@ import UtterLeafCore
         }
         guard store.storageError == nil else { message = store.storageError!; showWindow?(); return }
         preservePendingDraft()
-        let pendingCapture = captureTarget == nil ? InputTarget.prepareCapture() : nil
-        target = captureTarget?(); jobAutomatic = store.database.preferences.insertionMode != "preview"
+        target = nil; jobAutomatic = store.database.preferences.insertionMode != "preview"
         activeVocabulary = VocabularyContext.active(store.vocabulary); waveform.reset(); raw = ""; draft = ""; partial = ""; message = ""
         elapsed = 0; level = 0; maxLevel = 0; pcm = Data(); chunkBuffer = Data()
         activeSound = store.database.preferences.sound ?? SoundPreferences()
@@ -102,17 +101,10 @@ import UtterLeafCore
         let api = Providers(); self.api = api
         api.onCall = { [weak self] in self?.store.update($0) }
         api.onPartial = { [weak self] text in if self?.activeToken == token { self?.partial = text } }
-        var current = HistoryJob(pipeline: pipeline); current.targetBundleID = target?.diagnosticID ?? pendingCapture?.bundleID; job = current; store.update(current)
+        var current = HistoryJob(pipeline: pipeline); current.targetBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier; job = current; store.update(current)
         changePhase(.starting)
         operation = Task {
             do {
-                if let pendingCapture {
-                    self.target = try await pendingCapture.resolve()
-                    guard self.activeToken == token else { return }
-                    current.targetCaptureErrorCode = pendingCapture.errorCode
-                    current.targetCaptureAttempts = pendingCapture.attempts
-                    self.job = current; self.store.update(current)
-                }
                 // Validate local configuration before sending audio or starting the microphone.
                 _ = try Credentials.load("DOUBAO_API_KEY")
                 if self.store.database.preferences.cleanup { _ = try Credentials.load("DEEPSEEK_API_KEY"); _ = try self.prompt() }
@@ -183,6 +175,8 @@ import UtterLeafCore
     }
     func stop() {
         guard phase == .recording else { return }
+        let endingCapture = captureTarget == nil ? InputTarget.prepareCapture() : nil
+        target = captureTarget?()
         elapsed = Double(pcm.count) / 32000
         mic.stop(); mic.onChunk = nil; watchdog?.cancel(); continuation?.finish()
         sounds.play(.stop, preferences: activeSound)
@@ -195,7 +189,16 @@ import UtterLeafCore
         changePhase(.transcribing)
         operation = Task {
             do {
-                guard let current = self.job else { return }
+                if let endingCapture {
+                    let destination = try await endingCapture.resolve()
+                    guard self.activeToken == token else { return }
+                    self.target = destination
+                }
+                guard var current = self.job else { return }
+                current.targetBundleID = self.target?.diagnosticID ?? endingCapture?.bundleID
+                current.targetCaptureErrorCode = endingCapture?.errorCode
+                current.targetCaptureAttempts = endingCapture?.attempts
+                self.job = current; self.store.update(current)
                 let text: String
                 if current.pipeline == .file {
                     let file = try self.store.stageFileAudio(self.pcm, id: current.id)
@@ -392,8 +395,8 @@ import UtterLeafCore
                 self.job = job; store.update(job)
             }
             let detail = job?.targetCaptureErrorCode == "capture_utterleaf_foreground"
-                ? "开始时焦点在 UtterLeaf；请先点击原应用的输入框。"
-                : "开始录音时未能读取原输入框；请点击目标输入框后再试。"
+                ? "结束时焦点在 UtterLeaf；请先点击原应用的输入框。"
+                : "结束录音时未能读取输入框；请点击目标输入框后再试。"
             message = detail + "文字已保留，可复制后粘贴。"
             setPreview(draft, recoverInPill: automatic); return
         }
