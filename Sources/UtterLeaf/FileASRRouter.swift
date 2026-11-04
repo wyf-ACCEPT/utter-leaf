@@ -25,15 +25,16 @@ struct FileASRReceipt: Codable {
         try JSONEncoder().encode(receipt).write(to: file, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
     }
-    func transcribe(audio: URL, seconds: Double, id: UUID, progress: (String, Int?) -> Void = { _, _ in }) async throws -> Result {
+    func transcribe(audio: URL, seconds: Double, id: UUID, accountSelected: (MinutesAccountProfile) -> Void = { _ in }, progress: (String, Int?) -> Void = { _, _ in }) async throws -> Result {
         guard seconds.isFinite, seconds > 0 else { throw AppFailure("录音时长无效，未发送文件。", code: "minutes_file_duration") }
+        var receipt: FileASRReceipt?
+        if hasReceipt(id) { receipt = try JSONDecoder().decode(FileASRReceipt.self, from: Data(contentsOf: path(id, "receipt.json"))) }
+        let profile = receipt?.account ?? accounts.profile
+        accountSelected(profile)
         let cached = path(id, "transcript.json")
         if FileManager.default.fileExists(atPath: cached.path) {
             return .transcript(try JSONDecoder().decode([MeetingUtterance].self, from: Data(contentsOf: cached)))
         }
-        var receipt: FileASRReceipt?
-        if hasReceipt(id) { receipt = try JSONDecoder().decode(FileASRReceipt.self, from: Data(contentsOf: path(id, "receipt.json"))) }
-        let profile = receipt?.account ?? accounts.profile
         let session = makeSession(profile)
         progress("正在连接飞书妙记…", nil)
         try await session.load()
