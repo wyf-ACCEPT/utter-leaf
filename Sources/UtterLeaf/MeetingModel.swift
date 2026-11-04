@@ -248,7 +248,7 @@ import UtterLeafCore
         transcribeWithDoubao()
     }
     private func transcribeWithMinutes(_ value: MeetingRecord) {
-        fileRoutingNote = "文件转录优先飞书；任务固定使用提交时的账号。"
+        fileRoutingNote = "正在确认飞书转录账号…"
         busy = true; edit { $0.state = "transcribing" }; progress = MeetingWorkProgress(.preparing)
         operation = Task {
             do {
@@ -256,14 +256,16 @@ import UtterLeafCore
                 let result: FileASRRouter.Result
                 if let fileTranscriber { result = try await fileTranscriber(store.audio(value.id), value.seconds, value.id) }
                 else {
-                    result = try await router.transcribe(audio: store.audio(value.id), seconds: value.seconds, id: value.id) { [weak self] title, percent in
+                    result = try await router.transcribe(audio: store.audio(value.id), seconds: value.seconds, id: value.id, accountSelected: { [weak self] account in
+                        self?.fileRoutingNote = "飞书转录账号：\(account.displayName)"
+                    }, progress: { [weak self] title, percent in
                         self?.message = title
                         self?.progress = MeetingWorkProgress(percent == nil ? .recognizing : .uploading, completed: percent ?? 0, total: percent == nil ? 0 : 100)
-                    }
+                    })
                 }
                 switch result {
                 case .useDoubao:
-                    busy = false; fileRoutingNote = "飞书剩余额度不足以完成整段录音，已改用豆包。"; transcribeWithDoubao()
+                    busy = false; fileRoutingNote += "。该账号额度不足以完成整段录音，已改用豆包。"; transcribeWithDoubao()
                 case .transcript(let segments):
                     edit { $0.segments = segments; $0.state = "transcribed"; $0.failureCode = nil }
                     busy = false; message = "飞书整场转录已完成。"; ledger.minutesAccounts.active.refresh(force: true)
