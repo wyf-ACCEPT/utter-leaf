@@ -55,7 +55,7 @@ struct SettingsView: View {
         }.disabled(model.busy || model.inserting)
         Surface(title: "文字输入") {
             LeafSegments(title: "录音结束后", selection: Binding(get: { store.database.preferences.insertionMode ?? "automatic" }, set: { store.database.preferences.insertionMode = $0; store.save() }), items: [LeafSegment("automatic", "自动输入到原应用"), LeafSegment("preview", "先在 App 内预览")])
-            Text("默认自动输入。原应用、输入框与光标保持一致时，整理完成后直接插入；焦点变化或输入失败时保留文字供处理。不会自动发送消息。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("默认自动输入。结束录音时锁定输入框和光标，整理完成后直接插入；焦点变化或输入失败时保留文字供处理。不会自动发送消息。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.disabled(model.busy || model.inserting)
         Surface(title: "权限与个人凭证") {
             HStack { Label(doubaoKey ? "豆包个人凭证可读" : "豆包凭证待配置", systemImage: doubaoKey ? "checkmark.circle" : "key"); Spacer(); Label(flashKey ? "DeepSeek 个人凭证可读" : "DeepSeek 凭证待配置", systemImage: flashKey ? "checkmark.circle" : "key") }.font(.system(size: LeafType.scaled(12)))
@@ -75,7 +75,7 @@ struct SettingsView: View {
             Text(model.hotkeyRegistered ? "全局快捷键：单按 Fn 开始 / 结束 · Fn 组合键不触发录音" : "Fn 监听尚未启用，请检查辅助功能权限；可先用窗口按钮录音。")
                 .font(LeafType.caption).foregroundStyle(model.hotkeyRegistered ? LeafTheme.muted : .red)
             Text("单按并松开 Fn 切换录音。仅拦截 Fn 本身的系统动作，不更改系统键盘设置；Fn + 方向键等组合键继续传给原应用。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-            Text("先在目标输入框按快捷键开始，结束后会按上面的方式自动输入或预览。不支持辅助功能回填的应用可复制粘贴。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Text("在目标输入框按 Fn 结束录音，整理完成后会按上面的方式自动输入或预览。不支持辅助功能回填的应用可复制粘贴。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }
         Surface(title: "听写历史与隐私") {
             LeafSegments(title: "正文保留", selection: binding(\.retention), items: [LeafSegment("both", "原始 + 最终稿"), LeafSegment("final", "仅最终稿"), LeafSegment("none", "仅用量")])
