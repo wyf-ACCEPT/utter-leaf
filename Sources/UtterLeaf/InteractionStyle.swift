@@ -120,15 +120,26 @@ struct SidebarItem: View {
             .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
+struct MeetingToolbarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PrimaryButtonFace(configuration: configuration, secondary: true)
+    }
+}
+
 struct PrimaryButtonFace: View {
     let configuration: ButtonStyleConfiguration
+    var secondary = false
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hovered = false
+    private var fillOpacity: Double {
+        if secondary { return enabled ? (configuration.isPressed ? 0.22 : hovered ? 0.16 : 0.10) : 0.05 }
+        return enabled ? (configuration.isPressed ? 0.72 : hovered ? 0.87 : 1) : 0.35
+    }
     var body: some View {
         configuration.label.font(.system(size: LeafType.scaled(14), weight: .semibold)).padding(.horizontal, 24).frame(height: 46)
-            .foregroundStyle(LeafTheme.actionInk)
-            .background(LeafTheme.leaf.opacity(enabled ? (configuration.isPressed ? 0.72 : hovered ? 0.87 : 1) : 0.35), in: Capsule())
+            .foregroundStyle(secondary ? LeafTheme.leaf.opacity(enabled ? 1 : 0.5) : LeafTheme.actionInk)
+            .background(LeafTheme.leaf.opacity(fillOpacity), in: Capsule())
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
             .handCursor().onHover { hovered = $0 }
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)

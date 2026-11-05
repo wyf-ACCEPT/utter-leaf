@@ -23,18 +23,18 @@ struct MeetingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             PageHeading(title: "把讨论，留成共识。", subtitle: "录音或导入文件 · 区分说话人 · 你的笔记与原文一起整理")
             HStack {
-                Button { showVoices = true } label: { Label("说话人声纹", systemImage: "person.wave.2") }.buttonStyle(.bordered).handCursor()
+                Button { showVoices = true } label: { Label("说话人声纹", systemImage: "person.wave.2") }.buttonStyle(MeetingToolbarButtonStyle()).handCursor()
                 Spacer()
                 if model.recording {
                     Button(model.floatingCaptions ? "隐藏悬浮窗" : "显示悬浮窗") {
                         model.floatingCaptions.toggle(); model.saveOptions()
-                    }.buttonStyle(.bordered).handCursor()
+                    }.buttonStyle(MeetingToolbarButtonStyle()).handCursor()
                     Text(clock(model.elapsed)).monospacedDigit().foregroundStyle(LeafTheme.leaf)
-                    Button(model.paused ? "继续" : "暂停", action: model.togglePause).buttonStyle(.bordered).handCursor()
+                    Button(model.paused ? "继续" : "暂停", action: model.togglePause).buttonStyle(MeetingToolbarButtonStyle()).handCursor()
                     Button("结束会议", action: model.stop).buttonStyle(PrimaryStyle()).handCursor()
                 } else {
                     Button { model.chooseRecordingFile() } label: { Label("导入录音文件", systemImage: "square.and.arrow.down") }
-                        .buttonStyle(.bordered).handCursor().disabled(model.busy)
+                        .buttonStyle(MeetingToolbarButtonStyle()).handCursor().disabled(model.busy)
                     Button("新会议") { model.create(systemAudio: model.systemAudio) }.buttonStyle(PrimaryStyle()).handCursor().disabled(model.busy)
                 }
             }
