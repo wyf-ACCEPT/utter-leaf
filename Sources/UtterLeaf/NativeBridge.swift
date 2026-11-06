@@ -6,6 +6,10 @@ import UtterLeafCore
 @MainActor final class Microphone {
     private let engine = AVAudioEngine()
     private var tapInstalled = false
+    private var isolation: AVAudioUnitEffect?
+    private var tapNode: AVAudioNode?
+    /// True when the most recent start routed audio through Apple's voice isolation unit.
+    private(set) var isolating = false
     private var configurationObserver: NSObjectProtocol?
     var onChunk: ((Data, Float) -> Void)?
     var onDisconnect: (() -> Void)?
@@ -15,15 +19,24 @@ import UtterLeafCore
         if permission == .notDetermined { granted = await requestPermission() }
         guard granted else { throw AppFailure("麦克风未授权。请在系统设置 → 隐私与安全性 → 麦克风中允许 UtterLeaf。", code: "microphone_denied") }
     }
-    func start() throws {
+    /// Starts capture. With `voiceIsolation`, input passes through Apple's AUSoundIsolation effect
+    /// (the model behind system Voice Isolation) before conversion, so background noise such as
+    /// fan vibration is removed before audio reaches any ASR provider.
+    func start(voiceIsolation: Bool = false) throws {
         let input = engine.inputNode
-        let source = input.outputFormat(forBus: 0)
+        let hardware = input.outputFormat(forBus: 0)
+        guard hardware.sampleRate > 0, hardware.channelCount > 0 else {
+            throw AppFailure("没有可用的麦克风输入设备。", code: "microphone_unavailable")
+        }
+        let node = voiceIsolation ? routeThroughIsolation(input: input, hardware: hardware) : resetRouting()
+        let source = node.outputFormat(forBus: 0)
         guard source.sampleRate > 0, source.channelCount > 0,
               let target = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: false),
               let converter = AVAudioConverter(from: source, to: target) else {
             throw AppFailure("没有可用的麦克风输入设备。", code: "microphone_unavailable")
         }
-        input.installTap(onBus: 0, bufferSize: 2048, format: source) { [weak self] buffer, _ in
+        tapNode = node
+        node.installTap(onBus: 0, bufferSize: 2048, format: source) { [weak self] buffer, _ in
             let capacity = AVAudioFrameCount(ceil(Double(buffer.frameLength) * 16000 / source.sampleRate) + 32)
             guard let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { return }
             var consumed = false; var error: NSError?
@@ -49,8 +62,40 @@ import UtterLeafCore
     func stop() {
         if let configurationObserver { NotificationCenter.default.removeObserver(configurationObserver) }
         configurationObserver = nil
-        if tapInstalled { engine.inputNode.removeTap(onBus: 0); tapInstalled = false }
+        if tapInstalled { (tapNode ?? engine.inputNode).removeTap(onBus: 0); tapInstalled = false }
+        tapNode = nil
         engine.stop()
+    }
+    /// Builds input -> isolation -> muted main mixer. The mixer connection keeps the effect pulled in
+    /// real time; its output volume is zero so the microphone is never played through the speakers.
+    private func routeThroughIsolation(input: AVAudioInputNode, hardware: AVAudioFormat) -> AVAudioNode {
+        let description = AudioComponentDescription(componentType: kAudioUnitType_Effect, componentSubType: kAudioUnitSubType_AUSoundIsolation,
+                                                    componentManufacturer: kAudioUnitManufacturer_Apple, componentFlags: 0, componentFlagsMask: 0)
+        guard AudioComponentFindNext(nil, [description]) != nil,
+              let mono = AVAudioFormat(standardFormatWithSampleRate: hardware.sampleRate, channels: 1) else {
+            NSLog("UtterLeaf: voice isolation unavailable; recording unprocessed microphone audio")
+            return resetRouting()
+        }
+        let effect = isolation ?? AVAudioUnitEffect(audioComponentDescription: description)
+        if isolation == nil { engine.attach(effect); isolation = effect }
+        engine.disconnectNodeOutput(input); engine.disconnectNodeOutput(effect)
+        engine.connect(input, to: effect, format: mono)
+        engine.connect(effect, to: engine.mainMixerNode, format: mono)
+        engine.mainMixerNode.outputVolume = 0
+        if let parameters = effect.auAudioUnit.parameterTree?.allParameters {
+            // Fully wet output, isolating speech (parameter 1 = 1.0 selects voice).
+            parameters.first { $0.address == 0 }?.value = 100
+            parameters.first { $0.address == 1 }?.value = 1
+        }
+        isolating = true
+        return effect
+    }
+    private func resetRouting() -> AVAudioNode {
+        if let isolation {
+            engine.disconnectNodeOutput(engine.inputNode); engine.disconnectNodeOutput(isolation)
+        }
+        isolating = false
+        return engine.inputNode
     }
 }
 

@@ -14,6 +14,8 @@ struct Preferences: Codable {
     var billing: BillingConfiguration?
     var vocabulary: [VocabularyEntry]?
     var cleanup = true
+    /// Remove background noise with Apple's on-device voice isolation before ASR. Nil means on.
+    var voiceIsolation: Bool?
     var retention = "both"
     var streamPrice = 1.0
     var filePrice = 0.8
