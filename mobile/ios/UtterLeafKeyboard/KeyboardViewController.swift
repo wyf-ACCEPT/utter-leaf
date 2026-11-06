@@ -226,15 +226,8 @@ private struct KeyboardSurface: View {
                         Label("开始说话", systemImage: "mic.fill")
                     }.disabled(!model.fullAccess || model.launching)
                 }
-            }.font(.title3.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75).frame(maxWidth: 200).frame(height: 80)
+            }.font(.title3.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75).frame(width: 200, height: 80)
                 .background(leaf.opacity(0.16), in: Capsule()).foregroundStyle(leaf)
-                .padding(.horizontal, 72)
-                .frame(maxWidth: .infinity)
-                .overlay(alignment: .trailing) {
-                    editingKey("return", label: "换行") { controller.performReturn() }
-                        .disabled(!model.canReturn)
-                        .opacity(model.canReturn ? 1 : 0.35)
-                }
             ZStack {
                 Button { controller.performReturn() } label: {
                     Text(model.returnTitle).font(.system(size: 18, weight: .medium))
