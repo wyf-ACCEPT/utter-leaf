@@ -53,6 +53,20 @@ final class UsageBudgetTests: XCTestCase {
         recent.finalText = nil; recent.rawText = nil
         XCTAssertEqual(UsageBudget(calls: [], jobs: [recent], days: 7, limit: 5, now: now).writtenCharacters, 120)
     }
+    func testDictationRateUsesMeasuredFinalJobsOnly() {
+        func job(_ characters: Int, _ seconds: Double, daysAgo: Double, meeting: Bool = false) -> HistoryJob {
+            var value = HistoryJob(pipeline: .final); value.created = now.addingTimeInterval(-daysAgo * 86400)
+            value.finalCharacters = characters; value.seconds = seconds; value.kind = meeting ? "meeting" : nil
+            return value
+        }
+        let a = job(300, 60, daysAgo: 1), b = job(150, 60, daysAgo: 2)
+        let jobs = [a, a, b, job(0, 30, daysAgo: 1), job(80, 0, daysAgo: 1), job(9000, 600, daysAgo: 1, meeting: true), job(500, 60, daysAgo: 10)]
+        let week = UsageBudget(calls: [], jobs: jobs, days: 7, limit: 5, now: now)
+        XCTAssertEqual(week.rateCharacters, 450); XCTAssertEqual(week.rateSeconds, 120)
+        XCTAssertEqual(week.charactersPerMinute!, 225, accuracy: 0.000001)
+        XCTAssertEqual(UsageBudget(calls: [], jobs: jobs, days: 30, limit: 5, now: now).charactersPerMinute!, 316.666666, accuracy: 0.001)
+        XCTAssertNil(UsageBudget(calls: [], jobs: [job(100, 59, daysAgo: 1)], days: 7, limit: 5, now: now).charactersPerMinute)
+    }
 
 }
 
