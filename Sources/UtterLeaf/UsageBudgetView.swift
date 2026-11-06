@@ -21,7 +21,7 @@ struct UsageBudgetView: View {
                         }.buttonStyle(.plain).handCursor().foregroundStyle(LeafTheme.muted)
                             .accessibilityLabel("表达额度说明").help("查看统计口径与预算说明")
                             .popover(isPresented: $showingInfo, arrowEdge: .top) {
-                                Text("包含听写与会议的豆包 ASR + DeepSeek 已知估算；已写字数与预计还能写按短听写口径，不受明细筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。字数含标点与空白，同一次听写只计一次，清除正文后保留计数。")
+                                Text("包含听写与会议的豆包 ASR + DeepSeek 已知估算；已写字数与预计还能写按短听写口径，不受明细筛选影响。额度仅作提醒，超出后仍可录音；不是供应商余额。字数含标点与空白，同一次听写只计一次，清除正文后保留计数。听写速率为最终稿字数 ÷ 录音时长。")
                                     .font(LeafType.caption).foregroundStyle(LeafTheme.ink).padding(20).frame(width: 360)
                                     .background(LeafTheme.surface)
                             }
@@ -41,14 +41,15 @@ struct UsageBudgetView: View {
         let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: days, limit: limit, now: now)
         let window = UsageWindow(days: days, now: now), title = days == 7 ? "本周" : "最近 30 天"
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(title).font(.system(size: LeafType.scaled(16), weight: .medium))
+                Text(window.isWeekly ? "周一更新" : "滚动统计").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+                    .help(budgetRange(window))
                 Spacer()
                 Text("剩余 \(String(format: "%.1f", budget.remainingFraction * 100))%")
                     .font(.system(size: LeafType.scaled(22), weight: .semibold, design: .rounded)).monospacedDigit()
                     .foregroundStyle(budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
             }
-            Text(budgetRange(window)).font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             BudgetCompositionBar(budget: budget, title: title, height: 8)
             HStack(spacing: 18) {
                 legend("剩余", budget.remainingFraction, budget.remainingFraction <= 0.2 ? Color.orange : LeafTheme.leaf)
@@ -83,10 +84,17 @@ struct UsageBudgetView: View {
         let budget = UsageBudget(calls: store.combinedCalls, jobs: store.combinedJobs, days: 30, limit: store.database.preferences.monthlyBudget ?? 20, now: now)
         Text("近 30 天支出 · 听写 \(money(budget.dictationEstimated, "CNY")) · 会议 \(money(budget.meetingEstimated, "CNY"))")
             .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+        let week = UsageBudget(calls: [], jobs: store.combinedJobs, days: 7, limit: 1, now: now)
+        Text("听写速率 · 本周 \(rate(week)) · 近 30 天 \(rate(budget))")
+            .font(LeafType.caption).foregroundStyle(LeafTheme.muted).monospacedDigit()
+            .help("最终稿字数 ÷ 录音时长，只统计短听写，不含会议；字数含标点。")
         if budget.unknown >= 5 {
             Text("近 30 天有 \(budget.unknown) 次调用缺少用量回执，尚不能估算；剩余额度可能偏高。")
                 .font(LeafType.caption).foregroundStyle(.orange)
         }
+    }
+    private func rate(_ budget: UsageBudget) -> String {
+        budget.charactersPerMinute.map { "\(Int($0.rounded())) 字/分钟" } ?? "暂无数据"
     }
     private func percent(_ fraction: Double) -> String { String(format: "%.1f%%", fraction * 100) }
     private func legend(_ title: String, _ fraction: Double, _ color: Color) -> some View {

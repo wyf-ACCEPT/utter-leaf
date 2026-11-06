@@ -10,6 +10,11 @@ public struct UsageBudget {
     public var dictationFraction: Double { max(0, min(1, dictationEstimated / max(limit, spent))) }
     public var meetingFraction: Double { max(0, min(1, meetingEstimated / max(limit, spent))) }
     public let writtenCharacters: Int
+    /// Final characters and recorded seconds from completed dictations that have both values.
+    public let rateCharacters: Int
+    public let rateSeconds: Double
+    /// Output rate over recorded audio time; nil until at least one minute of measured dictation exists.
+    public var charactersPerMinute: Double? { rateSeconds >= 60 ? Double(rateCharacters) / rateSeconds * 60 : nil }
     public let doubaoEstimated: Double
     public let deepSeekEstimated: Double
     public var providerTotal: Double { doubaoEstimated + deepSeekEstimated }
@@ -25,9 +30,13 @@ public struct UsageBudget {
         self.limit = limit.isFinite && limit > 0 ? limit : 5
         let window = UsageWindow(days: days, now: now)
         var seenJobs = Set<UUID>()
-        writtenCharacters = jobs.filter {
+        let windowJobs = jobs.filter {
             $0.kind != "meeting" && window.contains($0.created, asOf: now) && seenJobs.insert($0.id).inserted
-        }.reduce(0) { $0 + max(0, $1.finalCharacters) }
+        }
+        writtenCharacters = windowJobs.reduce(0) { $0 + max(0, $1.finalCharacters) }
+        let measured = windowJobs.filter { $0.finalCharacters > 0 && $0.seconds.isFinite && $0.seconds > 0 }
+        rateCharacters = measured.reduce(0) { $0 + $1.finalCharacters }
+        rateSeconds = measured.reduce(0) { $0 + $1.seconds }
         let rows = calls.filter { $0.price.currency == "CNY" && window.contains($0.started, asOf: now) }
         spent = rows.compactMap(\.estimatedAmount).reduce(0, +)
         meetingEstimated = rows.filter { UsagePurpose.isMeeting($0, jobs: jobs) }.compactMap(\.estimatedAmount).reduce(0, +)
