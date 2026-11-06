@@ -1,0 +1,25 @@
+Sources/UtterLeaf/AppModel.swift
+  s_89ba08e70b4287::t_34d275ade56757 140
+Sources/UtterLeaf/LocalStore.swift
+  s_89ba08e70b4287::t_b6a8fdec2aba85 17-18
+Sources/UtterLeaf/NativeBridge.swift
+  s_89ba08e70b4287::t_128e838db032f8 9-12,22-25,27-32,38-39,65-66,69-99
+Sources/UtterLeaf/SettingsView.swift
+  s_89ba08e70b4287::t_12292b2f3182b0 37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3b1f0ad4ece1d1edf20aec56748087b6b2fd64e",
+  "prompts": {},
+  "sessions": {
+    "s_89ba08e70b4287": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79fb4656-417f-4afb-8fb5-6f0499699cf7",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
