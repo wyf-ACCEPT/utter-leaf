@@ -137,7 +137,7 @@ import UtterLeafCore
                 try await self.sounds.beforeMicrophone(preferences: self.activeSound)
                 guard self.activeToken == token else { return }
                 self.mic.onChunk = { [weak self] data, rms in self?.accept(data, rms: rms, token: token) }
-                try self.mic.start(); try Task.checkCancellation()
+                try self.mic.start(voiceIsolation: self.store.database.preferences.voiceIsolation ?? true); try Task.checkCancellation()
                 guard self.activeToken == token else { self.mic.stop(); return }
                 self.changePhase(.recording)
                 self.watchdog = Task {

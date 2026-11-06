@@ -34,6 +34,8 @@ struct SettingsView: View {
             if store.database.preferences.pipeline == nil { Text("请选择本次试用的管线，暂未设置默认值。").font(LeafType.caption).foregroundStyle(LeafTheme.muted) }
             Button("清除试用选择") { store.database.preferences.pipeline = nil; store.save() }.font(LeafType.caption).disabled(store.database.preferences.pipeline == nil)
             Text("前两项使用同一流式 2.0 模型；实时模式会边说边识别。文件版 audio.data 是已实测接法，当前官方接口主要列出 URL，兼容性失败时可切换流式。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
+            Toggle("消除背景噪声（系统人声分离）", isOn: Binding(get: { store.database.preferences.voiceIsolation ?? true }, set: { store.database.preferences.voiceIsolation = $0; store.save() }))
+            Text("用 macOS 自带的人声分离模型在本机先去掉风扇、空调等噪声，再发送给豆包。只影响短听写，下一次录音生效。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             Toggle("使用 DeepSeek Flash 整理文字", isOn: binding(\.cleanup))
             Text("不提供工具调用。口述中的问题和命令始终作为录音数据整理。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.disabled(model.busy)
