@@ -23,6 +23,8 @@ import UIKit
     private(set) var phase = "idle"
     private var text = "", raw = "", error = ""
     private var level = 0.0
+    /// Recent (uptime, RMS) pairs for the live waveform; amplitude only, no audio content.
+    private var meter: [[Double]] = []
     private var elapsed = 0
     private var cloudStatus = "checking"
     private var cloudMessage = "正在检查 iCloud 账户…"
@@ -61,6 +63,7 @@ import UIKit
             guard let self else { return }
             switch call.method {
             case "snapshot": result(self.snapshot)
+            case "meter": result(["now": ProcessInfo.processInfo.systemUptime, "samples": self.meter])
             case "usage": result(MobileUsage.store.snapshot)
             case "vocabulary":
                 var value = MobileVocabulary.store.snapshot; value["busy"] = ["starting", "recording", "processing"].contains(self.phase); result(value)
@@ -285,7 +288,7 @@ import UIKit
         let source = input.outputFormat(forBus: 0)
         guard source.sampleRate > 0, let target = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 16000, channels: 1, interleaved: true),
               let converter = AVAudioConverter(from: source, to: target) else { throw MobileFailure.message("当前麦克风不可用。") }
-        input.installTap(onBus: 0, bufferSize: 4096, format: source) { [weak self] block, _ in
+        input.installTap(onBus: 0, bufferSize: 2048, format: source) { [weak self] block, _ in
             let capacity = AVAudioFrameCount(Double(block.frameLength) * 16000 / source.sampleRate) + 32
             guard let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { return }
             var supplied = false, conversionError: NSError?
@@ -298,10 +301,13 @@ import UIKit
             let data = Data(bytes: samples, count: count * 2)
             var sum = 0.0
             for n in 0..<count { let v = Double(samples[n]) / 32768; sum += v * v }
-            let rms = sqrt(sum / Double(count))
+            let rms = sqrt(sum / Double(count)), time = ProcessInfo.processInfo.systemUptime
             Task { @MainActor in
                 guard let self, self.generation == token, self.phase == "recording" else { return }
-                self.buffer.append(data); self.level = min(1, max(0, (20 * log10(max(rms, 0.00001)) + 50) / 42))
+                self.buffer.append(data)
+                // Measurement mode has no automatic gain, so the visual floor sits about 12 dB below the Mac's.
+                self.level = min(1, max(0, (20 * log10(max(rms, 0.00001)) + 62) / 40))
+                self.meter.append([time, rms]); if self.meter.count > 48 { self.meter.removeFirst(self.meter.count - 48) }
                 if self.buffer.count > 32000 * 8 { self.fail(MobileFailure.message("网络过慢，录音已停止，请重试。")) }
             }
         }
@@ -378,7 +384,7 @@ import UIKit
         publish(); endBackground()
     }
     private func stopAudio() {
-        timer?.invalidate(); timer = nil; engine?.inputNode.removeTap(onBus: 0); engine?.stop(); engine = nil; level = 0
+        timer?.invalidate(); timer = nil; engine?.inputNode.removeTap(onBus: 0); engine?.stop(); engine = nil; level = 0; meter.removeAll()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
     private func beginBackground() {

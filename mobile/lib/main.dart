@@ -2,7 +2,7 @@ import 'dart:async';
 import 'usage_page.dart';
 import 'history_page.dart';
 import 'vocabulary_page.dart';
-import 'dart:math' as math;
+import 'sound_wave.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -327,6 +327,8 @@ class _DictationPageState extends State<DictationPage>
                                     level:
                                         (state['level'] as num?)?.toDouble() ??
                                         0,
+                                    channel: bridge,
+                                    color: Leaf.green,
                                   )
                                 : Center(
                                     child:
@@ -798,78 +800,6 @@ class _KeyFieldState extends State<KeyField> {
       ),
     ),
   );
-}
-
-class SoundWave extends StatefulWidget {
-  const SoundWave({super.key, required this.level});
-  final double level;
-  @override
-  State<SoundWave> createState() => _SoundWaveState();
-}
-
-class _SoundWaveState extends State<SoundWave>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController controller = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 3),
-  )..repeat();
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: controller,
-    builder: (_, _) => TweenAnimationBuilder<double>(
-      tween: Tween<double>(end: widget.level.clamp(0, 1)),
-      duration: const Duration(milliseconds: 220),
-      builder: (_, level, _) => CustomPaint(
-        painter: _WavePainter(
-          level,
-          MediaQuery.disableAnimationsOf(context)
-              ? 0
-              : controller.value * 2 * math.pi,
-        ),
-      ),
-    ),
-  );
-}
-
-class _WavePainter extends CustomPainter {
-  _WavePainter(this.level, this.phase);
-  final double level, phase;
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var line = 0; line < 3; line++) {
-      final path = Path();
-      for (double x = 0; x <= size.width; x += 2) {
-        final y =
-            size.height / 2 +
-            math.sin(x / size.width * math.pi * (4 + line) + phase + line) *
-                math.pow(math.sin(math.pi * x / size.width), 2) *
-                (0.5 + (level * 1.5).clamp(0, 1) * 38) *
-                (1 - line * 0.2);
-        if (x == 0) {
-          path.moveTo(x, y);
-        } else {
-          path.lineTo(x, y);
-        }
-      }
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
-          ..color = Leaf.green.withValues(alpha: 1 - line * 0.3),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_WavePainter oldDelegate) =>
-      level != oldDelegate.level || phase != oldDelegate.phase;
 }
 
 class GlassNavigation extends StatefulWidget {
