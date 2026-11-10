@@ -258,27 +258,38 @@ private struct KeyboardSurface: View {
 
 }
 
+/// Three-layer wave matching the Mac recording view (frequency, strength, speed and opacity per layer).
+/// The keyboard only receives a polled level, so all layers share it; only the phase motion is decorative.
 private struct KeyboardWave: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var level: Double
+    private static let speeds = [3.4, -2.8, 4.1], opacities = [0.95, 0.42, 0.2]
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
-            WaveTrace(level: level, phase: reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * 2)
-                .stroke(style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                .animation(.easeOut(duration: 0.22), value: level)
+            let time = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
+            ZStack {
+                ForEach((0..<3).reversed(), id: \.self) { layer in
+                    WaveTrace(level: level, phase: time * Self.speeds[layer] + Double(layer) * 0.8, layer: layer)
+                        .stroke(style: StrokeStyle(lineWidth: layer == 0 ? 2 : 1.3, lineCap: .round, lineJoin: .round))
+                        .opacity(Self.opacities[layer])
+                }
+            }.animation(.easeOut(duration: 0.22), value: level)
         }.accessibilityHidden(true).allowsHitTesting(false)
     }
 }
 private struct WaveTrace: Shape {
     var level: Double
     var phase: Double
+    var layer: Int
     var animatableData: Double { get { level } set { level = newValue } }
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let amplitude = 0.5 + min(1, max(0, level) * 1.5) * rect.height * 0.46
+        let frequency = [1.6, 2.15, 2.7][layer], strength = [0.95, 0.57, 0.33][layer]
+        let amplitude = min(1, max(0, level) * 1.7) * strength * rect.height * 0.47
         for x in stride(from: 0.0, through: rect.width, by: 1) {
             let unit = x / max(1, rect.width)
-            let y = rect.midY + sin(unit * .pi * 6 + phase) * pow(sin(unit * .pi), 2) * amplitude
+            let envelope = max(0, 1 - pow(2 * unit - 1, 2))
+            let y = rect.midY - envelope * amplitude * sin(2 * .pi * frequency * unit + phase)
             if x == 0 { path.move(to: CGPoint(x: x, y: y)) }
             else { path.addLine(to: CGPoint(x: x, y: y)) }
         }

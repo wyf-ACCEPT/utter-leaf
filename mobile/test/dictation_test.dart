@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:utterleaf_mobile/main.dart';
+import 'package:utterleaf_mobile/sound_wave.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,14 @@ void main() {
         .setMockMethodCallHandler(bridge, (call) async {
           if (call.method == 'snapshot') return snapshot;
           if (call.method == 'usage') return usage;
+          if (call.method == 'meter') {
+            return {
+              'now': 10.0,
+              'samples': [
+                [9.9, 0.02],
+              ],
+            };
+          }
           if (call.method == 'history') {
             return {
               'status': '已同步',
