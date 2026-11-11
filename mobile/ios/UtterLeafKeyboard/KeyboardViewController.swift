@@ -6,6 +6,8 @@ final class KeyboardViewController: UIInputViewController {
     private let model = KeyboardModel()
     private var timer: Timer?
     private var resolverFailure: [String: Any] = [:]
+    private var appearHost: String?
+    private var appearResolved = false
     override func viewDidLoad() {
         super.viewDidLoad()
         hasDictationKey = true
@@ -22,6 +24,12 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated); refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in self?.refresh() }
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Resolve while the keyboard first appears; a tap-time result that disagrees is treated as stale.
+        appearHost = nil; appearResolved = false
+        Task { appearHost = await resolveHostForCurrentTap(); appearResolved = true }
     }
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated); timer?.invalidate(); timer = nil
@@ -57,16 +65,21 @@ final class KeyboardViewController: UIInputViewController {
         model.nextID = UUID().uuidString
         let originalDocument = textDocumentProxy.documentIdentifier
         captureTarget(requestID: model.nextID)
-        model.host = await resolveHostForCurrentTap()
+        let tapHost = await resolveHostForCurrentTap()
+        model.host = KeyboardDelivery.returnHost(atAppear: appearResolved ? appearHost : nil, atTap: tapHost)
         guard viewIfLoaded?.window != nil, textDocumentProxy.documentIdentifier == originalDocument else { return nil }
         var ticket: [String: Any] = ["requestID": model.nextID, "created": Date().timeIntervalSince1970]
         if let host = model.host { ticket["host"] = host }
+        else if let tapHost, KeyboardDelivery.overlayHosts.contains(tapHost) { ticket["overlay"] = true }
         do { try DictationExchange.write(ticket, to: "handoff") }
         catch { model.status = "无法共享录音请求，请重新允许完全访问。"; return nil }
         var trace: [String: Any] = ["resolver": "KeyboardKitHostPlugin-11.0.0"]
         trace.merge(resolverFailure) { _, new in new }
         trace["hostResolved"] = model.host != nil
-        trace["hostKind"] = model.host == "com.tencent.xin" ? "wechat" : model.host == nil ? "missing" : "other"
+        trace["hostKind"] = model.host == "com.tencent.xin" ? "wechat" : model.host != nil ? "other"
+            : tapHost.map { KeyboardDelivery.overlayHosts.contains($0) ? "overlay" : "disagreed" } ?? "missing"
+        if let appearHost, KeyboardDelivery.overlayHosts.contains(appearHost) { trace["appearOverlay"] = appearHost }
+        if let tapHost, KeyboardDelivery.overlayHosts.contains(tapHost) { trace["tapOverlay"] = tapHost }
         #if targetEnvironment(simulator)
         trace["fixtureMatched"] = model.host == "network.utterleaf.navigation.fixture"
         #endif

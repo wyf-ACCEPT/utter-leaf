@@ -21,4 +21,13 @@ public enum KeyboardDelivery {
         if before != expectedBefore || after != expectedAfter { return "context_changed" }
         return nil
     }
+    /// System overlays rather than apps. Reopening them by bundle ID orphans their search session.
+    public static let overlayHosts: Set<String> = ["com.apple.Spotlight", "com.apple.springboard"]
+    /// The app may jump back by bundle ID only when the resolutions at keyboard appearance and at the tap
+    /// agree on an ordinary app. A stale or overlay host falls back to the system back affordance.
+    public static func returnHost(atAppear appear: String?, atTap tap: String?) -> String? {
+        guard let tap, !overlayHosts.contains(tap) else { return nil }
+        if let appear, appear != tap { return nil }
+        return tap
+    }
 }

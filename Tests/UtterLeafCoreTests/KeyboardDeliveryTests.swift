@@ -31,4 +31,13 @@ final class KeyboardDeliveryTests: XCTestCase {
         XCTAssertEqual(KeyboardDelivery.mismatch(request: id, expectedRequest: id, document: "doc2", expectedDocument: "doc1", before: "prefix", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"), "document_changed")
         XCTAssertEqual(KeyboardDelivery.mismatch(request: id, expectedRequest: id, document: "doc1", expectedDocument: "doc1", before: "changed", expectedBefore: "prefix", after: "suffix", expectedAfter: "suffix"), "context_changed")
     }
+    func testReturnHostRejectsOverlaysAndStaleResolutions() {
+        XCTAssertEqual(KeyboardDelivery.returnHost(atAppear: "com.tencent.xin", atTap: "com.tencent.xin"), "com.tencent.xin")
+        XCTAssertEqual(KeyboardDelivery.returnHost(atAppear: nil, atTap: "com.tencent.xin"), "com.tencent.xin")
+        // Spotlight seen at appearance but a stale previous app at the tap must not reopen that app.
+        XCTAssertNil(KeyboardDelivery.returnHost(atAppear: "com.apple.Spotlight", atTap: "com.tencent.xin"))
+        XCTAssertNil(KeyboardDelivery.returnHost(atAppear: "com.apple.Spotlight", atTap: "com.apple.Spotlight"))
+        XCTAssertNil(KeyboardDelivery.returnHost(atAppear: nil, atTap: "com.apple.springboard"))
+        XCTAssertNil(KeyboardDelivery.returnHost(atAppear: "com.tencent.xin", atTap: nil))
+    }
 }

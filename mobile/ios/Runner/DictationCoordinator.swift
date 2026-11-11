@@ -18,6 +18,7 @@ import UIKit
     private var host: String?
     private var returnStatus = ""
     private var returnMessage = ""
+    private var fromOverlay = false
     private var lastCommand = ""
     private var background: UIBackgroundTaskIdentifier = .invalid
     private(set) var phase = "idle"
@@ -180,6 +181,7 @@ import UIKit
         }
         UserDefaults.standard.set(id, forKey: "claimedHandoff")
         host = ticket["host"] as? String
+        fromOverlay = ticket["overlay"] as? Bool == true
         #if targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("--delivery-smoke") {
             // Real keyboard delivery with synthetic text; no audio engine or provider is started.
@@ -227,7 +229,7 @@ import UIKit
         #endif
         guard !["starting", "recording", "processing"].contains(phase) else { return }
         requestID = id; fromKeyboard = keyboard; generation = UUID()
-        returnStatus = ""; returnMessage = ""; if !keyboard { host = nil }
+        returnStatus = ""; returnMessage = ""; if !keyboard { host = nil; fromOverlay = false }
         lastCommand = DictationExchange.read("command")["id"] as? String ?? ""
         let token = generation
         phase = "starting"; text = ""; raw = ""; error = ""; elapsed = 0; buffer.removeAll(); publish()
@@ -275,7 +277,8 @@ import UIKit
         guard generation == token else { return false }
         returnStatus = sent ? "requested" : "manual"
         if !sent {
-            returnMessage = host == nil ? "未能识别原 App。请点屏幕左上角的系统返回入口，录音会继续。"
+            returnMessage = fromOverlay ? "系统搜索不是 App，无法自动返回。请上滑回到桌面再下拉搜索，录音会继续。"
+                : host == nil ? "未能识别原 App。请点屏幕左上角的系统返回入口，录音会继续。"
                 : "系统未接受返回请求。请点屏幕左上角的返回入口，录音会继续。"
         }
         return sent
