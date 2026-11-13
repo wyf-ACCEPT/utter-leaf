@@ -40,12 +40,6 @@ final class MeetingTests: XCTestCase {
         model.briefReferences = false; model.saveOptions()
         XCTAssertFalse(MeetingModel(ledger: LocalStore(root: root)).briefReferences)
     }
-    func testCleanedTranscriptRequiresEveryOriginalUtteranceExactlyOnce() throws {
-        let rows = try MeetingProtocol.segments(fixture())
-        XCTAssertEqual(try MeetingProtocol.cleaned("{\"utterances\":[{\"id\":\"u0\",\"text\":\"Cleaned statement\"}]}", expected: rows)["u0"], "Cleaned statement")
-        XCTAssertThrowsError(try MeetingProtocol.cleaned("{\"utterances\":[]}", expected: rows))
-        XCTAssertThrowsError(try MeetingProtocol.cleaned("{\"utterances\":[{\"id\":\"u1\",\"text\":\"Different identity\"}]}", expected: rows))
-    }
     func testMeetingRequestRequiresSpeakersAndSnapshotsSelectedVoiceprints() {
         let request = MeetingProtocol.request(voices: [.init(id: "alice-id", name: "Alice"), .init(id: "bob-id", name: "Bob", enabled: false)])
         XCTAssertEqual(request["enable_speaker_info"] as? Bool, true)

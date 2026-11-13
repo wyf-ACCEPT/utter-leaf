@@ -63,7 +63,7 @@ struct MeetingsView: View {
                 Surface {
                     Image(systemName: "text.bubble").font(.system(size: 28)).foregroundStyle(LeafTheme.leaf)
                     Text("听会议，也记下你的判断。").font(LeafType.headline)
-                    Text("可以直接录音，也可导入手表或录音设备的音频。完整转录后继续整理转录、生成 Brief。").foregroundStyle(LeafTheme.muted)
+                    Text("可以直接录音，也可导入手表或录音设备的音频。完整转录后可直接生成 Brief，也可跳过。").foregroundStyle(LeafTheme.muted)
                 }
             }
             if !meetings.index.meetings.isEmpty {
@@ -132,7 +132,7 @@ struct MeetingsView: View {
                 if !value.segments.isEmpty { MeetingNamingView(model: model, meeting: value) }
                 workflow(value)
             }
-            LeafSegments(title: "会议内容", selection: $tab, items: [LeafSegment("笔记", "我的笔记"), LeafSegment("转录", "原始转录"), LeafSegment("整理稿", "整理转录"), LeafSegment("Brief", "Brief")])
+            LeafSegments(title: "会议内容", selection: $tab, items: [LeafSegment("笔记", "我的笔记"), LeafSegment("转录", "原始转录"), LeafSegment("Brief", "Brief")])
             if !model.recording {
                 HStack {
                     Text(section.title).font(LeafType.headline)
@@ -155,14 +155,8 @@ struct MeetingsView: View {
             case "笔记":
                 Text("你记下的要点会和转录一起整理；输入自动保存在本机。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                 TextEditor(text: Binding(get: { model.current?.notes ?? "" }, set: { text in model.editText { $0.notes = text } })).frame(minHeight: 250).leafInput().accessibilityLabel("会议随手笔记")
-            case "转录", "整理稿":
-                if tab == "整理稿", !MeetingWorkflow.cleaned(value) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Image(systemName: "text.badge.checkmark").font(.system(size: 24)).foregroundStyle(LeafTheme.muted)
-                        Text(model.busy ? "整理中，完成后在这里显示整理稿。" : "还没有整理转录，点击上方“整理转录”开始。")
-                            .foregroundStyle(LeafTheme.muted)
-                    }.frame(maxWidth: .infinity, minHeight: 160, alignment: .leading)
-                } else if value.segments.isEmpty {
+            case "转录":
+                if value.segments.isEmpty {
                     if model.recording {
                         Text("实时说话人仅为暂定编号；暂停前后、麦克风与系统音轨的编号不能直接视为同一个人。会后完整识别将统一校正。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                         ScrollView {
@@ -197,9 +191,9 @@ struct MeetingsView: View {
                                             Text(value.name(for: value.speaker(for: row))).font(LeafType.headline)
                                             Spacer(); Text("[\(row.id)]").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                                         }
-                                        Text(tab == "整理稿" ? (value.cleaned?[row.id] ?? "") : value.text(for: row)).textSelection(.enabled)
+                                        Text(value.text(for: row)).textSelection(.enabled)
                                         HStack {
-                                            if tab == "转录" { Button("编辑文字") { editingSegment = row }.handCursor().disabled(model.blocksDictation) }
+                                            Button("编辑文字") { editingSegment = row }.handCursor().disabled(model.blocksDictation)
                                             Button("纠正说话人") { correcting = row }.handCursor().disabled(model.blocksDictation)
                                         }.font(LeafType.caption)
                                     }.padding(10).background(focusedSegment == row.id ? LeafTheme.leaf.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 10)).id(row.id)
@@ -233,7 +227,6 @@ struct MeetingsView: View {
                 DisclosureGroup("其他处理选项") {
                     HStack {
                         Button(value.requestID == nil ? "转录整场会议" : "核对转录", action: model.transcribe).disabled(model.busy || !value.segments.isEmpty).handCursor()
-                        Button("重新整理转录") { tab = "整理稿"; model.cleanTranscript() }.disabled(model.busy || value.segments.isEmpty).handCursor()
                         Button(value.brief.isEmpty ? "直接生成 Brief" : "更新 Brief") { tab = "Brief"; model.summarize() }.disabled(model.busy || value.segments.isEmpty).handCursor()
                     }.buttonStyle(.bordered)
                 }.font(LeafType.caption)
@@ -247,7 +240,7 @@ struct MeetingsView: View {
         }
     }
     private var section: MeetingTextSection {
-        switch tab { case "笔记": return .notes; case "转录": return .raw; case "整理稿": return .cleaned; default: return .brief }
+        switch tab { case "笔记": return .notes; case "转录": return .raw; default: return .brief }
     }
     @ViewBuilder private func workflow(_ value: MeetingRecord) -> some View {
         let next = MeetingWorkflow.next(value)
@@ -255,9 +248,7 @@ struct MeetingsView: View {
             HStack(spacing: 12) {
                 step("原始转录", done: !value.segments.isEmpty, current: next == .transcribe)
                 Image(systemName: "chevron.right").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                step("整理转录", done: MeetingWorkflow.cleaned(value), current: next == .clean)
-                Image(systemName: "chevron.right").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                step("Brief", done: !value.brief.isEmpty && value.briefNeedsUpdate != true, current: next == .brief || next == .read)
+                step("Brief（可选）", done: !value.brief.isEmpty && value.briefNeedsUpdate != true, current: next == .brief || next == .read)
             }
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 16) { workflowDescription(value); Spacer(minLength: 12); nextAction(value) }
@@ -279,13 +270,10 @@ struct MeetingsView: View {
         switch next {
         case .transcribe:
             heading = model.busy ? "正在准备原始转录" : "先获得完整的原始转录"
-            detail = model.busy ? "音频正在保存、提交或由供应商处理，完成后继续整理。" : "使用整场录音识别文字与说话人，再继续整理表达。"
-        case .clean:
-            heading = "原始转录已就绪，下一步整理表达"
-            detail = "去掉口吃、修正标点与拼写，保留原意和说话人；原始转录始终保留。"
+            detail = model.busy ? "音频正在保存、提交或由供应商处理，完成后可生成 Brief。" : "使用整场录音识别文字与说话人。"
         case .brief:
-            heading = value.briefNeedsUpdate == true ? "整理稿已更新，接着更新 Brief" : "整理转录已就绪，接着提炼会议要点"
-            detail = "结合转录和你的笔记，生成摘要、决定、待办与未决问题。"
+            heading = value.briefNeedsUpdate == true ? "转录有改动，可更新 Brief" : "原始转录已就绪，可生成 Brief"
+            detail = "结合原始转录和你的笔记，生成摘要、决定、待办与未决问题；不需要可以跳过。"
         case .read:
             heading = "会议内容已整理完成"
             detail = "查看 Brief，或切换标签页复制、导出对应内容。"
@@ -300,21 +288,20 @@ struct MeetingsView: View {
         Button {
             switch next {
             case .transcribe: tab = "转录"; model.transcribe()
-            case .clean: tab = "整理稿"; model.cleanTranscript()
             case .brief: tab = "Brief"; model.summarize()
             case .read: tab = "Brief"
             }
         } label: {
             HStack(spacing: 8) {
                 if model.busy { ProgressView().controlSize(.small) }
-                Text(model.busy ? "处理中…" : (next == .clean ? "整理转录" : next == .brief ? (value.brief.isEmpty ? "生成 Brief" : "更新 Brief") : next == .read ? "查看 Brief" : value.requestID == nil ? "转录整场会议" : "核对转录"))
+                Text(model.busy ? "处理中…" : (next == .brief ? (value.brief.isEmpty ? "生成 Brief" : "更新 Brief") : next == .read ? "查看 Brief" : value.requestID == nil ? "转录整场会议" : "核对转录"))
                 if !model.busy { Image(systemName: "arrow.right") }
             }.frame(minWidth: 130)
         }.buttonStyle(PrimaryStyle()).handCursor().disabled(model.busy)
     }
     private func clock(_ seconds: Double) -> String { let n = max(0, Int(seconds)); return n >= 3600 ? String(format: "%d:%02d:%02d", n / 3600, n / 60 % 60, n % 60) : String(format: "%02d:%02d", n / 60, n % 60) }
     private func status(_ state: String) -> String {
-        ["draft": "待开始", "preparing": "准备录音", "importing": "导入音频", "recording": "录音中", "paused": "已暂停", "saving": "保存音频", "recorded": "录音已保存", "transcribing": "转录中", "summarizing": "整理中", "transcribed": "转录已完成", "ready": "笔记已完成", "interrupted": "上次中断，可恢复", "pending": "等待服务端结果", "failed": "需要处理" ][state] ?? state
+        ["draft": "待开始", "preparing": "准备录音", "importing": "导入音频", "recording": "录音中", "paused": "已暂停", "saving": "保存音频", "recorded": "录音已保存", "transcribing": "转录中", "summarizing": "生成 Brief 中", "transcribed": "转录已完成", "ready": "笔记已完成", "interrupted": "上次中断，可恢复", "pending": "等待服务端结果", "failed": "需要处理" ][state] ?? state
     }
 }
 

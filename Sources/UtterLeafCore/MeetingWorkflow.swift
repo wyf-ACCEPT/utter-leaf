@@ -1,22 +1,17 @@
 import Foundation
 
 public enum MeetingTextSection: String, CaseIterable, Identifiable {
-    case notes, raw, cleaned, brief
+    case notes, raw, brief
     public var id: String { rawValue }
     public var title: String {
-        switch self { case .notes: return "我的笔记"; case .raw: return "原始转录"; case .cleaned: return "整理转录"; case .brief: return "Brief" }
+        switch self { case .notes: return "我的笔记"; case .raw: return "原始转录"; case .brief: return "Brief" }
     }
 }
 public enum MeetingWorkflow {
-    public enum Next: Equatable { case transcribe, clean, brief, read }
-    public static func cleaned(_ meeting: MeetingRecord) -> Bool {
-        !meeting.segments.isEmpty && meeting.segments.allSatisfy {
-            !(meeting.cleaned?[$0.id]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-        }
-    }
+    /// Notes, then the raw transcript, then an optional Brief generated straight from the raw transcript.
+    public enum Next: Equatable { case transcribe, brief, read }
     public static func next(_ meeting: MeetingRecord) -> Next {
         if meeting.segments.isEmpty { return .transcribe }
-        if !cleaned(meeting) { return .clean }
         return meeting.brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || meeting.briefNeedsUpdate == true ? .brief : .read
     }
 }
@@ -26,11 +21,10 @@ public enum MeetingTextExport {
         switch section {
         case .notes: text = meeting.notes
         case .brief: text = MeetingProtocol.briefForDisplay(meeting.brief, references: references)
-        case .raw, .cleaned:
-            guard !meeting.segments.isEmpty, section != .cleaned || MeetingWorkflow.cleaned(meeting) else { return nil }
+        case .raw:
+            guard !meeting.segments.isEmpty else { return nil }
             text = meeting.segments.map { row in
-                let words = section == .cleaned ? (meeting.cleaned?[row.id] ?? meeting.text(for: row)) : meeting.text(for: row)
-                return "[\(MeetingCaptionPolicy.recordingTime(row.start))] \(meeting.name(for: meeting.speaker(for: row)))：\(words)"
+                "[\(MeetingCaptionPolicy.recordingTime(row.start))] \(meeting.name(for: meeting.speaker(for: row)))：\(meeting.text(for: row))"
             }.joined(separator: "\n\n")
         }
         return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : text

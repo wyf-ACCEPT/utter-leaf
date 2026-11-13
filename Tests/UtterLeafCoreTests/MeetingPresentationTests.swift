@@ -31,11 +31,10 @@ final class MeetingPresentationTests: XCTestCase {
         }
         record.speakerNames = ["1": "Alice", "2": "Bob", "3": "Carol", "4": "Dave", "5": "Eve"]
         record.notes = "先确认方案与交付时间。"
-        for stage in ["raw", "cleaned", "brief"] {
-            if stage != "raw" { record.cleaned = Dictionary(uniqueKeysWithValues: record.segments.map { ($0.id, "整理后的合成发言：" + $0.text) }) }
+        for stage in ["raw", "brief"] {
             if stage == "brief" { record.brief = "# 会议纪要\n\n周三完成设计稿，周五一起确认。[u0][u1]"; record.state = "ready" }
             try model.store.save(record); model.selected = record.id
-            let view = NSHostingView(rootView: ScrollView { MeetingsView(model: model, meetings: model.store, initialTab: stage == "brief" ? "Brief" : "整理稿").padding(24) }.frame(width: 1000, height: 1000).background(LeafTheme.mist).preferredColorScheme(.dark))
+            let view = NSHostingView(rootView: ScrollView { MeetingsView(model: model, meetings: model.store, initialTab: stage == "brief" ? "Brief" : "转录").padding(24) }.frame(width: 1000, height: 1000).background(LeafTheme.mist).preferredColorScheme(.dark))
             view.frame = NSRect(x: 0, y: 0, width: 1000, height: 1000)
             view.layoutSubtreeIfNeeded()
             try await Task.sleep(for: .milliseconds(100))
@@ -48,7 +47,7 @@ final class MeetingPresentationTests: XCTestCase {
         let progress = NSHostingView(rootView: VStack(spacing: 20) {
             MeetingProcessingView(work: MeetingWorkProgress(.queued, started: Date().addingTimeInterval(-75)), canStop: false, stop: {})
             MeetingProcessingView(work: MeetingWorkProgress(.uploading, completed: 42, total: 100), canStop: false, stop: {})
-            MeetingProcessingView(work: MeetingWorkProgress(.cleaning, completed: 60, total: 804), canStop: false, stop: {})
+            MeetingProcessingView(work: MeetingWorkProgress(.briefing, completed: 2, total: 5), canStop: false, stop: {})
         }.padding(24).frame(width: 800, height: 440).background(LeafTheme.mist).preferredColorScheme(.dark))
         progress.frame = NSRect(x: 0, y: 0, width: 800, height: 440); progress.layoutSubtreeIfNeeded()
         if let image = progress.bitmapImageRepForCachingDisplay(in: progress.bounds) {

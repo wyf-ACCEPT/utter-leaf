@@ -68,7 +68,7 @@ import UtterLeafCore
         var metadata = ledger.database.jobs.first { $0.id == value.id } ?? HistoryJob(id: value.id, pipeline: .file)
         metadata.kind = "meeting"; metadata.created = value.created; metadata.seconds = value.seconds
         metadata.rawCharacters = value.segments.reduce(0) { $0 + TextEnvelope.characters($1.text) }
-        metadata.finalCharacters = value.segments.reduce(0) { $0 + TextEnvelope.characters(value.cleaned?[$1.id] ?? $1.text) }
+        metadata.finalCharacters = value.segments.reduce(0) { $0 + TextEnvelope.characters(value.text(for: $1)) }
         metadata.status = value.state; metadata.rawText = nil; metadata.finalText = nil
         ledger.update(metadata)
     }
@@ -342,27 +342,6 @@ import UtterLeafCore
             }
         }
     }
-    func cleanTranscript() {
-        guard let value = current, !value.segments.isEmpty, !blocksDictation else { return }
-        busy = true; progress = MeetingWorkProgress(.cleaning, total: value.segments.count); edit { $0.state = "summarizing" }
-        operation = Task {
-            do {
-                let prefs = ledger.database.preferences
-                let price = PriceSnapshot(version: "meeting-configured-v1", currency: "CNY", inputPerMillion: prefs.flashInput, cachedPerMillion: prefs.flashCached, outputPerMillion: prefs.flashOutput, note: "会议逐句整理")
-                var output = value.cleaned ?? [:]
-                for offset in stride(from: 0, to: value.segments.count, by: 60) {
-                    try Task.checkCancellation()
-                    let rows = Array(value.segments[offset..<min(offset + 60, value.segments.count)])
-                    message = "逐句整理会议转录 \(offset + 1) / \(value.segments.count)…"
-                    let response = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows), meeting: value.id, price: price, system: MeetingProtocol.cleanupPrompt)
-                    let cleaned = try MeetingProtocol.cleaned(response, expected: rows)
-                    progress?.completed += rows.count
-                    output.merge(cleaned) { _, new in new }; edit { $0.cleaned = output; if !$0.brief.isEmpty { $0.briefNeedsUpdate = true } }
-                }
-                edit { $0.state = "transcribed" }; busy = false; message = "逐句整理稿已保存，原始转录与说话人归属保持独立。"
-            } catch { busy = false; fail(error) }
-        }
-    }
     func summarize() {
         guard let value = current, !value.segments.isEmpty, !blocksDictation else { return }
         busy = true; edit { $0.state = "summarizing"; $0.briefNeedsUpdate = true }; message = "根据你的笔记和带说话人的原文整理…"
@@ -380,7 +359,7 @@ import UtterLeafCore
                 var parts: [String] = []
                 for (i, rows) in chunks.enumerated() {
                     try Task.checkCancellation(); message = "整理会议片段 \(i + 1) / \(chunks.count)…"
-                    let result = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows, preferCleaned: true), meeting: value.id, price: price)
+                    let result = try await api.brief(content: MeetingProtocol.envelope(value, segments: rows), meeting: value.id, price: price)
                     guard MeetingProtocol.hasValidReferences(result, segments: rows) else { throw AppFailure("笔记原文引用缺失或不正确，已保留原始转录。可重试整理。", code: "meeting_brief_references") }
                     parts.append(result); progress?.completed = parts.count
                     edit { $0.brief = parts.joined(separator: "\n\n---\n\n") }

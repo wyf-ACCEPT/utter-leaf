@@ -16,7 +16,7 @@ struct MeetingProcessingView: View {
             if let fraction = work.fraction { ProgressView(value: fraction).tint(LeafTheme.leaf) }
             else { ProgressView().progressViewStyle(.linear).tint(LeafTheme.leaf) }
             if work.total > 0, work.stage != .uploading, work.stage != .importing {
-                Text("已完成 \(work.completed) / \(work.total) \(work.stage == .cleaning ? "段发言" : "个片段")；仅统计已返回并校验的内容。")
+                Text("已完成 \(work.completed) / \(work.total) 个片段；仅统计已返回并校验的内容。")
                     .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
             } else {
                 TimelineView(.periodic(from: .now, by: 1)) { context in

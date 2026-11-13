@@ -30,8 +30,6 @@ import UtterLeafCore
                     var meeting = MeetingRecord(); meeting.segments = response.segments; meeting.notes = "Synthetic meeting validation only."
                     let brief = try await api.brief(content: MeetingProtocol.envelope(meeting), meeting: meeting.id, price: .flash)
                     result["brief"] = MeetingProtocol.hasValidReferences(brief, segments: response.segments) ? "passed" : "invalid_references"
-                    let cleaned = try await api.brief(content: MeetingProtocol.envelope(meeting), meeting: meeting.id, price: .flash, system: MeetingProtocol.cleanupPrompt)
-                    result["cleanedSegments"] = try MeetingProtocol.cleaned(cleaned, expected: response.segments).count
                     result["briefCharacters"] = brief.count
                     break
                 }
