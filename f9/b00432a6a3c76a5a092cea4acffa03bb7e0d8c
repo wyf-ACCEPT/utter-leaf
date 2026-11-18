@@ -1,0 +1,31 @@
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_89ba08e70b4287::t_6654abb09a9e79 9-10,30-32,68-69,79-80
+  s_89ba08e70b4287::t_8a377eecaea73b 28-29,33
+  s_89ba08e70b4287::t_31290247daf295 81-82
+  s_89ba08e70b4287::t_3b816eb583a558 73
+Sources/UtterLeafCore/KeyboardDelivery.swift
+  s_89ba08e70b4287::t_6654abb09a9e79 24-32
+mobile/ios/Runner/PrivateKeyboardReturn.m
+  s_89ba08e70b4287::t_6654abb09a9e79 8-9
+Tests/UtterLeafCoreTests/KeyboardDeliveryTests.swift
+  s_89ba08e70b4287::t_31290247daf295 34-42
+mobile/ios/Runner/DictationCoordinator.swift
+  s_89ba08e70b4287::t_727f5fb9e68e31 232
+  s_89ba08e70b4287::t_3b816eb583a558 21,184,280-281
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3d741ceb83dfcc35bcdaf76b04f3029cb5a87e5f",
+  "prompts": {},
+  "sessions": {
+    "s_89ba08e70b4287": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79fb4656-417f-4afb-8fb5-6f0499699cf7",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
