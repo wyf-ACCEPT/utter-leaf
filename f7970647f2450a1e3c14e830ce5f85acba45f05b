@@ -1,0 +1,57 @@
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_eca9056dbd53a5 19,55,70,120,154,160-171
+  s_299dc04098b816::t_802c13a8651e62 32
+  s_299dc04098b816::t_f250eccc919d53 172
+mobile/lib/main.dart
+  s_299dc04098b816::t_6cda47db0277f8 193-201
+  s_299dc04098b816::t_5d83d5f66b04db 204-210
+mobile/test/dictation_test.dart
+  s_299dc04098b816::t_c14e0cdcc4491d 127-139
+  s_299dc04098b816::t_76a73b66166dc4 140-150
+mobile/ios/Runner/KeyboardReturn.swift
+  s_299dc04098b816::t_fe3e5ec08fee26 37-40
+  s_299dc04098b816::t_802c13a8651e62 52
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_fe3e5ec08fee26 51-53
+  s_299dc04098b816::t_35b0d78b76665b 3,28,47
+  s_299dc04098b816::t_e3d0e7b092b87c 34
+  s_299dc04098b816::t_8afdfaf04af021 8,48,110,112-121
+mobile/ios/Shared/DictationExchange.swift
+  s_299dc04098b816::t_802c13a8651e62 21-31
+.gitignore
+  s_299dc04098b816::t_356064fd633efa 9-10
+DESIGN.md
+  s_299dc04098b816::t_6b71c9683fa81c 148-150
+README.md
+  s_299dc04098b816::t_146d2849058012 24,126
+UX-CONTRACT.md
+  s_299dc04098b816::t_c1577b77ac3223 157-159
+mobile/README.md
+  s_299dc04098b816::t_ff764f7724153d 19,34-40
+mobile/ios/HostSupport/Package.swift
+  s_299dc04098b816::t_87e7915e8125a3 1-14
+mobile/ios/Runner.xcodeproj/project.pbxproj
+  s_299dc04098b816::t_25949477e83941 18,31,105,114,184,285-287,321-323,347,891-905
+mobile/ios/ThirdParty/KeyboardKitHostPlugin/LICENSE
+  s_299dc04098b816::t_0cfd2941723018 1-29
+mobile/ios/ThirdParty/KeyboardKitHostPlugin/README.md
+  s_299dc04098b816::t_dcf883b1a50b2f 1-9
+mobile/scripts/prepare_host_plugin.py
+  s_299dc04098b816::t_08a5f5b8c029a8 1-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9b556c42d68159abd908c0cd7fc9a1d0d15d5605",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
