@@ -1,0 +1,29 @@
+Sources/UtterLeaf/InteractionStyle.swift
+  s_299dc04098b816::t_63f391492b7b34 31-32,93,96
+  s_299dc04098b816::t_90c868e20beeba 39,46,54-55,60,65,83,88,90,95
+  s_299dc04098b816::t_cf536553c7936a 91-92,94
+Sources/UtterLeaf/MinutesQuotaView.swift
+  s_299dc04098b816::t_90c868e20beeba 56,58-59,109,184-185,188-195,200-212,214-215
+Tests/UtterLeafCoreTests/QuotaPresentationTests.swift
+  s_299dc04098b816::t_f85f1cf206848c 59,72,74,76-77,80-81
+DESIGN.md
+  s_299dc04098b816::t_ffcf6b65c8db64 206-207
+UX-CONTRACT.md
+  s_299dc04098b816::t_7cd9855179f0cb 213-214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f7692dc00a267722d1ab0095a122e6d9428d4803",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
