@@ -1,0 +1,45 @@
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_971b2bfe30b704 39
+Sources/UtterLeaf/MinutesQuotaStore.swift
+  s_299dc04098b816::t_d12cbf1ce100e8 72
+  s_299dc04098b816::t_971b2bfe30b704 1-43,46-71,73-117,124-125
+  s_299dc04098b816::t_ac7f4426484ffd 44-45,118-123
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_971b2bfe30b704 21
+Sources/UtterLeaf/MinutesQuotaView.swift
+  s_299dc04098b816::t_971b2bfe30b704 1-82,84-117
+  s_299dc04098b816::t_ac7f4426484ffd 83
+Sources/UtterLeaf/UsageView.swift
+  s_299dc04098b816::t_971b2bfe30b704 33
+Sources/UtterLeafCore/MinutesQuota.swift
+  s_299dc04098b816::t_d12cbf1ce100e8 24-25
+  s_299dc04098b816::t_c7630fcff21576 1-23,26-54
+Tests/UtterLeafCoreTests/QuotaPresentationTests.swift
+  s_299dc04098b816::t_bfa285c9afd85b 1-57
+Tests/UtterLeafCoreTests/MinutesQuotaTests.swift
+  s_299dc04098b816::t_c7630fcff21576 1-38
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_971b2bfe30b704 116
+DESIGN.md
+  s_299dc04098b816::t_fe5caac8dafdee 194-195
+README.md
+  s_299dc04098b816::t_ba1c044d7f4584 24,261-266
+UX-CONTRACT.md
+  s_299dc04098b816::t_c7accbdab7332e 201-202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "74f9e4e622eb807268637a8d1343ba5d761eefce",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
