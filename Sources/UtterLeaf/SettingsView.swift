@@ -9,8 +9,6 @@ struct SettingsView: View {
     @ObservedObject var store: LocalStore
     @State private var promptText = ""
     @State private var savedPrompt = ""
-    @State private var flashKey = false
-    @State private var doubaoKey = false
     @State private var trusted = false
     @State private var microphone = "未检查"
     @State private var confirmClear = false
@@ -23,6 +21,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
         PageHeading(title: "按你的习惯，慢慢调好。", subtitle: "三条 ASR 管线都可试用；选择只影响下一次听写。")
+        APICredentialsSurface(onChange: refresh)
         Surface(title: "外观") {
             LeafSegments(title: "界面主题", selection: Binding(get: { store.database.preferences.appearance ?? "dark" }, set: { store.database.preferences.appearance = $0; store.save() }), items: [LeafSegment("dark", "深色"), LeafSegment("light", "浅色"), LeafSegment("system", "跟随系统")])
             Text("首次打开默认深色；切换后应用于主窗口和录音浮层。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
@@ -59,9 +58,7 @@ struct SettingsView: View {
             LeafSegments(title: "录音结束后", selection: Binding(get: { store.database.preferences.insertionMode ?? "automatic" }, set: { store.database.preferences.insertionMode = $0; store.save() }), items: [LeafSegment("automatic", "自动输入到原应用"), LeafSegment("preview", "先在 App 内预览")])
             Text("默认自动输入。结束录音时锁定输入框和光标，整理完成后直接插入；焦点变化或输入失败时保留文字供处理。不会自动发送消息。").font(LeafType.caption).foregroundStyle(LeafTheme.muted)
         }.disabled(model.busy || model.inserting)
-        Surface(title: "权限与个人凭证") {
-            HStack { Label(doubaoKey ? "豆包个人凭证可读" : "豆包凭证待配置", systemImage: doubaoKey ? "checkmark.circle" : "key"); Spacer(); Label(flashKey ? "DeepSeek 个人凭证可读" : "DeepSeek 凭证待配置", systemImage: flashKey ? "checkmark.circle" : "key") }.font(.system(size: LeafType.scaled(12)))
-            Text("仅从本机 Keychain 的 network.utterleaf.personal 服务，或 ~/.llm.env 的 DOUBAO_API_KEY / DEEPSEEK_API_KEY 读取。不读取公司的 OpenRouter Key，不在 App 内展示凭证。").font(LeafType.caption).foregroundStyle(LeafTheme.muted).textSelection(.enabled)
+        Surface(title: "权限") {
             HStack {
                 Text("麦克风：\(microphone) · 辅助功能：\(trusted ? "已授权" : "未授权")").font(LeafType.caption)
                 Spacer(); Button("刷新状态", action: refresh)
@@ -137,7 +134,7 @@ struct SettingsView: View {
         HStack { Text(title).font(.system(size: LeafType.scaled(13))); Spacer(); TextField(title, value: Binding(get: { value.wrappedValue }, set: { if $0.isFinite && $0 >= 0 { value.wrappedValue = $0 } }), format: .number.precision(.fractionLength(0...6))).leafInput().frame(width: 130) }
     }
     func refresh() {
-        doubaoKey = Credentials.available("DOUBAO_API_KEY"); flashKey = Credentials.available("DEEPSEEK_API_KEY"); trusted = AXIsProcessTrusted()
+        trusted = AXIsProcessTrusted()
         switch AVCaptureDevice.authorizationStatus(for: .audio) { case .authorized: microphone = "已授权"; case .notDetermined: microphone = "首次录音时请求"; default: microphone = "未授权" }
     }
     func openPrivacy(_ anchor: String) { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?" + anchor)!) }

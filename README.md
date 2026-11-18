@@ -52,7 +52,7 @@ The build script stages and signs the bundle, verifies it, then replaces the ins
 
 ### Personal setup
 
-1. Configure your own `DOUBAO_API_KEY` and `DEEPSEEK_API_KEY`. The app reads macOS Keychain service `network.utterleaf.personal`, using the variable name as the account, or falls back to `~/.llm.env` with permissions set to `600`. It reads that file directly; shell exports are not required. **No provider key is bundled with the app.** Do not commit credentials.
+1. Open **模型与设置** (Models & Settings) → **API 凭证** and paste your own Doubao speech API key (from the Volcengine 豆包语音 console) and DeepSeek API key (from platform.deepseek.com). Each is saved to the macOS Keychain under service `network.utterleaf.personal`, with the variable name (`DOUBAO_API_KEY`, `DEEPSEEK_API_KEY`) as the account, and is never shown again. As a fallback the app also reads those variables from `~/.llm.env` (permissions `600`; read directly, shell exports not required). **No provider key is bundled with the app.** After an ad-hoc rebuild, macOS may ask once before the new build can read an existing Keychain item; use **授权读取** or paste the key again. Do not commit credentials.
 2. In **模型与设置** (Models & Settings), select an ASR route and whether to enable cleanup.
 3. Grant **Microphone** permission for recording and **Accessibility** permission for Fn handling and insertion.
 4. Click your destination input field, press and release **Fn**, speak, then press and release **Fn** again. Keep the original field and caret unchanged while processing. Use **Esc** to cancel before insertion begins.

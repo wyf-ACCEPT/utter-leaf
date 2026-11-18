@@ -258,17 +258,84 @@ struct LocalDatabase: Codable {
 
 enum Credentials {
     static let allowed = ["DOUBAO_API_KEY", "DEEPSEEK_API_KEY", "UTTERLEAF_VOLC_ACCESS_KEY_ID", "UTTERLEAF_VOLC_SECRET_ACCESS_KEY"]
+    static let service = "network.utterleaf.personal"
+
+    /// Where a credential currently comes from. `locked` means a Keychain item exists but this build
+    /// may not read it silently (typically after an ad-hoc rebuild changed the code signature).
+    enum Status: Equatable { case keychain, file, locked, missing }
+
+    private static func baseQuery(_ name: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: name]
+    }
+    /// Reads the Keychain value. Without `interactive`, macOS is never allowed to show a prompt.
+    private static func keychainValue(_ name: String, interactive: Bool = false) -> (value: String?, status: OSStatus) {
+        var query = baseQuery(name)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        if !interactive { let context = LAContext(); context.interactionNotAllowed = true; query[kSecUseAuthenticationContext as String] = context }
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess, let data = item as? Data, let value = String(data: data, encoding: .utf8), !value.isEmpty else { return (nil, status) }
+        return (value, status)
+    }
+    private static func keychainItemExists(_ name: String) -> Bool {
+        var query = baseQuery(name)
+        query[kSecReturnAttributes as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        let context = LAContext(); context.interactionNotAllowed = true
+        query[kSecUseAuthenticationContext as String] = context
+        var item: CFTypeRef?
+        return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess
+    }
+
+    static func status(_ name: String) -> Status {
+        if keychainValue(name).value != nil { return .keychain }
+        if keychainItemExists(name) { return .locked }
+        return (try? fileValue(name)) != nil ? .file : .missing
+    }
+
+    /// Saves a key to the login Keychain under `service`, replacing any previous value.
+    static func save(_ name: String, value: String) throws {
+        guard allowed.contains(name) else { throw AppFailure("凭证名称不受支持。", code: "credential_not_allowed") }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains(where: \.isNewline), trimmed.count <= 512 else {
+            throw AppFailure("请粘贴一行完整的 Key。", code: "credential_format")
+        }
+        let data = Data(trimmed.utf8)
+        var status = SecItemUpdate(baseQuery(name) as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecItemNotFound {
+            var add = baseQuery(name)
+            add[kSecValueData as String] = data
+            add[kSecAttrLabel as String] = "UtterLeaf · \(name)"
+            add[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
+            status = SecItemAdd(add as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else { throw AppFailure("无法保存到 Keychain（错误 \(status)）。", code: "credential_keychain_write") }
+    }
+
+    /// Removes the Keychain copy only; a value in ~/.llm.env stays as the fallback.
+    static func remove(_ name: String) throws {
+        guard allowed.contains(name) else { throw AppFailure("凭证名称不受支持。", code: "credential_not_allowed") }
+        let status = SecItemDelete(baseQuery(name) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw AppFailure("无法从 Keychain 移除（错误 \(status)）。", code: "credential_keychain_delete")
+        }
+    }
+
+    /// Reads the Keychain item once with prompts allowed, so the person can grant this build access.
+    @discardableResult static func unlock(_ name: String) -> Bool { keychainValue(name, interactive: true).value != nil }
+
     static func load(_ name: String) throws -> String {
         guard allowed.contains(name) else { throw AppFailure("凭证名称不受支持。", code: "credential_not_allowed") }
-        let context = LAContext(); context.interactionNotAllowed = true
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "network.utterleaf.personal", kSecAttrAccount as String: name,
-            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationContext as String: context]
-        var item: CFTypeRef?
-        if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-           let data = item as? Data, let value = String(data: data, encoding: .utf8), !value.isEmpty { return value }
+        if let value = keychainValue(name).value { return value }
+        return try fileValue(name)
+    }
+
+    private static func fileValue(_ name: String) throws -> String {
         let file = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".llm.env")
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            throw AppFailure("尚未配置 \(name)，请在「模型与设置 → API 凭证」中填写。", code: "credential_missing")
+        }
         let mode = (try FileManager.default.attributesOfItem(atPath: file.path)[.posixPermissions] as? NSNumber)?.intValue ?? 0
         guard mode & 0o077 == 0 else { throw AppFailure("请将 ~/.llm.env 权限设为 600 后重试。", code: "credential_file_permissions") }
         let source = try String(contentsOf: file, encoding: .utf8)
@@ -277,7 +344,7 @@ enum Credentials {
         let regex = try NSRegularExpression(pattern: pattern)
         let matches = regex.matches(in: source, range: NSRange(source.startIndex..., in: source))
         guard matches.count == 1, let range = Range(matches[0].range(at: 1), in: source) else {
-            throw AppFailure("本机缺少 \(name)，请在个人凭证文件中配置。", code: "credential_missing")
+            throw AppFailure("尚未配置 \(name)，请在「模型与设置 → API 凭证」中填写。", code: "credential_missing")
         }
         var value = String(source[range]).trimmingCharacters(in: .whitespaces)
         if value.hasPrefix("\"") || value.hasPrefix("'") {

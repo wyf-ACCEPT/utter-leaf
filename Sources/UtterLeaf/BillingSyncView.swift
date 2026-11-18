@@ -69,7 +69,7 @@ struct BillingSyncView: View {
 func billingMoney(_ amount: Decimal, _ currency: String) -> String { money(NSDecimalNumber(decimal: amount).doubleValue, currency) }
 func billingErrorDescription(_ code: String) -> String {
     switch code {
-    case "credential_missing", "credential_empty": return "缺少本机查询凭证，请在同步设置中查看配置方法。"
+    case "credential_missing", "credential_empty": return "缺少查询凭证，请在同步设置里填写。"
     case "credential_file_permissions": return "个人凭证文件权限需为 600。"
     case "billing_scope_missing": return "豆包账单实例 ID 待配置，DeepSeek 仍可独立同步。"
     case "billing_scope_mismatch": return "返回账单范围与所选实例不符，已拒绝计入。"
@@ -86,7 +86,6 @@ struct BillingSettings: View {
     @State private var draft = BillingConfiguration()
     @State private var initial = BillingConfiguration()
     @State private var discard = false
-    @State private var keysAvailable = false
     private var valid: Bool { draft.validScope && draft.instanceID.count <= 2570 && draft.product.count <= 256 && !draft.product.contains(where: { $0.isNewline }) }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -105,17 +104,14 @@ struct BillingSettings: View {
                     Toggle("确认这些账单实例仅用于 UtterLeaf，显示区间差额", isOn: $draft.exclusiveInstance)
                     Text("仅查询最近 30 天；重复账单按明细 ID 去重。小时汇总不会分摊到单次调用，也不会覆盖手工核对金额。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
-                    Label(keysAvailable ? "本机账单凭证可读" : "本机账单凭证待配置", systemImage: keysAvailable ? "checkmark.circle" : "key")
-                    Text("用个人火山 IAM 只读子用户创建 AK/SK，在 ~/.llm.env 配置以下变量，或保存到 Keychain 的 network.utterleaf.personal 服务：\nUTTERLEAF_VOLC_ACCESS_KEY_ID\nUTTERLEAF_VOLC_SECRET_ACCESS_KEY\n文件权限保持 600；不要在聊天或仓库里粘贴密钥。")
+                    Text("用个人火山 IAM 只读子用户创建 AK/SK 后填在这里，保存到本机 Keychain；也可以在 ~/.llm.env 配置 UTTERLEAF_VOLC_ACCESS_KEY_ID / UTTERLEAF_VOLC_SECRET_ACCESS_KEY。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted).textSelection(.enabled)
-                    HStack {
-                        Link("打开火山控制台", destination: URL(string: "https://console.volcengine.com/")!)
-                        Spacer()
-                        Button("重新检查凭证") { refreshKeys() }.buttonStyle(.bordered).handCursor()
-                    }
+                    CredentialField(name: "UTTERLEAF_VOLC_ACCESS_KEY_ID", title: "火山 Access Key ID", placeholder: "粘贴新的 AK")
+                    CredentialField(name: "UTTERLEAF_VOLC_SECRET_ACCESS_KEY", title: "火山 Secret Access Key", placeholder: "粘贴新的 SK")
+                    Link("打开火山控制台", destination: URL(string: "https://console.volcengine.com/")!).font(LeafType.caption)
                     Divider()
                     Text("DeepSeek · 余额查询").font(LeafType.headline)
-                    Text("沿用本机 DEEPSEEK_API_KEY。只保存余额快照，不上传录音或正文。余额变化不自动计为 UtterLeaf 的实际费用。")
+                    Text("沿用「API 凭证」里的 DeepSeek Key。只保存余额快照，不上传录音或正文。余额变化不自动计为 UtterLeaf 的实际费用。")
                         .font(LeafType.caption).foregroundStyle(LeafTheme.muted)
                     if !valid { Text("最多 10 个实例 ID，每个最多 256 字符，仅限字母、数字及 _ . : -；产品代码最多 256 字符，不含换行。").font(LeafType.caption).foregroundStyle(.orange) }
                 }.padding(.trailing, 6)
@@ -135,11 +131,10 @@ struct BillingSettings: View {
                 }.buttonStyle(PrimaryStyle()).disabled(!valid || store.billingSyncing)
             }
         }.padding(26).frame(width: 640, height: 620).foregroundStyle(LeafTheme.ink).background(LeafTheme.mist)
-            .onAppear { draft = store.database.preferences.billing ?? BillingConfiguration(); initial = draft; refreshKeys() }
+            .onAppear { draft = store.database.preferences.billing ?? BillingConfiguration(); initial = draft }
             .confirmationDialog("放弃尚未保存的同步设置？", isPresented: $discard) {
                 Button("放弃修改", role: .destructive) { dismiss() }; Button("继续编辑", role: .cancel) {}
             }
     }
     private func cancel() { if draft != initial { discard = true } else { dismiss() } }
-    private func refreshKeys() { keysAvailable = Credentials.available("UTTERLEAF_VOLC_ACCESS_KEY_ID") && Credentials.available("UTTERLEAF_VOLC_SECRET_ACCESS_KEY") }
 }
