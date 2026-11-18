@@ -1,0 +1,43 @@
+Sources/UtterLeafCore/CleanupPrompt.swift
+  s_299dc04098b816::t_6670cea18c20a0 13
+  s_299dc04098b816::t_d7c76106bcb3c8 15
+Sources/UtterLeafCore/RecentDictationContext.swift
+  s_299dc04098b816::t_dfd2c4e4bf6ebd 1-32
+Tests/UtterLeafCoreTests/RecentDictationContextTests.swift
+  s_299dc04098b816::t_dfd2c4e4bf6ebd 1-45
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_6aa8ce9bbfd379 226-227
+  s_299dc04098b816::t_778c64d40728fe 221
+Sources/UtterLeaf/SettingsView.swift
+  s_299dc04098b816::t_b08e3a88af9488 40-55
+  s_299dc04098b816::t_23762f71bf1019 7
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_dfd2c4e4bf6ebd 23
+Sources/UtterLeaf/Providers.swift
+  s_299dc04098b816::t_2c1e240f101154 161,164-166,170
+Sources/UtterLeafCore/Domain.swift
+  s_299dc04098b816::t_167db286d06e1c 129
+  s_299dc04098b816::t_4188e18d710968 84,131-132
+README.md
+  s_299dc04098b816::t_9ab56fe39bf82f 22,24,28,32-33,70,72,126,132,135-136,172,174
+DESIGN.md
+  s_299dc04098b816::t_f251cc55a7cce9 226-227
+UX-CONTRACT.md
+  s_299dc04098b816::t_6e8f6635a7d2bd 233-234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a445bc6792b5946efc09028d4e9d040efd6af453",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
