@@ -1,0 +1,34 @@
+Sources/UtterLeafCore/MinutesAccounts.swift
+  s_299dc04098b816::t_e674be60d0108e 3,7-9,11,15-17,27-28,31,44,64,78-92
+  s_299dc04098b816::t_5266b0e73421db 12
+Sources/UtterLeaf/MinutesQuotaStore.swift
+  s_299dc04098b816::t_5266b0e73421db 7-8,12,18,53,71-81,93,104-113,129-137
+  s_299dc04098b816::t_02fc58aa469d43 138,158
+Sources/UtterLeaf/MinutesAccountStore.swift
+  s_299dc04098b816::t_f4dcf44ffad82e 10-11,17,38,53-72,74-93,102,114
+  s_299dc04098b816::t_6f924b399eaeb5 95,103,119,125
+DESIGN.md
+  s_299dc04098b816::t_2c7229fda5059a 212-214
+Sources/UtterLeaf/MinutesQuotaView.swift
+  s_299dc04098b816::t_f64a133ecd17a8 16-28,34,37,46,72,121-122,142,148-154,157,159,161-163,173-180
+Tests/UtterLeafCoreTests/MinutesAccountTests.swift
+  s_299dc04098b816::t_5b0b745db67800 28-29,32,38,40,47-120
+UX-CONTRACT.md
+  s_299dc04098b816::t_314aeef2e48c38 219-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "38a286007376cff42b025a00d7fbcd429d216cfa",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
