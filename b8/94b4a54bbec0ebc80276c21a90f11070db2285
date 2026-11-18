@@ -1,0 +1,27 @@
+README.md
+  s_299dc04098b816::t_bdf7259b0b10a5 20,82,122
+Sources/UtterLeaf/BillingService.swift
+  s_299dc04098b816::t_e6b977bd5508c6 38-64,66,136,139
+Sources/UtterLeaf/BillingSyncView.swift
+  s_299dc04098b816::t_3f8d568cf36076 28,95,106,108,110,125,132,134
+Sources/UtterLeafCore/BillingModels.swift
+  s_299dc04098b816::t_09721503f2a466 9-20,102,120
+Tests/UtterLeafCoreTests/BillingTests.swift
+  s_299dc04098b816::t_282c5c4da9f147 28-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "048050804e79291c911e341435f29fba938d6392",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
