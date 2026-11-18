@@ -1,0 +1,23 @@
+README.md
+  s_1a7d1624a545dc::t_17fae0aab9ba7b 9
+docs/6x23-start-new-session.md
+  s_1a7d1624a545dc::t_72f7e791cbb10f 3
+research/6x23-transfer-manifest.json
+  s_1a7d1624a545dc::t_ddc2f01f38f7a1 6-7,21-22,31-32,147-148
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58e454ee11f8553382699784b4dcd39b9874fbd0",
+  "prompts": {},
+  "sessions": {
+    "s_1a7d1624a545dc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fa8-7d6c-7241-b562-2a7a43014fc7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
