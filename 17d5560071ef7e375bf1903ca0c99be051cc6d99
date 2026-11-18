@@ -1,0 +1,40 @@
+DESIGN.md
+  h_7140a1ee2047ef 169-171
+UX-CONTRACT.md
+  h_7140a1ee2047ef 175-177
+mobile/README.md
+  h_7140a1ee2047ef 66-74
+mobile/ios/Runner.xcodeproj/project.pbxproj
+  h_7140a1ee2047ef 309-312,555,564,739,748,766,775,791,795,814,818,837,841
+mobile/ios/Runner/DictationCoordinator.swift
+  h_7140a1ee2047ef 2,27-29,41,55,76,80-109,115
+mobile/ios/Runner/Info.plist
+  h_7140a1ee2047ef 10,30,86-91
+mobile/ios/Runner/Runner.entitlements
+  h_7140a1ee2047ef 5-14,17
+mobile/ios/Shared/DictationExchange.swift
+  h_7140a1ee2047ef 5-6
+mobile/ios/UtterLeafKeyboard/Info.plist
+  h_7140a1ee2047ef 3-42
+mobile/ios/UtterLeafKeyboard/Keyboard.entitlements
+  h_7140a1ee2047ef 7
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  h_7140a1ee2047ef 69,140
+mobile/lib/main.dart
+  h_7140a1ee2047ef 185-189,509,784-791,811,817-821,828,836,841,844-848
+mobile/scripts/configure_signing.py
+  h_7140a1ee2047ef 1-20
+mobile/test/dictation_test.dart
+  h_7140a1ee2047ef 187-206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17f40bd68d0516a0872557b46bbec882ab489a3c",
+  "prompts": {},
+  "humans": {
+    "h_7140a1ee2047ef": {
+      "author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
