@@ -1,0 +1,23 @@
+DESIGN.md
+  s_299dc04098b816::t_633aa13166abc2 127-128
+README.md
+  s_299dc04098b816::t_111f36c59e6772 20,58,122,158
+UX-CONTRACT.md
+  s_299dc04098b816::t_c379ffe9611631 103,116-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a1b86dd5aa16f0c33bf44c7eca93cbd2d02e3f8a",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
