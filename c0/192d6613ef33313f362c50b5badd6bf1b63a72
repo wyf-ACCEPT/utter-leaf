@@ -1,0 +1,28 @@
+mobile/test/dictation_test.dart
+  s_299dc04098b816::t_77187b1349fdde 220,223-224,282-293
+  s_299dc04098b816::t_ede6c276ec3466 294-296
+DESIGN.md
+  s_299dc04098b816::t_b0c79d3a31fcce 142,165,181-182
+README.md
+  s_299dc04098b816::t_49772e7b1a4d3e 24,34,68,126,168,221,229,232-245
+UX-CONTRACT.md
+  s_299dc04098b816::t_9beb316128c88b 174,184-189
+mobile/README.md
+  s_299dc04098b816::t_87985912622538 65,78-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0d2023299f816b63421d91354de784a9dc5f9600",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
