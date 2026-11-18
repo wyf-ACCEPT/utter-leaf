@@ -1,0 +1,35 @@
+Tests/UtterLeafCoreTests/CancelledRecordingTests.swift
+  s_299dc04098b816::t_6fa1702ede9068 32-44
+  s_299dc04098b816::t_b538ad8932e489 1-31,45-60
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_b538ad8932e489 127
+  s_299dc04098b816::t_6ae3b2026245ed 69
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_b538ad8932e489 300
+  s_299dc04098b816::t_7369202c3e5d3d 9,35,60,63,88,266,270,273-277,283-299,301-317
+UX-CONTRACT.md
+  s_299dc04098b816::t_b538ad8932e489 227-228
+DESIGN.md
+  s_299dc04098b816::t_b538ad8932e489 220-221
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_4f6b857ba6169e 207-220
+  s_299dc04098b816::t_3fd27423311389 202-206,221-232
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_a268d332d24cbb 161,225-226,275,305-307,325,333,336,342-345,357-362
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9de21e8bfad8bcf2850f0ba91c170a91c80778e2",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
