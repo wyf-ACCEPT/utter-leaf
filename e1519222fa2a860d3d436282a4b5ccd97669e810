@@ -1,0 +1,39 @@
+DESIGN.md
+  s_ed1967bc6373ff::t_65668a18744cdf 113-114
+README.md
+  s_ed1967bc6373ff::t_41578f44f26936 122-123
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_a4f0525a563447 53-54,57
+Sources/UtterLeafCore/UsageBudget.swift
+  s_299dc04098b816::t_32e16621e6d2e7 8,22-26
+Tests/UtterLeafCoreTests/UsageBudgetTests.swift
+  s_299dc04098b816::t_5a62364493eb14 43-56
+UX-CONTRACT.md
+  s_ed1967bc6373ff::t_73fd9b3206f51d 92-93
+docs/6x23-implementation-status.md
+  s_299dc04098b816::t_139ccbfc37024d 146-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "74df6cf60843ac22d38f009cbdc07d138856605f",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    },
+    "s_ed1967bc6373ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a161a5-8fe4-7372-8623-01b72d64d893",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
