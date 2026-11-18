@@ -1,0 +1,25 @@
+Sources/UtterLeaf/MinutesQuotaView.swift
+  s_299dc04098b816::t_43311aeda01b0a 36,60-63
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_43311aeda01b0a 145-146
+DESIGN.md
+  s_299dc04098b816::t_bcd2d56da1d0bf 198-199
+UX-CONTRACT.md
+  s_299dc04098b816::t_05da1ca2f1f260 205-206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ec63e7bec3b1f2ed8d45106d9edb274a3b89a55",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
