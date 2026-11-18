@@ -1,0 +1,21 @@
+README.md
+  s_299dc04098b816::t_0477c5e6ae6a0d 86
+docs/6x23-product-brief.md
+  s_299dc04098b816::t_0629e378f76044 100-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ec3ca39b17e7290d3889c115082fb2e23c6569ca",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
