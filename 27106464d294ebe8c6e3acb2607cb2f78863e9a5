@@ -1,0 +1,37 @@
+README.md
+  s_299dc04098b816::t_d6641001dd472e 61
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_05ae93f18ce73e 124,129,132,141-143,149,154
+Sources/UtterLeaf/Providers.swift
+  s_299dc04098b816::t_3bcf81cac407b4 12
+Sources/UtterLeaf/RecordingPill.swift
+  s_299dc04098b816::t_70ae95ff496382 2,10-11,31-33
+Sources/UtterLeaf/SettingsView.swift
+  s_299dc04098b816::t_e63012db187cc4 64
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_8a148f61f57392 279
+Sources/UtterLeafCore/RecordingLimit.swift
+  s_299dc04098b816::t_1e8cb9994f0d0e 1-18
+Tests/UtterLeafCoreTests/RecordingLimitTests.swift
+  s_299dc04098b816::t_b074ec664a6967 1-21
+UX-CONTRACT.md
+  s_299dc04098b816::t_438b3dc0cf45a6 94-95
+docs/6x23-implementation-status.md
+  s_299dc04098b816::t_737a1ad4254465 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "399b0a44f456b9d043a849e877f63de7776aedc4",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
