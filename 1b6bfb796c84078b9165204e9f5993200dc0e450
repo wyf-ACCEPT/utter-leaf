@@ -1,0 +1,63 @@
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_a4b12c45737d88 39-44,97-128,197-198
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_5da52431fc726f 45-47,62-74,104-105,326-329,339,347-352,390-400
+  s_299dc04098b816::t_461d32e3580ac0 110-112
+  s_299dc04098b816::t_47f3a57f4db6b8 401
+mobile/ios/Runner/MobileProvider.swift
+  s_299dc04098b816::t_5da52431fc726f 25,131-133
+mobile/test/dictation_test.dart
+  s_299dc04098b816::t_77187b1349fdde 46-72,267-275
+  s_299dc04098b816::t_999645e438c901 276-286
+Sources/UtterLeaf/SettingsView.swift
+  s_299dc04098b816::t_f46fc7dba38fd2 105
+  s_299dc04098b816::t_4d7ad4bb89fe28 63,65
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_f46fc7dba38fd2 304,306,308-314,323
+  s_299dc04098b816::t_dbf142452400b9 128,158,273
+mobile/ios/Runner/SceneDelegate.swift
+  s_299dc04098b816::t_5da52431fc726f 8
+Sources/UtterLeafCore/CloudHistorySync.swift
+  s_299dc04098b816::t_a4b12c45737d88 1-130,136-155,157-168,170-215
+  s_299dc04098b816::t_762afdb3dc5402 131-135,156,169
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_f46fc7dba38fd2 19,33-39,107-109,119
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_ebb196746a3f6c 297
+Sources/UtterLeaf/UsageView.swift
+  s_299dc04098b816::t_fb3b118aa2db62 29
+mobile/ios/Runner.xcodeproj/project.pbxproj
+  s_299dc04098b816::t_d3f751e66f9692 10,80,443
+mobile/ios/Runner/AppDelegate.swift
+  s_299dc04098b816::t_be7ca7fc04f003 68,86,97-98
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_7eec2995bbb592 128,185,187
+mobile/lib/history_page.dart
+  s_2dc863f6bfb685::t_81d5f18e93b2fb 1-294
+mobile/lib/usage_page.dart
+  s_299dc04098b816::t_bf0aa57e75b56f 164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "207b2895a97b5230f5d6aff9572ac6d0a8c6b035",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    },
+    "s_2dc863f6bfb685": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677d-7904-7e22-a11d-913471b8bf05",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
