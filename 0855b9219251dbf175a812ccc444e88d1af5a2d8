@@ -1,0 +1,29 @@
+mobile/ios/Shared/DictationExchange.swift
+  s_299dc04098b816::t_ece603089ee805 28
+Sources/UtterLeafCore/KeyboardDelivery.swift
+  s_299dc04098b816::t_ece603089ee805 10-19
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_d5d7ef35649b9c 82,84-87,99-100,103-105,112-113
+  s_299dc04098b816::t_ece603089ee805 90-92,98,101-102,106-109,116-121,146,192-197,211-212,229
+  s_299dc04098b816::t_49f524897fa196 230-231
+mobile/ios/Runner/SceneDelegate.swift
+  s_299dc04098b816::t_49f524897fa196 7
+Tests/UtterLeafCoreTests/KeyboardDeliveryTests.swift
+  s_299dc04098b816::t_9fc61532889402 21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "972beed3fc46ca5b8abd75c37646cf80bcc5a538",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
