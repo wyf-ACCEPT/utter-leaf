@@ -1,0 +1,29 @@
+README.md
+  s_299dc04098b816::t_df246621632429 124-127
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_155daa4f74ee00 20,44,68-69,77,81-87,266-273,297
+Sources/UtterLeaf/NativeBridge.swift
+  s_299dc04098b816::t_d19ab87aff56b9 73-116,126-138
+Sources/UtterLeaf/TargetCapture.swift
+  s_299dc04098b816::t_0e6800af768b6b 1-36
+Sources/UtterLeafCore/Domain.swift
+  s_299dc04098b816::t_ffddd166aa002c 121-122
+Tests/UtterLeafCoreTests/TargetCaptureTests.swift
+  s_299dc04098b816::t_9ab5eac8137f98 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2a8689790fdfffffd2c5209a0591f78399a8f95f",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
