@@ -1,0 +1,49 @@
+prompts/cleanup-v5.txt
+  s_1a7d1624a545dc::t_1400e2e6dc8e01 1-39
+prompts/cleanup-v6-spoken-symbols.txt
+  s_1a7d1624a545dc::t_ee8e03f06cdc84 1-74
+research/6x23-transfer-manifest.json
+  s_1a7d1624a545dc::t_3d838bb06fd21b 1-148
+research/benchmark/ORIGINAL_README.txt
+  s_1a7d1624a545dc::t_507648875f7d80 1-52
+research/benchmark/prompts/final.txt
+  s_1a7d1624a545dc::t_8570802bb6fe04 1-36
+research/benchmark/prompts/v3-final.txt
+  s_1a7d1624a545dc::t_375411794d1e74 1-18
+research/benchmark/prompts/v4-candidate.txt
+  s_1a7d1624a545dc::t_479de749268ffb 1-36
+research/benchmark/prompts/v5-final.txt
+  s_1a7d1624a545dc::t_4233cc70dfdc48 1-39
+research/benchmark/prompts/v6-spoken-symbols.txt
+  s_1a7d1624a545dc::t_d8c492e6dc04f4 1-74
+research/benchmark/regression-v6-spoken-symbols.json
+  s_1a7d1624a545dc::t_22ae0198fa27e6 1-20
+research/benchmark/regression-v6-symbols.json
+  s_1a7d1624a545dc::t_b9d8e7f157c50a 1-173
+research/benchmark/requirements.txt
+  s_1a7d1624a545dc::t_922980d187834b 1
+research/benchmark/scripts/prepare.py
+  s_1a7d1624a545dc::t_be221214179fd3 1-51
+research/benchmark/scripts/report.py
+  s_1a7d1624a545dc::t_19297550a31c95 1-110
+research/benchmark/scripts/serve_report.py
+  s_1a7d1624a545dc::t_a6f6dbe6e6d8ef 1-33
+research/benchmark/summary-20261023.json
+  s_1a7d1624a545dc::t_a542be1adb6bf3 1-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9e6ce6449ece95d877c43da8654744ba880c9962",
+  "prompts": {},
+  "sessions": {
+    "s_1a7d1624a545dc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fa8-7d6c-7241-b562-2a7a43014fc7",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
