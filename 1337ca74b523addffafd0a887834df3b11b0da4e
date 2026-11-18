@@ -1,0 +1,33 @@
+DESIGN.md
+  s_299dc04098b816::t_5cb46e62f42491 117-118
+Sources/UtterLeaf/UsageBudgetView.swift
+  s_299dc04098b816::t_f612f4b24a1f0d 37-44,47-53,68,75-76,82-85
+Sources/UtterLeaf/UsageView.swift
+  s_299dc04098b816::t_40b7c5a74d53ec 1-46
+Sources/UtterLeaf/Views.swift
+  s_299dc04098b816::t_1bd9a6f7d0d42e 19-20,341-343,355,360-367,429,432
+Sources/UtterLeafCore/UsageBudget.swift
+  s_299dc04098b816::t_80bbdc05f54427 8-11,33-34
+Sources/UtterLeafCore/UsagePurpose.swift
+  s_299dc04098b816::t_6894806abff3e6 1-11
+Tests/UtterLeafCoreTests/UsageBudgetTests.swift
+  s_299dc04098b816::t_30e05fe83ec5af 58-80
+UX-CONTRACT.md
+  s_299dc04098b816::t_fe4c323a6ccb68 100-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "19425e3362a6d367f1146821c37ecc20daa78ecd",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
