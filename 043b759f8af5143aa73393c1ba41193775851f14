@@ -1,0 +1,21 @@
+Sources/UtterLeaf/AppModel.swift
+  s_299dc04098b816::t_b36b7330144218 96,104,178-179,192-201,398-399
+Sources/UtterLeaf/SettingsView.swift
+  s_299dc04098b816::t_799317cd25caea 58,78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c8c9ca752889aaa8f2631f761059e8fb1e9ce14d",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
