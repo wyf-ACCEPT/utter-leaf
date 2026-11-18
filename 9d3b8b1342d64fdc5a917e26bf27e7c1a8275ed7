@@ -1,0 +1,29 @@
+DESIGN.md
+  s_299dc04098b816::t_24471f1862348b 160-162
+UX-CONTRACT.md
+  s_299dc04098b816::t_bbee9884046dc6 169-171
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_94aab0a1227799 75
+mobile/ios/Shared/DictationExchange.swift
+  s_299dc04098b816::t_f0a98329de6bf3 3
+mobile/ios/UtterLeafKeyboard/KeyboardViewController.swift
+  s_299dc04098b816::t_309b3cfbd1a0d4 123,152,182-187,222-249
+mobile/lib/main.dart
+  s_299dc04098b816::t_b1a0fb41a440ac 575-578,580,586,602
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fc2c40be6f1c290f6a4efa7208d5f31bbac53dce",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
