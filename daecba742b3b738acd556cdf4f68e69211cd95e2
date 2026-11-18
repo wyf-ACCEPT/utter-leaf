@@ -1,0 +1,59 @@
+mobile/ios/Runner/SceneDelegate.swift
+  s_299dc04098b816::t_5cbcfec424b083 10
+Sources/UtterLeaf/LocalStore.swift
+  s_299dc04098b816::t_46f648b13f4086 39-44,191,194-195,197-199
+mobile/lib/vocabulary_page.dart
+  s_299dc04098b816::t_0629e4df77e269 1-83,85-158,165-428,433-434
+  s_299dc04098b816::t_44d5653ee2c83e 84,159-164
+  s_299dc04098b816::t_df71cc16d52521 429-432
+  s_299dc04098b816::t_ac761e9b50b4fb 435-437
+Tests/UtterLeafCoreTests/VocabularyAndWaveformTests.swift
+  s_299dc04098b816::t_5289f5a00ff410 54-55
+mobile/test/vocabulary_test.dart
+  s_299dc04098b816::t_49cbef9fc18f83 1-37
+  s_299dc04098b816::t_b0131566b7193a 38-40
+mobile/ios/Runner/DictationCoordinator.swift
+  s_299dc04098b816::t_5cbcfec424b083 48-50,65-74,80-83,361,424-431
+  s_299dc04098b816::t_144458b8028985 75-79
+  s_299dc04098b816::t_993617c4e2f8eb 432-434
+  s_299dc04098b816::t_0c0d9e86545146 435
+Sources/UtterLeaf/UtterLeafApp.swift
+  s_299dc04098b816::t_5cbcfec424b083 19,33-37,115-116,126
+mobile/ios/Runner/MobileProvider.swift
+  s_299dc04098b816::t_5cbcfec424b083 16,25,94,100-102,104
+Sources/UtterLeaf/VocabularyView.swift
+  s_299dc04098b816::t_23468015c3b367 71
+  s_299dc04098b816::t_46f648b13f4086 17-21,58,67,72-75
+  s_299dc04098b816::t_a4decd56555756 132
+Sources/UtterLeafCore/CloudVocabularySync.swift
+  s_299dc04098b816::t_46f648b13f4086 1-86,88-93,95-138,140-157,159-203
+  s_299dc04098b816::t_23468015c3b367 87,94,139,158
+DESIGN.md
+  s_299dc04098b816::t_8094c9ea06f1b7 187-189
+README.md
+  s_299dc04098b816::t_4bf5dda63ccb69 22,24,32,126,134,246-260
+UX-CONTRACT.md
+  s_299dc04098b816::t_825e0b63c25f12 194-196
+mobile/README.md
+  s_299dc04098b816::t_baa537111123d3 84-90
+mobile/ios/Runner.xcodeproj/project.pbxproj
+  s_299dc04098b816::t_47519571d5940a 10-12,83-85,450-452
+mobile/lib/main.dart
+  s_299dc04098b816::t_3e3e6e91b317d2 4,447-449,459-463,622-633
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6d1ae9130f73afeb21b6da043d1f8798fb6c032c",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
