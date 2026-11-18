@@ -1,0 +1,35 @@
+Tests/UtterLeafCoreTests/QuotaPresentationTests.swift
+  s_299dc04098b816::t_78812b4a5a25d7 25
+Sources/UtterLeaf/MinutesQuotaStore.swift
+  s_299dc04098b816::t_78812b4a5a25d7 7,14,39,81,91
+Sources/UtterLeaf/MinutesQuotaView.swift
+  s_299dc04098b816::t_78812b4a5a25d7 21-35
+DESIGN.md
+  s_35fc881c8ddb9d::t_6d37972ee5b20d 200-201
+UX-CONTRACT.md
+  s_35fc881c8ddb9d::t_a7d20558600ca4 207-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b3b57ccb4ce00d0ff11043644f03ca5148d7ac00",
+  "prompts": {},
+  "sessions": {
+    "s_299dc04098b816": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1677b-a8cb-7dd0-9f6d-f716bb71cb89",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    },
+    "s_35fc881c8ddb9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1196f-1a9f-7f02-8061-8655fe0810aa",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "wyf-ACCEPT <importwyf@gmail.com>"
+    }
+  }
+}
